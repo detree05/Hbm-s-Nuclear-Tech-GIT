@@ -1409,6 +1409,7 @@ public class ModItems {
 	public static Item missile_test;
 
 	public static Item mp_thruster_10_kerosene;
+	public static Item mp_thruster_20_singularity;
 	public static Item mp_thruster_10_solid;
 	public static Item mp_thruster_10_hydrazine;
 	public static Item mp_thruster_10_xenon;
@@ -3980,6 +3981,7 @@ public class ModItems {
 		sat_relay = new ItemSatInterface().setUnlocalizedName("sat_relay").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_relay");
 																														//in kg
 		mp_thruster_10_kerosene = new ItemCustomMissilePart().makeThruster(FuelType.KEROSENE, 1F, 1_500, PartSize.SIZE_10, 16_000, 180, 308).setHealth(10F)					.setUnlocalizedName("mp_thruster_10_kerosene");
+		mp_thruster_20_singularity = new ItemCustomMissilePart().makeThruster(FuelType.XENON, 2F, 1_500, PartSize.SIZE_20, 6_000_000, 180, 4200).setHealth(10F)				.setUnlocalizedName("mp_thruster_20_singularity");
 		mp_thruster_10_solid = new ItemCustomMissilePart().makeThruster(FuelType.SOLID, 1F, 1_500, PartSize.SIZE_10, 60_000, 400, 195).setHealth(15F)						.setUnlocalizedName("mp_thruster_10_solid");
 		mp_thruster_10_xenon = new ItemCustomMissilePart().makeThruster(FuelType.XENON, 1F, 1_500, PartSize.SIZE_10, 2_000, 200, 4200).setHealth(5F)							.setUnlocalizedName("mp_thruster_10_xenon");
 		mp_thruster_15_kerosene = new ItemCustomMissilePart().makeThruster(FuelType.KEROSENE, 1F, 7_500, PartSize.SIZE_15, 120_000, 900, 308).setHealth(15F)					.setUnlocalizedName("mp_thruster_15_kerosene");
@@ -6758,6 +6760,7 @@ public class ModItems {
 
 		//Missile Parts
 		GameRegistry.registerItem(mp_thruster_10_kerosene, mp_thruster_10_kerosene.getUnlocalizedName());
+		GameRegistry.registerItem(mp_thruster_20_singularity, mp_thruster_20_singularity.getUnlocalizedName());
 		GameRegistry.registerItem(mp_thruster_10_solid, mp_thruster_10_solid.getUnlocalizedName());
 		GameRegistry.registerItem(mp_thruster_10_hydrazine, mp_thruster_10_hydrazine.getUnlocalizedName());
 		GameRegistry.registerItem(mp_thruster_10_xenon, mp_thruster_10_xenon.getUnlocalizedName());
