@@ -40,11 +40,12 @@ public class SolarSystem {
 
 	public static void init() {
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones
-		kerbol = new CelestialBody("kerbol")
+		kerbol = new CelestialBody("kerbol", SpaceConfig.kerbolDimension, Body.KERBOL)
 			.withMassRadius(1.757e28F, 261_600)
 			.withRotationalPeriod(432_000)
 			.withTexture(new ResourceLocation("textures/environment/sun.png"))
-			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 3) // Only shows when CBT_Destroyed
+			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 3)
+			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)
@@ -62,7 +63,7 @@ public class SolarSystem {
 					.withRotationalPeriod(80_500)
 					.withColor(0.408F, 0.298F, 0.553F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/eve_stone_2.png", RefStrings.MODID + ":textures/blocks/eve_silt.png")
-					.withMinProcessingLevel(2)
+					.withMinProcessingLevel(3)
 					.withTraits(new CBT_Atmosphere(Fluids.EVEAIR, 5D), new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
 					.withSatellites(
 
@@ -80,6 +81,7 @@ public class SolarSystem {
 					.withRotationalPeriod(21_549)
 					.withColor(0.608F, 0.914F, 1.0F)
 					.withTraits(new CBT_Atmosphere(Fluids.EARTHAIR, 1D), new CBT_Water())
+					.withAxialTilt(20F)
 					.withBlockTextures("textures/blocks/stone.png", "textures/blocks/dirt.png")
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_mask.png"))
 					.withBiomeMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_biomes.png"))
@@ -87,9 +89,9 @@ public class SolarSystem {
 
 						new CelestialBody("mun", SpaceConfig.moonDimension, Body.MUN)
 							.withMassRadius(9.76e20F, 200)
-							.withOrbitalParameters(12_000, 0.054F, 0.0F, 5.15F, 17.0F)
+							.withOrbitalParameters(16_000, 0.054F, 0.0F, 5.15F, 17.0F)
 							.withRotationalPeriod(138_984)
-							.withTidalLockingTo("kerbin")
+							.withAxialTilt(25F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/moon_rock.png", RefStrings.MODID + ":textures/blocks/moon_turf.png")
 							.withIce(true),
 
@@ -97,6 +99,7 @@ public class SolarSystem {
 							.withMassRadius(2.646e19F, 60)
 							.withOrbitalParameters(47_000, 0, 38.0F, 6.0F, 78.0F)
 							.withRotationalPeriod(40_400)
+							.withAxialTilt(135F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/minmus_stone.png", RefStrings.MODID + ":textures/blocks/minmus_regolith.png")
 							.withTraits(new CBT_Water(Fluids.MILK))
 							.withIce(true)
@@ -120,7 +123,7 @@ public class SolarSystem {
 							.withOrbitalParameters(3_200, 0.03F, 0.0F, 0.2F, 0.0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/ike_stone.png", RefStrings.MODID + ":textures/blocks/ike_regolith.png")
 							.withRotationalPeriod(65_518)
-							.withTidalLockingTo("duna")
+							.withAxialTilt(15F)
 							.withTraits(new CBT_Water(Fluids.BROMINE))
 							.withIce(true)
 
@@ -253,7 +256,8 @@ public class SolarSystem {
 		EVE("eve"),
 		IKE("ike"),
 		LAYTHE("laythe"),
-		TEKTO("tekto");
+		TEKTO("tekto"),
+		KERBOL("kerbol");
 		//THATMO("thatmo"); sit this one out buddy :)
 
 		public String name;
@@ -607,6 +611,15 @@ public class SolarSystem {
 			}
 		}
 
+		// If the body isn't in the metrics list (e.g., the star itself), treat it as the origin.
+		if(from == null) {
+			Vec3 origin = Vec3.createVectorHelper(0, 0, 0);
+			for(AstroMetric to : metrics) {
+				calculateMetric(to, origin);
+			}
+			return;
+		}
+
 		for(AstroMetric to : metrics) {
 			if(from == to)
 				continue;
@@ -829,9 +842,7 @@ public class SolarSystem {
 			// Transfer to self, ignore
 
 			return 0;
-		} else if(start.parent == null || end.parent == null) {
-			throw new NotImplementedException("Transfers to and from solar bodies not supported");
-		} else if(start.parent == end.parent) {
+		}else if(start.parent == end.parent) {
 			// Intersystem transfer
 
 			double firstBurnCost = calculateSingleHohmannTransfer(start.parent.massKg, start.semiMajorAxisKm, end.semiMajorAxisKm, start.massKg, start.radiusKm + AstronomyUtil.DEFAULT_ALTITUDE_KM);
@@ -852,6 +863,8 @@ public class SolarSystem {
 			double secondBurnCost = calculateSingleHohmannTransfer(end.massKg, end.radiusKm + AstronomyUtil.DEFAULT_ALTITUDE_KM, start.semiMajorAxisKm);
 
 			return firstBurnCost + secondBurnCost;
+		} else if(start.parent == null || end.parent == null) {
+			throw new NotImplementedException("Transfers to and from solar bodies not supported");
 		} else {
 			// Complex transfer (moon -> moon, moon -> other planet)
 

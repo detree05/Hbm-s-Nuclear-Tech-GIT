@@ -269,6 +269,7 @@ public class ItemBedrockOreNew extends Item {
 				T("crystal",	o(MAT_EMERALD, 18),			o(MAT_SILICON, 9),			o(MAT_MOLYSITE, 6),			o(MAT_BORAX, 3)),
 				T("plastic",	o(MAT_POLYMER, 18),			o(MAT_RUBBER, 9),			o(MAT_SEMTEX, 6),			o(MAT_PVC, 3))
 			);
+			register(SolarSystem.Body.KERBOL);
 			/*
 			register(
 				SolarSystem.Body.THATMO,

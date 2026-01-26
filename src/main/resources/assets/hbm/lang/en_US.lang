@@ -236,6 +236,7 @@ body.laythe=Laythe
 body.ike=Ike
 body.dres=Dres
 body.tekto=Tekto
+body.kerbol=§kVOID§r
 
 bomb.detonated=Detonated successfully!
 bomb.incompatible=Device can not be triggered!
@@ -3922,6 +3923,7 @@ item.mp_stability_15_flat.name=Size 15 Flat Fins
 item.mp_stability_15_soyuz.name=Size 15 Pointy Fins
 item.mp_stability_15_thin.name=Size 15 Thin Fins
 item.mp_thruster_10_kerosene.name=Size 10 Liquid Fuel Thruster
+item.mp_thruster_20_singularity.name=Singularity Micro Black Hole Engine
 item.mp_thruster_10_solid.name=Size 10 Solid Fuel Thruster
 item.mp_thruster_10_hydrazine.name=Size 10 Hydrazine Thruster
 item.mp_thruster_10_xenon.name=Size 10 Ion Thruster

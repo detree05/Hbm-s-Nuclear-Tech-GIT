@@ -628,6 +628,7 @@ public class CelestialBody {
 
 	// Returns the year length in days, derived from semi-major axis
 	public double getOrbitalPeriod() {
+		if(parent == null) return 0;
 		double semiMajorAxis = semiMajorAxisKm * 1_000;
 		double orbitalPeriod = 2 * Math.PI * Math.sqrt((semiMajorAxis * semiMajorAxis * semiMajorAxis) / (AstronomyUtil.GRAVITATIONAL_CONSTANT * parent.massKg));
 		return orbitalPeriod / (double)AstronomyUtil.SECONDS_IN_KSP_DAY;
