@@ -4,6 +4,7 @@ import com.hbm.dim.SolarSystem;
 import com.hbm.lib.RefStrings;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.BiomeGenOrbit;
+import com.hbm.util.ParticleUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
@@ -12,12 +13,14 @@ import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.biome.WorldChunkManagerHell;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.client.IRenderHandler;
+import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 import org.lwjgl.opengl.GL11;
 import net.minecraft.util.ResourceLocation;
 
@@ -78,7 +81,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 					double spikeSize = 10.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
-					GL11.glColor4f(1.0F, 0.45F, 0.15F, 0.85F);
+					GL11.glColor4f(1.0F, 0.35F, 0.18F, 0.85F);
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, -spikeSize, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(spikeSize, 99.9D, -spikeSize, 1.0D, 0.0D);
@@ -87,7 +90,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.draw();
 
 					mc.renderEngine.bindTexture(SolarSystem.kerbol.texture);
-					GL11.glColor4f(3.0F, 0.9F, 0.25F, 1.0F);
+					GL11.glColor4f(3.0F, 0.70F, 0.30F, 1.0F);
 					double size = 2.5D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
@@ -122,6 +125,57 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	}
 
 	@Override
+	public void updateWeather() {
+		super.updateWeather();
+
+		if(!worldObj.isRemote) {
+			return;
+		}
+
+		EntityLivingBase viewEntity = Minecraft.getMinecraft().renderViewEntity;
+		if(viewEntity == null) {
+			return;
+		}
+
+		if(worldObj.rand.nextFloat() > 0.25F) {
+			return;
+		}
+
+		double time = (worldObj.getWorldTime() % 24000L) / 24000.0D * Math.PI * 2.0D;
+		double windX = Math.cos(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D;
+		double windZ = Math.sin(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D;
+		double windY = (worldObj.rand.nextDouble() - 0.5D) * 0.004D;
+
+		Vec3 vec = Vec3.createVectorHelper(16 + worldObj.rand.nextDouble() * 24, worldObj.rand.nextDouble() * 6 - 3, 0);
+		vec.rotateAroundY((float)(worldObj.rand.nextDouble() * Math.PI * 2));
+
+		float scale = 0.6F + worldObj.rand.nextFloat() * 0.6F;
+		ParticleUtil.spawnKerbolWind(worldObj,
+				viewEntity.posX + vec.xCoord,
+				viewEntity.posY + 1 + vec.yCoord,
+				viewEntity.posZ + vec.zCoord,
+				windX, windY, windZ,
+				scale,
+				0.95F, 0.2F, 0.2F, 0.6F);
+
+		for(int i = 0; i < 2; i++) {
+			if(worldObj.rand.nextFloat() > 0.85F) {
+				continue;
+			}
+			Vec3 dotVec = Vec3.createVectorHelper(worldObj.rand.nextGaussian() * 10, worldObj.rand.nextDouble() * 6, worldObj.rand.nextGaussian() * 10);
+			double dotX = worldObj.rand.nextGaussian() * 0.004D;
+			double dotZ = worldObj.rand.nextGaussian() * 0.004D;
+			double dotY = 0.025D + worldObj.rand.nextDouble() * 0.02D;
+			ParticleUtil.spawnKerbolDot(worldObj,
+					viewEntity.posX + dotVec.xCoord,
+					viewEntity.posY + 1 + dotVec.yCoord,
+					viewEntity.posZ + dotVec.zCoord,
+					dotX, dotY, dotZ,
+					0.95F, 0.2F, 0.2F);
+		}
+	}
+
+	@Override
 	public Block getStone() { return Blocks.obsidian; }
 
 	@Override
@@ -145,6 +199,11 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	public Vec3 getFogColor(float x, float y) {
 		// Darker red fog to match the sky
 		return Vec3.createVectorHelper(0.10, 0.01, 0.01);
+	}
+
+	@Override
+	public float fogDensity(FogDensity event) {
+		return 0.02F;
 	}
 
 	@Override

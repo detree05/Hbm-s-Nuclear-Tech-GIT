@@ -34,6 +34,9 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int TORUS_MINOR_MIN = 2;
 	private static final int TORUS_MINOR_MAX = 4;
 	private static final int[] MENGER_SIZES = { 6, 9, 12 };
+	private static final int TESSERACT_SIZE_MIN = 6;
+	private static final int TESSERACT_SIZE_MAX = 10;
+	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
 
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
@@ -99,10 +102,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			}
 		}
 
-		// Single spawn block at the world origin
-		if(x == 0 && z == 0) {
-			worldObj.setBlock(0, BASE_HEIGHT, 0, ModBlocks.basalt_smooth);
-		}
+		// No forced spawn block at world origin
 
 		generateGeometricFigures(rand, x, z);
 	}
@@ -141,7 +141,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			int baseY = inSky ? (BASE_HEIGHT + 40 + rand.nextInt(80)) : (getHeight(wx, wz) + 1);
 			Orientation orientation = pickOrientation(rand);
 
-			int figureType = rand.nextInt(3);
+			int figureType = rand.nextInt(5);
 			switch(figureType) {
 				case 0:
 					placeOctahedron(wx, baseY, wz, randRange(rand, OCTAHEDRON_RADIUS_MIN, OCTAHEDRON_RADIUS_MAX), orientation);
@@ -149,8 +149,14 @@ public class ChunkProviderKerbol implements IChunkProvider {
 				case 1:
 					placeMengerSponge(wx, baseY, wz, pickMengerSize(rand), orientation);
 					break;
-				default:
+				case 2:
 					placeTorus(wx, baseY + 2, wz, randRange(rand, TORUS_MAJOR_MIN, TORUS_MAJOR_MAX), randRange(rand, TORUS_MINOR_MIN, TORUS_MINOR_MAX), orientation);
+					break;
+				case 3:
+					placeTesseract(wx, baseY + 4, wz, randRange(rand, TESSERACT_SIZE_MIN, TESSERACT_SIZE_MAX), orientation);
+					break;
+				default:
+					placeSierpinskiTetrahedron(wx, baseY, wz, pickSierpinskiSize(rand), orientation);
 					break;
 			}
 		}
@@ -225,6 +231,69 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		}
 	}
 
+	private void placeTesseract(int centerX, int centerY, int centerZ, int outerHalfSize, Orientation orientation) {
+		int innerHalfSize = Math.max(2, MathHelper.floor_double(outerHalfSize * 0.6D));
+		int[][] outer = cubeVertices(outerHalfSize);
+		int[][] inner = cubeVertices(innerHalfSize);
+
+		for(int i = 0; i < outer.length; i++) {
+			int[] o = transform(outer[i][0], outer[i][1], outer[i][2], orientation);
+			int[] in = transform(inner[i][0], inner[i][1], inner[i][2], orientation);
+			drawEdge(centerX, centerY, centerZ, o, in);
+		}
+
+		drawCubeEdges(centerX, centerY, centerZ, outer, orientation);
+		drawCubeEdges(centerX, centerY, centerZ, inner, orientation);
+	}
+
+	private void placeSierpinskiTetrahedron(int centerX, int centerY, int centerZ, int size, Orientation orientation) {
+		int half = size / 2;
+		int startX = centerX - half;
+		int startZ = centerZ - half;
+		int depth = 0;
+		int temp = size;
+		while(temp >= 2 && depth < 4) {
+			if(temp % 2 != 0) {
+				break;
+			}
+			depth++;
+			temp /= 2;
+		}
+		buildSierpinski(startX, centerY, startZ, size, Math.max(1, depth), orientation);
+	}
+
+	private void buildSierpinski(int startX, int startY, int startZ, int size, int depth, Orientation orientation) {
+		if(depth <= 1 || size <= 2) {
+			fillTetrahedron(startX, startY, startZ, size, orientation);
+			return;
+		}
+
+		int half = size / 2;
+		buildSierpinski(startX, startY, startZ, half, depth - 1, orientation);
+		buildSierpinski(startX + half, startY, startZ, half, depth - 1, orientation);
+		buildSierpinski(startX, startY, startZ + half, half, depth - 1, orientation);
+		buildSierpinski(startX, startY + half, startZ, half, depth - 1, orientation);
+	}
+
+	private void fillTetrahedron(int startX, int startY, int startZ, int size, Orientation orientation) {
+		for(int x = 0; x < size; x++) {
+			for(int y = 0; y < size; y++) {
+				for(int z = 0; z < size; z++) {
+					if(x + y + z <= size - 1) {
+						int localX = x;
+						int localY = y;
+						int localZ = z;
+						int[] t = transform(localX, localY, localZ, orientation);
+						int wx = startX + t[0];
+						int wy = startY + t[1];
+						int wz = startZ + t[2];
+						setFigureBlock(wx, wy, wz, pickFigureBlock(localX, localY, localZ));
+					}
+				}
+			}
+		}
+	}
+
 	private Orientation pickOrientation(Random rand) {
 		int perm = rand.nextInt(6);
 		int sx = rand.nextBoolean() ? 1 : -1;
@@ -235,6 +304,10 @@ public class ChunkProviderKerbol implements IChunkProvider {
 
 	private int pickMengerSize(Random rand) {
 		return MENGER_SIZES[rand.nextInt(MENGER_SIZES.length)];
+	}
+
+	private int pickSierpinskiSize(Random rand) {
+		return SIERPINSKI_SIZES[rand.nextInt(SIERPINSKI_SIZES.length)];
 	}
 
 	private int randRange(Random rand, int minInclusive, int maxInclusive) {
@@ -264,6 +337,62 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		ty *= orientation.sy;
 		tz *= orientation.sz;
 		return new int[] { tx, ty, tz };
+	}
+
+	private int[][] cubeVertices(int halfSize) {
+		return new int[][] {
+			{ -halfSize, -halfSize, -halfSize },
+			{ halfSize, -halfSize, -halfSize },
+			{ halfSize, halfSize, -halfSize },
+			{ -halfSize, halfSize, -halfSize },
+			{ -halfSize, -halfSize, halfSize },
+			{ halfSize, -halfSize, halfSize },
+			{ halfSize, halfSize, halfSize },
+			{ -halfSize, halfSize, halfSize }
+		};
+	}
+
+	private void drawCubeEdges(int centerX, int centerY, int centerZ, int[][] vertices, Orientation orientation) {
+		int[][] edges = new int[][] {
+			{ 0, 1 }, { 1, 2 }, { 2, 3 }, { 3, 0 },
+			{ 4, 5 }, { 5, 6 }, { 6, 7 }, { 7, 4 },
+			{ 0, 4 }, { 1, 5 }, { 2, 6 }, { 3, 7 }
+		};
+		for(int i = 0; i < edges.length; i++) {
+			int[] a = vertices[edges[i][0]];
+			int[] b = vertices[edges[i][1]];
+			int[] ta = transform(a[0], a[1], a[2], orientation);
+			int[] tb = transform(b[0], b[1], b[2], orientation);
+			drawEdge(centerX, centerY, centerZ, ta, tb);
+		}
+	}
+
+	private void drawEdge(int centerX, int centerY, int centerZ, int[] a, int[] b) {
+		int x0 = centerX + a[0];
+		int y0 = centerY + a[1];
+		int z0 = centerZ + a[2];
+		int x1 = centerX + b[0];
+		int y1 = centerY + b[1];
+		int z1 = centerZ + b[2];
+		drawLine(x0, y0, z0, x1, y1, z1);
+	}
+
+	private void drawLine(int x0, int y0, int z0, int x1, int y1, int z1) {
+		int dx = x1 - x0;
+		int dy = y1 - y0;
+		int dz = z1 - z0;
+		int steps = Math.max(Math.abs(dx), Math.max(Math.abs(dy), Math.abs(dz)));
+		if(steps == 0) {
+			setFigureBlock(x0, y0, z0, pickFigureBlock(0, 0, 0));
+			return;
+		}
+		for(int i = 0; i <= steps; i++) {
+			double t = i / (double) steps;
+			int x = (int) Math.round(x0 + dx * t);
+			int y = (int) Math.round(y0 + dy * t);
+			int z = (int) Math.round(z0 + dz * t);
+			setFigureBlock(x, y, z, pickFigureBlock(x, y, z));
+		}
 	}
 
 	private static class Orientation {

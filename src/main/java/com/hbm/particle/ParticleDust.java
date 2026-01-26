@@ -10,26 +10,49 @@ import net.minecraft.world.World;
 
 @SideOnly(Side.CLIENT)
 public class ParticleDust extends EntityFX {
+	private final boolean smoothAlpha;
+	private final float baseAlpha;
 
 	public ParticleDust(World world, double x, double y, double z, double mX, double mY, double mZ, float scale) {
+		this(world, x, y, z, mX, mY, mZ, scale, 0.4f, 0.2f, 0.1f, 0.5f, false);
+	}
+
+	public ParticleDust(World world, double x, double y, double z, double mX, double mY, double mZ, float scale, float r, float g, float b, float a) {
+		this(world, x, y, z, mX, mY, mZ, scale, r, g, b, a, false);
+	}
+
+	public ParticleDust(World world, double x, double y, double z, double mX, double mY, double mZ, float scale, float r, float g, float b, float a, boolean smoothAlpha) {
 		super(world, x, y, z, mX, mY, mZ);
 		particleIcon = ModEventHandlerClient.particleBase;
-		this.particleRed = 0.4f;
-		this.particleGreen = 0.2f;
-		this.particleBlue = 0.1f;
+		this.particleRed = r;
+		this.particleGreen = g;
+		this.particleBlue = b;
 		this.particleScale = scale;
 		this.motionX = mX;
 		this.motionY = mY;
 		this.motionZ = mZ;
 		this.particleAge = 1;
 		this.particleMaxAge = 50 + world.rand.nextInt(50);
-		this.particleAlpha = 0.5F;
+		this.baseAlpha = a;
+		this.smoothAlpha = smoothAlpha;
+		this.particleAlpha = a;
 		this.noClip = true;
 	}
 
 	@Override
 	public int getFXLayer() {
 		return 1;
+	}
+
+	@Override
+	public void onUpdate() {
+		super.onUpdate();
+
+		if(smoothAlpha) {
+			float t = (float) this.particleAge / (float) this.particleMaxAge;
+			float fade = (float) Math.sin(t * Math.PI);
+			this.particleAlpha = baseAlpha * Math.max(0F, Math.min(1F, fade));
+		}
 	}
 
 	@Override

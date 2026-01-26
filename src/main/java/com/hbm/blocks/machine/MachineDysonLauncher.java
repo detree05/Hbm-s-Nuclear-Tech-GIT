@@ -6,6 +6,7 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
+import com.hbm.config.SpaceConfig;
 import com.hbm.handler.MultiblockHandlerXR;
 import com.hbm.items.ModItems;
 import com.hbm.tileentity.TileEntityProxyCombo;
@@ -208,6 +209,13 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 
 		if(pos == null) return;
 
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			List<String> text = new ArrayList<String>();
+			text.add(EnumChatFormatting.RED + randomKerbolWarning(world));
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
+
 		TileEntity te = world.getTileEntity(pos[0], pos[1], pos[2]);
 
 		if(!(te instanceof TileEntityDysonLauncher)) return;
@@ -225,6 +233,14 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		}
 
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
+	}
+
+	private String randomKerbolWarning(World world) {
+		return "what" + randomSpaces(world) + "were" + randomSpaces(world) + "you" + randomSpaces(world) + "thinking?";
+	}
+
+	private String randomSpaces(World world) {
+		return world.rand.nextBoolean() ? " " : "  ";
 	}
 
 	@SuppressWarnings("rawtypes")

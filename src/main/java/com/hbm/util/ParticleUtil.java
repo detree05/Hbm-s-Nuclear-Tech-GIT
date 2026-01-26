@@ -119,4 +119,48 @@ public class ParticleUtil {
 		}
 	}
 
+	public static void spawnKerbolWind(World world, double x, double y, double z, double mX, double mY, double mZ, float scale, float r, float g, float b, float a) {
+
+		NBTTagCompound data = new NBTTagCompound();
+		data.setString("type", "kerbolwind");
+		data.setDouble("mX", mX);
+		data.setDouble("mY", mY);
+		data.setDouble("mZ", mZ);
+		data.setFloat("scale", scale);
+		data.setFloat("r", r);
+		data.setFloat("g", g);
+		data.setFloat("b", b);
+		data.setFloat("a", a);
+
+		if(world.isRemote) {
+			data.setDouble("posX", x);
+			data.setDouble("posY", y);
+			data.setDouble("posZ", z);
+			MainRegistry.proxy.effectNT(data);
+		} else {
+			PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(data, x, y, z), new TargetPoint(world.provider.dimensionId, x, y, z, 150));
+		}
+	}
+
+	public static void spawnKerbolDot(World world, double x, double y, double z, double mX, double mY, double mZ, float r, float g, float b) {
+
+		NBTTagCompound data = new NBTTagCompound();
+		data.setString("type", "kerboldot");
+		data.setDouble("mX", mX);
+		data.setDouble("mY", mY);
+		data.setDouble("mZ", mZ);
+		data.setFloat("r", r);
+		data.setFloat("g", g);
+		data.setFloat("b", b);
+
+		if(world.isRemote) {
+			data.setDouble("posX", x);
+			data.setDouble("posY", y);
+			data.setDouble("posZ", z);
+			MainRegistry.proxy.effectNT(data);
+		} else {
+			PacketThreading.createAllAroundThreadedPacket(new AuxParticlePacketNT(data, x, y, z), new TargetPoint(world.provider.dimensionId, x, y, z, 150));
+		}
+	}
+
 }

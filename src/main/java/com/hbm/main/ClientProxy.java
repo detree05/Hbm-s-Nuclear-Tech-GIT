@@ -1921,6 +1921,18 @@ public class ClientProxy extends ServerProxy {
 			flash.setRBGColorF(0F, 1F, 1F);
 			Minecraft.getMinecraft().effectRenderer.addEffect(flash);
 		}
+		if("kerboldot".equals(type)) {
+			double mX = data.getDouble("mX");
+			double mY = data.getDouble("mY");
+			double mZ = data.getDouble("mZ");
+			float r = data.hasKey("r") ? data.getFloat("r") : 1F;
+			float g = data.hasKey("g") ? data.getFloat("g") : 0.2F;
+			float b = data.hasKey("b") ? data.getFloat("b") : 0.2F;
+			EntityAuraFX flash = new EntityAuraFX(world, x, y, z, 0, 0, 0);
+			flash.setRBGColorF(r, g, b);
+			flash.setVelocity(mX, mY, mZ);
+			Minecraft.getMinecraft().effectRenderer.addEffect(flash);
+		}
 
 		if("hadron".equals(type)) {
 
@@ -2026,6 +2038,18 @@ public class ClientProxy extends ServerProxy {
 			double mZ = data.getDouble("mZ");
 			float scale = data.getFloat("scale");
 			ParticleDust particle = new ParticleDust(world, x, y, z, mX, mY, mZ, scale);
+			Minecraft.getMinecraft().effectRenderer.addEffect(particle);
+		}
+		if("kerbolwind".equals(type)) {
+			double mX = data.getDouble("mX");
+			double mY = data.getDouble("mY");
+			double mZ = data.getDouble("mZ");
+			float scale = data.getFloat("scale");
+			float r = data.hasKey("r") ? data.getFloat("r") : 0.9F;
+			float g = data.hasKey("g") ? data.getFloat("g") : 0.15F;
+			float b = data.hasKey("b") ? data.getFloat("b") : 0.15F;
+			float a = data.hasKey("a") ? data.getFloat("a") : 0.6F;
+			ParticleDust particle = new ParticleDust(world, x, y, z, mX, mY, mZ, scale, r, g, b, a, true);
 			Minecraft.getMinecraft().effectRenderer.addEffect(particle);
 		}
 		if("flare".equals(type)) {

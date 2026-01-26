@@ -6,6 +6,7 @@ import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.items.ISatChip;
 import com.hbm.items.ModItems;
+import com.hbm.config.SpaceConfig;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
 import com.hbm.tileentity.TileEntityMachineBase;
@@ -61,6 +62,14 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	@Override
 	public void updateEntity() {
 		if(!worldObj.isRemote) {
+			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				isOperating = false;
+				isSpinningDown = false;
+				operatingTime = 0;
+				networkPackNT(250);
+				return;
+			}
+
 			for(DirPos pos : getConPos()) trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 			for(DirPos pos : getInvPos()) tryLoad(pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 
