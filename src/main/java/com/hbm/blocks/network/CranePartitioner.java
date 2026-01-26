@@ -139,7 +139,7 @@ public class CranePartitioner extends BlockContainer implements IConveyorBelt, I
 
 	public static class TileEntityCranePartitioner extends TileEntityMachineBase {
 
-		public static final int SLOT_COUNT = 45;
+		public static final int SLOT_COUNT = 113;
 		
 		public TileEntityCranePartitioner() {
 			super(SLOT_COUNT * 2);

@@ -864,7 +864,14 @@ public class SolarSystem {
 
 			return firstBurnCost + secondBurnCost;
 		} else if(start.parent == null || end.parent == null) {
-			throw new NotImplementedException("Transfers to and from solar bodies not supported");
+			// Allow transfers to the star with a large cost, but disallow transfers from it.
+			if(start.parent == null && end.parent != null) {
+				return Double.MAX_VALUE;
+			}
+			if(end.parent == null && start.parent != null) {
+				return 10_000D;
+			}
+			return Double.MAX_VALUE;
 		} else {
 			// Complex transfer (moon -> moon, moon -> other planet)
 

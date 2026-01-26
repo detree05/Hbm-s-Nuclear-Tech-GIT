@@ -182,6 +182,10 @@ public class RocketStruct {
 	}
 
 	public boolean hasSufficientFuel(CelestialBody from, CelestialBody to, boolean fromOrbit, boolean toOrbit) {
+		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !hasSingularityThruster()) {
+			return false;
+		}
+
 		if(capsule.part == ModItems.rp_pod_20) {
 			return from == to && (fromOrbit || toOrbit); // Pods can transfer, fall to orbited body, and return to station, but NOT hop on the surface
 		}
@@ -213,11 +217,25 @@ public class RocketStruct {
 
 		if(stage.fuselage == null || stage.thruster == null) return -1;
 
+		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !hasSingularityThruster()) {
+			return Integer.MAX_VALUE;
+		}
+
 		int rocketMass = getLaunchMass(stageNum);
 		int thrust = getThrust(stage);
 		int isp = getISP(stage);
 
 		return SolarSystem.getCostBetween(from, to, rocketMass, thrust, isp, fromOrbit, toOrbit);
+	}
+
+	private boolean hasSingularityThruster() {
+		for(RocketStage stage : stages) {
+			if(stage == null || stage.thruster == null) continue;
+			if(stage.thruster.part == ModItems.mp_thruster_20_singularity) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public int getThrust() {
