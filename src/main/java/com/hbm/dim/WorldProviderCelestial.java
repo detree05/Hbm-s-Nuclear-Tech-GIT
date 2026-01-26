@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.List;
 
 import com.hbm.config.GeneralConfig;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.SolarSystem.AstroMetric;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
@@ -516,7 +517,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
-		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class))
+		if(worldObj.provider.dimensionId != SpaceConfig.kerbolDimension)
 			return 0;
 
 		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);

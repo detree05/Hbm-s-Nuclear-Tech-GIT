@@ -27,6 +27,13 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int[] FIGURE_BLOCK_IDS = { 1095, 1096, 1098, 1099 };
 	private static final int FIGURE_SPAWN_CHANCE = 30;
 	private static final int FIGURE_SKY_CHANCE = 4;
+	private static final int OCTAHEDRON_RADIUS_MIN = 4;
+	private static final int OCTAHEDRON_RADIUS_MAX = 9;
+	private static final int TORUS_MAJOR_MIN = 4;
+	private static final int TORUS_MAJOR_MAX = 8;
+	private static final int TORUS_MINOR_MIN = 2;
+	private static final int TORUS_MINOR_MAX = 4;
+	private static final int[] MENGER_SIZES = { 6, 9, 12 };
 
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
@@ -137,13 +144,13 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			int figureType = rand.nextInt(3);
 			switch(figureType) {
 				case 0:
-					placeOctahedron(wx, baseY, wz, 5 + rand.nextInt(3), orientation);
+					placeOctahedron(wx, baseY, wz, randRange(rand, OCTAHEDRON_RADIUS_MIN, OCTAHEDRON_RADIUS_MAX), orientation);
 					break;
 				case 1:
-					placeMengerSponge(wx, baseY, wz, 9, orientation);
+					placeMengerSponge(wx, baseY, wz, pickMengerSize(rand), orientation);
 					break;
 				default:
-					placeTorus(wx, baseY + 2, wz, 5 + rand.nextInt(2), 2 + rand.nextInt(2), orientation);
+					placeTorus(wx, baseY + 2, wz, randRange(rand, TORUS_MAJOR_MIN, TORUS_MAJOR_MAX), randRange(rand, TORUS_MINOR_MIN, TORUS_MINOR_MAX), orientation);
 					break;
 			}
 		}
@@ -224,6 +231,17 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		int sy = rand.nextBoolean() ? 1 : -1;
 		int sz = rand.nextBoolean() ? 1 : -1;
 		return new Orientation(perm, sx, sy, sz);
+	}
+
+	private int pickMengerSize(Random rand) {
+		return MENGER_SIZES[rand.nextInt(MENGER_SIZES.length)];
+	}
+
+	private int randRange(Random rand, int minInclusive, int maxInclusive) {
+		if(maxInclusive <= minInclusive) {
+			return minInclusive;
+		}
+		return minInclusive + rand.nextInt(maxInclusive - minInclusive + 1);
 	}
 
 	private int[] transform(int x, int y, int z, Orientation orientation) {

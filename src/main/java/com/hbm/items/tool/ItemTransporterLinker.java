@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Random;
 import java.util.Set;
 
 import com.hbm.dim.CelestialBody;
@@ -19,6 +20,7 @@ import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.machine.TileEntityTransporterBase;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.CompatExternal;
+import com.hbm.config.SpaceConfig;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -31,6 +33,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.common.DimensionManager;
@@ -58,6 +61,10 @@ public class ItemTransporterLinker extends Item implements IGUIProvider {
 		TileEntityTransporterBase transporter = (TileEntityTransporterBase) tile;
 		if(player.isSneaking()) {
 			if(!world.isRemote) {
+				if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+					player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + randomizeSpaces("i cant do this...", world.rand)));
+					return true;
+				}
 				addTransporter(stack, world, transporter);
 				player.addChatMessage(new ChatComponentText("Added transporter to linker"));
 			}
@@ -239,6 +246,20 @@ public class ItemTransporterLinker extends Item implements IGUIProvider {
 			dimensionTag.setIntArray("coords", BobMathUtil.intCollectionToArray(entry.getValue()));
 			stack.stackTagCompound.setTag("d" + entry.getKey(), dimensionTag);
 		}
+	}
+
+	private static String randomizeSpaces(String message, Random rand) {
+		StringBuilder out = new StringBuilder(message.length() * 2);
+		for(int i = 0; i < message.length(); i++) {
+			out.append(message.charAt(i));
+			if(i < message.length() - 1) {
+				int extraSpaces = rand.nextInt(3);
+				for(int s = 0; s < extraSpaces; s++) {
+					out.append(' ');
+				}
+			}
+		}
+		return out.toString();
 	}
 
 }

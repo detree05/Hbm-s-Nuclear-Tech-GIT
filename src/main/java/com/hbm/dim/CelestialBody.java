@@ -202,6 +202,11 @@ public class CelestialBody {
 		return this;
 	}
 
+	public CelestialBody removeTrait(Class<? extends CelestialBodyTrait> trait) {
+		this.traits.remove(trait);
+		return this;
+	}
+
 	public CelestialBody withShader(ResourceLocation fragmentShader) {
 		return withShader(fragmentShader, 1);
 	}
@@ -254,11 +259,11 @@ public class CelestialBody {
 	// Gets a clone of the body traits that are SAFE for modifying
 	public static HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> getTraits(World world) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get(world);
-		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = traitsData.getTraits(getBody(world).name);
+		CelestialBody body = getBody(world);
+		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = traitsData.getTraits(body.name);
 
 		if(currentTraits == null) {
 			currentTraits = new HashMap<>();
-			CelestialBody body = getBody(world);
 			for(CelestialBodyTrait trait : body.traits.values()) {
 				currentTraits.put(trait.getClass(), trait);
 			}
@@ -699,7 +704,6 @@ public class CelestialBody {
 	public <T extends CelestialBodyTrait> T getDefaultTrait(Class<? extends T> trait) {
 		return (T) traits.get(trait);
 	}
-
 
 	// Loads in the heightmap data for a given chunk
 	public int[] getHeightmap(int chunkX, int chunkZ) {

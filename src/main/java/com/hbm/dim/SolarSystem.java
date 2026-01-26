@@ -8,6 +8,7 @@ import org.apache.commons.lang3.NotImplementedException;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_Temperature;
 import com.hbm.dim.trait.CBT_Water;
 import com.hbm.dim.trait.CelestialBodyTrait.CBT_BATTLEFIELD;
@@ -46,7 +47,7 @@ public class SolarSystem {
 			.withTexture(new ResourceLocation("textures/environment/sun.png"))
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 3)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
-			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 1.5D))
+			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 3.0D))
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)
@@ -241,6 +242,13 @@ public class SolarSystem {
 						.withMinProcessingLevel(3)
 					)
 			);
+
+		for(CelestialBody body : CelestialBody.getAllBodies()) {
+			if(body.dimensionId == SpaceConfig.kerbolDimension) {
+				continue;
+			}
+			body.removeTrait(CBT_Atmosphere.class);
+		}
 
 		runTests();
 	}

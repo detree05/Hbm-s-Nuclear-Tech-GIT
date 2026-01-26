@@ -670,8 +670,15 @@ public class ModEventHandlerClient {
 			return;
 		}
 
-		// Replace the sound if we're not on Earth
+		// No music in Kerbol
 		WorldProvider provider = Minecraft.getMinecraft().theWorld.provider;
+		if(provider != null && provider.dimensionId == SpaceConfig.kerbolDimension) {
+			event.setResult(Result.DENY);
+			event.result = null;
+			return;
+		}
+
+		// Replace the sound if we're not on Earth
 		if((provider instanceof WorldProviderCelestial || provider instanceof WorldProviderOrbit) && provider.dimensionId != 0) {
 			event.result = currentSong = PositionedSoundRecord.func_147673_a(MUSIC_LOCATION);
 		}
@@ -1228,6 +1235,7 @@ public class ModEventHandlerClient {
 	public static int loadingScreenReplacementRetry = 0;
 
 	private static AudioWrapper shipHum;
+	private static AudioWrapper kerbolWind;
 
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -1277,6 +1285,20 @@ public class ModEventHandlerClient {
 				shipHum.stopSound();
 				shipHum = null;
 			}
+
+			if(player != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				if(kerbolWind == null || !kerbolWind.isPlaying()) {
+					kerbolWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.kerbol_wind", player, 0.12F, 6.0F, 1.0F, 10);
+					kerbolWind.startSound();
+				}
+
+				kerbolWind.updateVolume(0.12F);
+				kerbolWind.keepAlive();
+			} else if(kerbolWind != null) {
+				kerbolWind.stopSound();
+				kerbolWind = null;
+			}
+
 		}
 
 		// ???

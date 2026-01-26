@@ -4,6 +4,8 @@ import com.hbm.dim.SolarSystem;
 import com.hbm.lib.RefStrings;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.BiomeGenOrbit;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.WorldClient;
@@ -71,8 +73,8 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 				// Star B (orange, smaller)
 				GL11.glPushMatrix();
 				{
-					GL11.glRotatef(-40.0F, 0.0F, 1.0F, 0.0F);
-					GL11.glRotatef(-30.0F, 0.0F, 0.0F, 1.0F);
+					GL11.glRotatef(-75.0F, 0.0F, 1.0F, 0.0F);
+					GL11.glRotatef(20.0F, 0.0F, 0.0F, 1.0F);
 
 					double spikeSize = 10.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
@@ -143,6 +145,13 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	public Vec3 getFogColor(float x, float y) {
 		// Darker red fog to match the sky
 		return Vec3.createVectorHelper(0.10, 0.01, 0.01);
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public Vec3 drawClouds(float partialTicks) {
+		Vec3 clouds = super.drawClouds(partialTicks);
+		return Vec3.createVectorHelper(clouds.xCoord, clouds.yCoord * 0.2D, clouds.zCoord * 0.2D);
 	}
 
 	@Override

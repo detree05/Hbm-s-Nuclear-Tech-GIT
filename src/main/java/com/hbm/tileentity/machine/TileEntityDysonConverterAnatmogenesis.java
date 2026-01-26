@@ -3,7 +3,6 @@ package com.hbm.tileentity.machine;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
-import com.hbm.inventory.fluid.trait.FT_Gaseous;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.IDysonConverter;
 import com.hbm.tileentity.TileEntityMachineBase;
@@ -90,16 +89,9 @@ public class TileEntityDysonConverterAnatmogenesis extends TileEntityMachineBase
 
 		if(x != rx || y != ry || z != rz) return false;
 
-		long volume = energy / HE_TO_MB;
-		gasProduced += volume;
-
-		if(isEmitting) {
-			FT_Gaseous.release(worldObj, fluid, volume);
-		} else {
-			FT_Gaseous.capture(worldObj, fluid, volume);
-		}
-
+		// Anatmogenesis disabled: accept energy but do not create or remove atmosphere.
 		return true;
+
 	}
 
 	@Override

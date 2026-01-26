@@ -10,6 +10,7 @@ import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
+import com.hbm.config.SpaceConfig;
 import com.hbm.util.AstronomyUtil;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.Compat;
@@ -162,7 +163,7 @@ public class WorldProviderOrbit extends WorldProvider {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
-		if(SolarSystem.kerbol.hasTrait(CBT_Destroyed.class))
+		if(worldObj.provider.dimensionId != SpaceConfig.kerbolDimension)
 			return 0;
 
 		return 1.0F - (float)eclipseAmount;

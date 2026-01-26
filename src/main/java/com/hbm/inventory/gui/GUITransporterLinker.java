@@ -3,6 +3,7 @@ package com.hbm.inventory.gui;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Random;
 
 import org.lwjgl.input.Keyboard;
 import org.lwjgl.input.Mouse;
@@ -13,12 +14,15 @@ import com.hbm.items.tool.ItemTransporterLinker.TransporterInfo;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.toserver.NBTControlPacket;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.config.SpaceConfig;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiScreen;
 import net.minecraft.client.gui.GuiTextField;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 
@@ -230,6 +234,12 @@ public class GUITransporterLinker extends GuiScreen {
 			return;
 		}
 
+		if(from.dimensionId == SpaceConfig.kerbolDimension || to.dimensionId == SpaceConfig.kerbolDimension) {
+			Random rand = player.worldObj != null ? player.worldObj.rand : new Random();
+			player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + randomizeSpaces("i cant do this...", rand)));
+			return;
+		}
+
 		NBTTagCompound data = new NBTTagCompound();
 		data.setInteger("dimensionId", to.dimensionId);
 		data.setIntArray("linkedTo", new int[] { to.x, to.y, to.z });
@@ -272,6 +282,20 @@ public class GUITransporterLinker extends GuiScreen {
 
 	private boolean isInAABB(int mouseX, int mouseY, int x, int y, int width, int height) {
 		return x <= mouseX && x + width > mouseX && y <= mouseY && y + height > mouseY;
+	}
+
+	private String randomizeSpaces(String message, Random rand) {
+		StringBuilder out = new StringBuilder(message.length() * 2);
+		for(int i = 0; i < message.length(); i++) {
+			out.append(message.charAt(i));
+			if(i < message.length() - 1) {
+				int extraSpaces = rand.nextInt(3);
+				for(int s = 0; s < extraSpaces; s++) {
+					out.append(' ');
+				}
+			}
+		}
+		return out.toString();
 	}
 
 }

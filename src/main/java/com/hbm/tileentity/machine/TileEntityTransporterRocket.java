@@ -3,6 +3,7 @@ package com.hbm.tileentity.machine;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
+import com.hbm.config.SpaceConfig;
 import com.hbm.explosion.ExplosionLarge;
 import com.hbm.inventory.container.ContainerTransporterRocket;
 import com.hbm.inventory.fluid.Fluids;
@@ -72,6 +73,8 @@ public class TileEntityTransporterRocket extends TileEntityTransporterBase {
 		if(launchTicks > -20) return false;
 		if(((TileEntityTransporterRocket)linkedTransporter).launchTicks < 100) return false;
 		if(!hasRocket) return false;
+		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) return false;
+		if(linkedTransporter.getWorldObj().provider.dimensionId == SpaceConfig.kerbolDimension) return false;
 
 		int mass = itemCount();
 		if(mass < getThreshold()) return false;

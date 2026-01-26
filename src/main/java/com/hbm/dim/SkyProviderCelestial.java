@@ -595,7 +595,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		CBT_Dyson dyson = sun.getTrait(CBT_Dyson.class);
 		int swarmCount = dyson != null ? dyson.size() : 0;
 
-		if(sun.shader != null && sun.hasTrait(CBT_Destroyed.class)) {
+		if(sun.shader != null) {
 			// BLACK HOLE SUN
 			// WON'T YOU COME
 			// AND WASH AWAY THE RAIN

@@ -138,6 +138,9 @@ public class RocketStruct {
 		}
 
 		if(from != null && to != null) {
+			if(from.getEnum() == SolarSystem.Body.KERBOL && to.getEnum() != SolarSystem.Body.KERBOL) {
+				issues.add(EnumChatFormatting.RED + "NO WAY HOME");
+			} else {
 			int fuelRequirement = getFuelRequired(stageNum, from, to, fromOrbit, toOrbit);
 			int fuelCapacity = getFuelCapacity(stageNum);
 
@@ -147,6 +150,7 @@ public class RocketStruct {
 				issues.add(EnumChatFormatting.YELLOW + "Insufficient fuel: " + fuelCapacity + "/" + fuelRequirement + "mB");
 			} else if(fuelCapacity > 0 && fuelRequirement > 0) {
 				issues.add(EnumChatFormatting.GREEN + "Trip possible! " + fuelCapacity + "/" + fuelRequirement + "mB");
+			}
 			}
 		}
 
