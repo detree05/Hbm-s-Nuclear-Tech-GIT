@@ -642,7 +642,7 @@ public class CelestialBody {
 	// Get the gravitational force at the surface, derived from mass and radius
 	public float getSurfaceGravity() {
 		float radius = radiusKm * 1000;
-		return AstronomyUtil.GRAVITATIONAL_CONSTANT * massKg / (radius * radius) * 1.5F;
+		return AstronomyUtil.GRAVITATIONAL_CONSTANT * massKg / (radius * radius) * 0.5F;
 	}
 
 	// Get the power multiplier for sun based machines

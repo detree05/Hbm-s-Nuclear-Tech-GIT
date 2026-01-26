@@ -37,6 +37,11 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int TESSERACT_SIZE_MIN = 6;
 	private static final int TESSERACT_SIZE_MAX = 10;
 	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
+	private static final int CHARRED_LOG_BLOCK_ID = 1197;
+	private static final int CHARRED_TREE_CHANCE = 6;
+	private static final int CHARRED_TREE_ATTEMPTS = 2;
+	private static final int CHARRED_TREE_HEIGHT_MIN = 4;
+	private static final int CHARRED_TREE_HEIGHT_MAX = 9;
 
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
@@ -105,6 +110,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		// No forced spawn block at world origin
 
 		generateGeometricFigures(rand, x, z);
+		generateCharredTrees(rand, x, z);
 	}
 
 	@Override public boolean saveChunks(boolean combined, IProgressUpdate progress) { return true; }
@@ -160,6 +166,84 @@ public class ChunkProviderKerbol implements IChunkProvider {
 					break;
 			}
 		}
+	}
+
+	private void generateCharredTrees(Random rand, int chunkX, int chunkZ) {
+		Block log = Block.getBlockById(CHARRED_LOG_BLOCK_ID);
+		if(log == null) {
+			return;
+		}
+		if(rand.nextInt(CHARRED_TREE_CHANCE) != 0) {
+			return;
+		}
+
+		int attempts = 1 + rand.nextInt(CHARRED_TREE_ATTEMPTS);
+		for(int i = 0; i < attempts; i++) {
+			int lx = rand.nextInt(16);
+			int lz = rand.nextInt(16);
+			int wx = (chunkX << 4) + lx;
+			int wz = (chunkZ << 4) + lz;
+			if(wx == 0 && wz == 0) continue;
+
+			int baseY = getHeight(wx, wz) + 1;
+			int height = randRange(rand, CHARRED_TREE_HEIGHT_MIN, CHARRED_TREE_HEIGHT_MAX);
+
+			if(!worldObj.isAirBlock(wx, baseY, wz)) {
+				continue;
+			}
+			if(isNearGeometricFigure(wx, baseY, wz, 2, height + 2)) {
+				continue;
+			}
+
+			for(int y = 0; y < height; y++) {
+				if(!worldObj.isAirBlock(wx, baseY + y, wz)) {
+					break;
+				}
+				worldObj.setBlock(wx, baseY + y, wz, log);
+			}
+
+			int branches = 1 + rand.nextInt(2);
+			for(int b = 0; b < branches; b++) {
+				int branchY = baseY + height - 2 - rand.nextInt(3);
+				int dir = rand.nextInt(4);
+				int dx = (dir == 0 ? 1 : dir == 1 ? -1 : 0);
+				int dz = (dir == 2 ? 1 : dir == 3 ? -1 : 0);
+				int length = 1 + rand.nextInt(2);
+				int bx = wx;
+				int bz = wz;
+				for(int step = 0; step < length; step++) {
+					bx += dx;
+					bz += dz;
+					if(!worldObj.isAirBlock(bx, branchY, bz)) {
+						break;
+					}
+					worldObj.setBlock(bx, branchY, bz, log);
+				}
+				if(worldObj.isAirBlock(bx, branchY + 1, bz)) {
+					worldObj.setBlock(bx, branchY + 1, bz, log);
+				}
+			}
+		}
+	}
+
+	private boolean isNearGeometricFigure(int centerX, int centerY, int centerZ, int radius, int height) {
+		for(int dx = -radius; dx <= radius; dx++) {
+			for(int dz = -radius; dz <= radius; dz++) {
+				for(int dy = 0; dy <= height; dy++) {
+					Block block = worldObj.getBlock(centerX + dx, centerY + dy, centerZ + dz);
+					if(block == null) {
+						continue;
+					}
+					int id = Block.getIdFromBlock(block);
+					for(int figId : FIGURE_BLOCK_IDS) {
+						if(id == figId) {
+							return true;
+						}
+					}
+				}
+			}
+		}
+		return false;
 	}
 
 	private void placeOctahedron(int centerX, int centerY, int centerZ, int radius, Orientation orientation) {

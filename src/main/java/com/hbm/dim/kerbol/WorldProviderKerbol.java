@@ -26,6 +26,10 @@ import net.minecraft.util.ResourceLocation;
 
 public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
+	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
+	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
+	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
+	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
 	private static final IRenderHandler KERBOL_SKY = new IRenderHandler() {
 		@Override
 		public void render(float partialTicks, WorldClient world, Minecraft mc) {
@@ -40,7 +44,11 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 			GL11.glPushMatrix();
 			{
-				float solarAngle = world.getCelestialAngle(partialTicks);
+				// Speed up the dual-star orbit in the Kerbol sky.
+				float solarAngle = (world.getCelestialAngle(partialTicks) * 128.0F) % 1.0F;
+				if(solarAngle < 0.0F) {
+					solarAngle += 1.0F;
+				}
 
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
 				GL11.glRotatef(solarAngle * 360.0F, 1.0F, 0.0F, 0.0F);
@@ -81,7 +89,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 					double spikeSize = 10.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
-					GL11.glColor4f(1.0F, 0.35F, 0.18F, 0.85F);
+					GL11.glColor4f(0.8F, 0.2F, 1.0F, 0.85F);
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, -spikeSize, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(spikeSize, 99.9D, -spikeSize, 1.0D, 0.0D);
@@ -90,7 +98,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.draw();
 
 					mc.renderEngine.bindTexture(SolarSystem.kerbol.texture);
-					GL11.glColor4f(3.0F, 0.70F, 0.30F, 1.0F);
+					GL11.glColor4f(2.6F, 0.4F, 3.2F, 1.0F);
 					double size = 2.5D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
@@ -108,6 +116,74 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
 			GL11.glEnable(GL11.GL_FOG);
 			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		}
+	};
+
+	private static final IRenderHandler KERBOL_CLOUDS = new IRenderHandler() {
+		@Override
+		@SideOnly(Side.CLIENT)
+		public void render(float partialTicks, WorldClient world, Minecraft mc) {
+			Entity viewer = mc.renderViewEntity;
+			if(viewer == null) return;
+
+			Vec3 cloudColor = world.provider.drawClouds(partialTicks);
+			float r = (float) cloudColor.xCoord;
+			float g = (float) cloudColor.yCoord;
+			float b = (float) cloudColor.zCoord;
+
+			double px = viewer.prevPosX + (viewer.posX - viewer.prevPosX) * partialTicks;
+			double py = viewer.prevPosY + (viewer.posY - viewer.prevPosY) * partialTicks;
+			double pz = viewer.prevPosZ + (viewer.posZ - viewer.prevPosZ) * partialTicks;
+
+			double baseHeight = world.provider.getCloudHeight();
+			double cloudSize = 512.0D;
+			double texScale = 1.0D / 256.0D;
+
+			GL11.glDisable(GL11.GL_CULL_FACE);
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+			GL11.glDepthMask(false);
+
+			mc.renderEngine.bindTexture(CLOUD_TEXTURE);
+
+			Tessellator tess = Tessellator.instance;
+
+			GL11.glPushMatrix();
+			GL11.glTranslated(-px, -py, -pz);
+
+			double time = world.getTotalWorldTime() + partialTicks;
+
+			for(int i = 0; i < CLOUD_LAYER_OFFSETS.length; i++) {
+				double height = baseHeight + CLOUD_LAYER_OFFSETS[i];
+				double speed = CLOUD_LAYER_SPEEDS[i];
+				float alpha = CLOUD_LAYER_ALPHA[i];
+
+				double scroll = time * speed * 8.0D;
+				double x0 = px - cloudSize;
+				double z0 = pz - cloudSize;
+				double x1 = px + cloudSize;
+				double z1 = pz + cloudSize;
+
+				double u0 = (x0 + scroll) * texScale;
+				double v0 = (z0 + scroll * 0.7D) * texScale;
+				double u1 = (x1 + scroll) * texScale;
+				double v1 = (z1 + scroll * 0.7D) * texScale;
+
+				GL11.glColor4f(r, g, b, alpha);
+				tess.startDrawingQuads();
+				tess.addVertexWithUV(x0, height, z1, u0, v1);
+				tess.addVertexWithUV(x1, height, z1, u1, v1);
+				tess.addVertexWithUV(x1, height, z0, u1, v0);
+				tess.addVertexWithUV(x0, height, z0, u0, v0);
+				tess.draw();
+			}
+
+			GL11.glPopMatrix();
+
+			GL11.glDepthMask(true);
+			GL11.glDisable(GL11.GL_BLEND);
+			GL11.glEnable(GL11.GL_CULL_FACE);
+			GL11.glColor4f(1F, 1F, 1F, 1F);
 		}
 	};
 
@@ -142,9 +218,10 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		}
 
 		double time = (worldObj.getWorldTime() % 24000L) / 24000.0D * Math.PI * 2.0D;
-		double windX = Math.cos(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D;
-		double windZ = Math.sin(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D;
-		double windY = (worldObj.rand.nextDouble() - 0.5D) * 0.004D;
+		double windSpeed = 2.0D;
+		double windX = (Math.cos(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D) * windSpeed;
+		double windZ = (Math.sin(time) * 0.08D + worldObj.rand.nextGaussian() * 0.015D) * windSpeed;
+		double windY = (worldObj.rand.nextDouble() - 0.5D) * 0.004D * windSpeed;
 
 		Vec3 vec = Vec3.createVectorHelper(16 + worldObj.rand.nextDouble() * 24, worldObj.rand.nextDouble() * 6 - 3, 0);
 		vec.rotateAroundY((float)(worldObj.rand.nextDouble() * Math.PI * 2));
@@ -163,9 +240,9 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 				continue;
 			}
 			Vec3 dotVec = Vec3.createVectorHelper(worldObj.rand.nextGaussian() * 10, worldObj.rand.nextDouble() * 6, worldObj.rand.nextGaussian() * 10);
-			double dotX = worldObj.rand.nextGaussian() * 0.004D;
-			double dotZ = worldObj.rand.nextGaussian() * 0.004D;
-			double dotY = 0.025D + worldObj.rand.nextDouble() * 0.02D;
+			double dotX = worldObj.rand.nextGaussian() * 0.004D * windSpeed;
+			double dotZ = worldObj.rand.nextGaussian() * 0.004D * windSpeed;
+			double dotY = (0.025D + worldObj.rand.nextDouble() * 0.02D) * windSpeed;
 			ParticleUtil.spawnKerbolDot(worldObj,
 					viewEntity.posX + dotVec.xCoord,
 					viewEntity.posY + 1 + dotVec.yCoord,
@@ -187,6 +264,12 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	@Override
 	public IRenderHandler getSkyRenderer() {
 		return KERBOL_SKY;
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public IRenderHandler getCloudRenderer() {
+		return KERBOL_CLOUDS;
 	}
 
 	@Override

@@ -9,10 +9,13 @@ import com.hbm.config.ClientConfig;
 import com.hbm.config.GeneralConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
+import com.hbm.dim.orbit.OrbitalStation;
+import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.entity.mob.EntityHunterChopper;
 import com.hbm.entity.projectile.EntityChopperMine;
@@ -550,13 +553,26 @@ public class ModEventHandlerClient {
 
 		EntityPlayer player = Minecraft.getMinecraft().thePlayer;
 		ItemStack held = player.getHeldItem();
+		float fov = event.fov;
 
-		if(held == null) return;
+		if(held != null) {
+			IItemRenderer customRenderer = MinecraftForgeClient.getItemRenderer(held, IItemRenderer.ItemRenderType.EQUIPPED);
+			if(customRenderer instanceof ItemRenderWeaponBase) {
+				ItemRenderWeaponBase renderGun = (ItemRenderWeaponBase) customRenderer;
+				fov = renderGun.getViewFOV(held, fov);
+			}
+		}
 
-		IItemRenderer customRenderer = MinecraftForgeClient.getItemRenderer(held, IItemRenderer.ItemRenderType.EQUIPPED);
-		if(!(customRenderer instanceof ItemRenderWeaponBase)) return;
-		ItemRenderWeaponBase renderGun = (ItemRenderWeaponBase) customRenderer;
-		event.newfov = renderGun.getViewFOV(held, event.fov);
+		// Simple "pull" effect when approaching Kerbol in orbit.
+		if(player.worldObj.provider instanceof WorldProviderOrbit) {
+			OrbitalStation station = OrbitalStation.clientStation;
+			if(station != null && station.state != StationState.ORBIT && station.target == SolarSystem.kerbol) {
+				float progress = MathHelper.clamp_float((float)station.getTransferProgress(0), 0F, 1F);
+				fov *= (1.0F - 0.15F * progress);
+			}
+		}
+
+		event.newfov = fov;
 	}
 
 	public static boolean ducked = false;
@@ -1581,6 +1597,7 @@ public class ModEventHandlerClient {
 			ItemCustomLore.updateSystem();
 		}
 	}
+
 
 	@SubscribeEvent
 	public void onOpenGUI(GuiOpenEvent event) {

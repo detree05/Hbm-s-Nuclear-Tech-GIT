@@ -45,9 +45,9 @@ public class SolarSystem {
 			.withMassRadius(1.757e28F, 261_600)
 			.withRotationalPeriod(432_000)
 			.withTexture(new ResourceLocation("textures/environment/sun.png"))
-			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 3)
+			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 2)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
-			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 5.0D))
+			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 5.555D))
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)

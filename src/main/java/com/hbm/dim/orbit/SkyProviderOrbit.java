@@ -63,10 +63,10 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 			double sunSize = SolarSystem.calculateSunSize(station.orbiting) * SolarSystem.SUN_RENDER_SCALE;
 			if(station.state != StationState.ORBIT) {
 				double sunTargetSize;
-				if(station.target != null && station.target.parent == null) {
-					// Approaching a star: shrink distance as progress increases so it visually grows.
+				if(station.target != null && station.target.parent == null && station.target == SolarSystem.kerbol) {
+					// Approaching Kerbol: linear distance ramp for a steady growth.
 					double baseDist = Math.max(1.0, station.orbiting.semiMajorAxisKm);
-					double dist = Math.max(1.0, baseDist * (1.0 - progress));
+					double dist = Math.max(1.0, BobMathUtil.lerp(progress, baseDist, 50_000D));
 					sunTargetSize = 2D * Math.atan((2D * station.target.radiusKm) / (2D * dist)) * SolarSystem.RENDER_SCALE;
 					sunTargetSize *= SolarSystem.SUN_RENDER_SCALE;
 					sunTargetSize = Math.min(sunTargetSize, SolarSystem.MAX_APPARENT_SIZE_ORBIT);
