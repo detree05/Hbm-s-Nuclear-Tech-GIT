@@ -46,6 +46,7 @@ public class SolarSystem {
 			.withTexture(new ResourceLocation("textures/environment/sun.png"))
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 3)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
+			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 1.5D))
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)

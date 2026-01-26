@@ -1147,8 +1147,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			if(ModEventHandlerClient.renderLodeStar) {
 				GL11.glPushMatrix();
-				GL11.glRotatef(-75.0F, 1.0F, 0.0F, 0.0F);
-				GL11.glRotatef(10.0F, 0.0F, 1.0F, 0.0F);
+				GL11.glRotatef(-60.0F, 1.0F, 0.0F, 0.0F);
+				GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
 				FMLClientHandler.instance().getClient().renderEngine.bindTexture(lodeStar); // genu-ine bona-fide ass whooping
 
 				tessellator.startDrawingQuads();
@@ -1169,7 +1169,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
 			GL11.glRotatef(solarAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 			GL11.glRotatef(140.0F, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(-40.0F, 0.0F, 0.0F, 1.0F);
+			GL11.glRotatef(-90.0F, 0.0F, 0.0F, 1.0F);
 
 			mc.renderEngine.bindTexture(digammaStar);
 

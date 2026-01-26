@@ -181,6 +181,7 @@ public class Fluids {
 	public static FluidType SARNUSGAS;
 	public static FluidType UGAS; //urlum
 	public static FluidType NGAS;//neidon
+	public static FluidType VOIDGAS;
 	public static FluidType MILK;
 	public static FluidType SMILK;
 	public static FluidType XYLENE;				//BTX: benzene, terephthalate and xylene
@@ -534,6 +535,9 @@ public class Fluids {
 		AIR =					new FluidType("AIR",				0xE7EAEB, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
 		LITHYDRO =				new FluidType("LITHYDRO",			0xD1CEBE, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
 		LITHCARBONATE =		       new FluidType("LITHCARBONATE",	       0xD1CEBE, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
+		VOIDGAS =				new FluidType("VOIDGAS",			0x7A2E1B, 3, 0, 0, EnumSymbol.ASPHYXIANT)
+				.addContainers(new CD_Gastank(0x5C2316, 0xC6A391))
+				.addTraits(GASEOUS);
 
 		// ^ ^ ^ ^ ^ ^ ^ ^
 		//ADD NEW FLUIDS HERE
@@ -705,6 +709,7 @@ public class Fluids {
 		metaOrder.add(UGAS);
 		metaOrder.add(NGAS);
 		metaOrder.add(TEKTOAIR);
+		metaOrder.add(VOIDGAS);
 		//NITRIC_ACID
 		metaOrder.add(NITRIC_ACID);
 		metaOrder.add(HCL);
