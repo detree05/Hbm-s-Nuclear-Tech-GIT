@@ -3,7 +3,7 @@ package com.hbm.dim.kerbol;
 import com.hbm.dim.SolarSystem;
 import com.hbm.lib.RefStrings;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.orbit.BiomeGenOrbit;
+import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
 import com.hbm.util.ParticleUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -16,15 +16,24 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.util.ChunkCoordinates;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
+import net.minecraft.world.World;
 import net.minecraft.world.biome.WorldChunkManagerHell;
 import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraftforge.client.IRenderHandler;
 import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 import org.lwjgl.opengl.GL11;
 import net.minecraft.util.ResourceLocation;
+import java.util.Random;
 
 public class WorldProviderKerbol extends WorldProviderCelestial {
+private static final float GRAVITY_MIN = 0.05F;
+private static final float GRAVITY_MAX = 6.0F;
+	private static final int GRAVITY_INTERVAL_SECONDS = 60;
+	private static final long GRAVITY_SEED_SALT = 0x9E3779B97F4A7C15L;
+
+	private float gravityMultiplier = 1.0F;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
 	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
@@ -189,7 +198,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 	@Override
 	public void registerWorldChunkManager() {
-		this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenOrbit.biome, 0.0F);
+		this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenKerbol.digammaWastelands, 0.0F);
 	}
 
 	@Override
@@ -261,6 +270,38 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		return com.hbm.dim.CelestialBody.getBody(worldObj).getRotationalPeriod();
 	}
 
+	public float getGravityMultiplier() {
+		return gravityMultiplier;
+	}
+
+	public void setGravityMultiplier(float multiplier) {
+		this.gravityMultiplier = MathHelper.clamp_float(multiplier, GRAVITY_MIN, GRAVITY_MAX);
+	}
+
+	public static Float rollGravityEvent(World world) {
+		if(world.getTotalWorldTime() % 20 != 0) {
+			return null;
+		}
+		long seconds = world.getTotalWorldTime() / 20;
+		if(seconds % GRAVITY_INTERVAL_SECONDS != 0) {
+			return null;
+		}
+		long seed = world.getSeed() ^ (seconds * GRAVITY_SEED_SALT);
+		Random rand = new Random(seed);
+		float next = GRAVITY_MIN + rand.nextFloat() * (GRAVITY_MAX - GRAVITY_MIN);
+		if(world.provider instanceof WorldProviderKerbol) {
+			float current = ((WorldProviderKerbol) world.provider).getGravityMultiplier();
+			if(Math.abs(next - current) < 2.0F) {
+				if(next >= current) {
+					next = Math.min(current + 2.0F, GRAVITY_MAX);
+				} else {
+					next = Math.max(current - 2.0F, GRAVITY_MIN);
+				}
+			}
+		}
+		return next;
+	}
+
 	@Override
 	public IRenderHandler getSkyRenderer() {
 		return KERBOL_SKY;
@@ -274,19 +315,27 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 	@Override
 	public Vec3 getSkyColor(Entity camera, float partialTicks) {
-		// Dark red sky
-		return Vec3.createVectorHelper(0.18, 0.02, 0.02);
+		// Dark red sky with heartbeat pulse
+		float pulse = getHeartbeatPulse(partialTicks);
+		double r = 0.18 + pulse * 0.08;
+		double g = 0.02 + pulse * 0.01;
+		double b = 0.02 + pulse * 0.01;
+		return Vec3.createVectorHelper(r, g, b);
 	}
 
 	@Override
 	public Vec3 getFogColor(float x, float y) {
-		// Darker red fog to match the sky
-		return Vec3.createVectorHelper(0.10, 0.01, 0.01);
+		// Darker red fog to match the sky, with heartbeat pulse
+		float pulse = getHeartbeatPulse(0.0F);
+		double r = 0.10 + pulse * 0.05;
+		double g = 0.01 + pulse * 0.005;
+		double b = 0.01 + pulse * 0.005;
+		return Vec3.createVectorHelper(r, g, b);
 	}
 
 	@Override
 	public float fogDensity(FogDensity event) {
-		return 0.02F;
+		return 0.045F;
 	}
 
 	@Override
@@ -305,5 +354,19 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	public ChunkCoordinates getSpawnPoint() {
 		// Spawn one block above the single basalt block at origin
 		return new ChunkCoordinates(0, 65, 0);
+	}
+
+	private float getHeartbeatPulse(float partialTicks) {
+		if(worldObj == null) {
+			return 0.0F;
+		}
+		double periodTicks = 200.0D;
+		double ticks = worldObj.getTotalWorldTime() + partialTicks;
+		double phase = (ticks / periodTicks) % 1.0D;
+		double p1 = 1.0D - Math.abs(phase - 0.0D) / 0.03D;
+		double p2 = 1.0D - Math.abs(phase - 0.02D) / 0.035D;
+		double pulse = Math.max(0.0D, p1);
+		pulse = Math.max(pulse, Math.max(0.0D, p2) * 1.2D);
+		return (float) (pulse * pulse);
 	}
 }

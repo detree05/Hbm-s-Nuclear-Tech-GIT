@@ -140,7 +140,31 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	 * @return whether or not the dynamic lightmap texture needs to be updated
 	 */
 	public boolean updateLightmap(int[] lightmap) {
-		return false;
+		if(worldObj.provider.dimensionId == SpaceConfig.orbitDimension) {
+			return false;
+		}
+
+		boolean changed = false;
+		final int redBoost = 12;
+		final float greenBlueScale = 0.95F;
+
+		for(int i = 0; i < lightmap.length; i++) {
+			int[] colors = unpackColor(lightmap[i]);
+			int r = colors[0];
+			int g = colors[1];
+			int b = colors[2];
+
+			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
+			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
+			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
+
+			if(nr != r || ng != g || nb != b) {
+				lightmap[i] = packColor(nr, ng, nb);
+				changed = true;
+			}
+		}
+
+		return changed;
 	}
 
 	protected final int packColor(final int[] colors) {
@@ -712,6 +736,15 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 		if(f1 > 1.0F) {
 			--f1;
+		}
+
+		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			double t = (worldTime + partialTicks);
+			double wobble = Math.sin(t / 12000.0D * Math.PI * 2.0D) * 0.004D;
+			wobble += Math.sin(t / 3600.0D * Math.PI * 2.0D + 1.3D) * 0.002D;
+			f1 += wobble;
+			if(f1 < 0.0F) f1 += 1.0F;
+			if(f1 > 1.0F) f1 -= 1.0F;
 		}
 
 		double f2 = f1;

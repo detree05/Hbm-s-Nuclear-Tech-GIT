@@ -3,12 +3,19 @@ package com.hbm.dim.kerbol;
 import java.util.Random;
 
 import com.hbm.blocks.ModBlocks;
+import com.hbm.blocks.generic.BlockSkeletonHolder.TileEntitySkeletonHolder;
 import com.hbm.config.SpaceConfig;
 import com.hbm.util.Compat;
 import com.hbm.world.WorldUtil;
+import com.hbm.lib.RefStrings;
+import com.hbm.world.gen.terrain.MapGenCrater;
 
 import cpw.mods.fml.common.Loader;
+import cpw.mods.fml.common.registry.GameRegistry;
+import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 import net.minecraft.block.Block;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.IProgressUpdate;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
@@ -17,11 +24,14 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.gen.NoiseGeneratorPerlin;
+import net.minecraft.world.gen.feature.WorldGenLakes;
 import java.util.List;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class ChunkProviderKerbol implements IChunkProvider {
 	private final World worldObj;
 	private final NoiseGeneratorPerlin terrainNoise;
+	private final MapGenCrater blackenedCraters;
 
 	private static final int BASE_HEIGHT = 64;
 	private static final int[] FIGURE_BLOCK_IDS = { 1095, 1096, 1098, 1099 };
@@ -42,10 +52,27 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int CHARRED_TREE_ATTEMPTS = 2;
 	private static final int CHARRED_TREE_HEIGHT_MIN = 4;
 	private static final int CHARRED_TREE_HEIGHT_MAX = 9;
+	private static final int BLACKENED_RBMK_DEBRIS_ID = 1495;
+	private static final int LINGERING_DIGAMMA_ID = 1744;
+	private static final int CRATER_FREQUENCY = 1000;
+	private static final int CRATER_SIZE_MIN = 6;
+	private static final int CRATER_SIZE_MAX = 12;
+	private static final int SELLAFITE_SPIKE_CHANCE = 180;
+	private static final int SELLAFITE_SPIKE_HEIGHT_MIN = 8;
+	private static final int SELLAFITE_SPIKE_HEIGHT_MAX = 20;
+	private static final int SELLAFITE_SPIKE_RADIUS_MIN = 1;
+	private static final int SELLAFITE_SPIKE_RADIUS_MAX = 3;
+	private static final int SKELETON_HOLDER_CHANCE = 1000;
+	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
+	private static final int BLOOD_POOL_CHANCE = 120;
+	private static final int BLOOD_POOL_ATTEMPTS = 2;
+	private static List<ItemStack> cachedHbmIngots = null;
 
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
 		this.terrainNoise = new NoiseGeneratorPerlin(new Random(world.getSeed() ^ 0x5deece66dL), 4);
+		this.blackenedCraters = new MapGenCrater(CRATER_FREQUENCY);
+		this.blackenedCraters.setSize(CRATER_SIZE_MIN, CRATER_SIZE_MAX);
 	}
 
 	@Override public boolean chunkExists(int x, int z) { return true; }
@@ -67,6 +94,14 @@ public class ChunkProviderKerbol implements IChunkProvider {
 					meta[index] = 0;
 				}
 			}
+		}
+
+		Block debris = Block.getBlockById(BLACKENED_RBMK_DEBRIS_ID);
+		Block digamma = Block.getBlockById(LINGERING_DIGAMMA_ID);
+		if(debris != null && digamma != null) {
+			blackenedCraters.rock = debris;
+			blackenedCraters.regolith = debris;
+			blackenedCraters.func_151539_a(this, worldObj, x, z, blocks);
 		}
 
 		Chunk chunk = new Chunk(worldObj, blocks, meta, x, z);
@@ -110,6 +145,10 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		// No forced spawn block at world origin
 
 		generateGeometricFigures(rand, x, z);
+		generateSellafiteSpikes(rand, x, z);
+		generateSkeletonHolder(rand, x, z);
+		generateCraterLingeringDigamma(rand, x, z);
+		generateBloodPools(rand, x, z);
 		generateCharredTrees(rand, x, z);
 	}
 
@@ -166,6 +205,156 @@ public class ChunkProviderKerbol implements IChunkProvider {
 					break;
 			}
 		}
+	}
+
+	private void generateSellafiteSpikes(Random rand, int chunkX, int chunkZ) {
+		if(rand.nextInt(SELLAFITE_SPIKE_CHANCE) != 0) {
+			return;
+		}
+
+		int lx = rand.nextInt(16);
+		int lz = rand.nextInt(16);
+		int wx = (chunkX << 4) + lx;
+		int wz = (chunkZ << 4) + lz;
+		if(wx == 0 && wz == 0) return;
+
+		int baseY = getHeight(wx, wz) + 1;
+		int height = randRange(rand, SELLAFITE_SPIKE_HEIGHT_MIN, SELLAFITE_SPIKE_HEIGHT_MAX);
+		int baseRadius = randRange(rand, SELLAFITE_SPIKE_RADIUS_MIN, SELLAFITE_SPIKE_RADIUS_MAX);
+
+		if(isNearGeometricFigure(wx, baseY, wz, baseRadius + 2, height + 2)) {
+			return;
+		}
+
+		for(int dy = 0; dy < height; dy++) {
+			int radius = baseRadius - (int)Math.floor((double)baseRadius * dy / height);
+			int meta = MathHelper.clamp_int(5 - (int)Math.floor(6.0 * dy / Math.max(1, height - 1)), 0, 5);
+			int y = baseY + dy;
+
+			for(int dx = -radius; dx <= radius; dx++) {
+				for(int dz = -radius; dz <= radius; dz++) {
+					if(dx * dx + dz * dz > radius * radius) {
+						continue;
+					}
+					int x = wx + dx;
+					int z = wz + dz;
+					if(!worldObj.isAirBlock(x, y, z)) {
+						continue;
+					}
+					worldObj.setBlock(x, y, z, ModBlocks.sellafield, meta, 3);
+				}
+			}
+		}
+	}
+
+	private void generateCraterLingeringDigamma(Random rand, int chunkX, int chunkZ) {
+		Block debris = Block.getBlockById(BLACKENED_RBMK_DEBRIS_ID);
+		Block digamma = Block.getBlockById(LINGERING_DIGAMMA_ID);
+		if(debris == null || digamma == null) {
+			return;
+		}
+
+		int attempts = 10;
+		for(int i = 0; i < attempts; i++) {
+			int lx = rand.nextInt(16);
+			int lz = rand.nextInt(16);
+			int wx = (chunkX << 4) + lx;
+			int wz = (chunkZ << 4) + lz;
+			if(wx == 0 && wz == 0) continue;
+
+			int y = getHeight(wx, wz) + 1;
+			Block below = worldObj.getBlock(wx, y - 1, wz);
+			if(below == debris && worldObj.isAirBlock(wx, y, wz)) {
+				worldObj.setBlock(wx, y, wz, digamma);
+			}
+		}
+	}
+
+	private void generateBloodPools(Random rand, int chunkX, int chunkZ) {
+		if(ModBlocks.blood_block == null) {
+			return;
+		}
+		if(rand.nextInt(BLOOD_POOL_CHANCE) != 0) {
+			return;
+		}
+		for(int i = 0; i < BLOOD_POOL_ATTEMPTS; i++) {
+			int lx = rand.nextInt(16);
+			int lz = rand.nextInt(16);
+			int wx = (chunkX << 4) + lx;
+			int wz = (chunkZ << 4) + lz;
+			if(wx == 0 && wz == 0) continue;
+
+			int surface = getHeight(wx, wz);
+			int y = MathHelper.clamp_int(surface - 1 - rand.nextInt(3), 1, 250);
+			if(isNearGeometricFigure(wx, surface + 1, wz, 6, 6)) {
+				continue;
+			}
+			new WorldGenLakes(ModBlocks.blood_block).generate(worldObj, rand, wx, y, wz);
+		}
+	}
+
+	private void generateSkeletonHolder(Random rand, int chunkX, int chunkZ) {
+		if(rand.nextInt(SKELETON_HOLDER_CHANCE) != 0) {
+			return;
+		}
+
+		int lx = rand.nextInt(16);
+		int lz = rand.nextInt(16);
+		int wx = (chunkX << 4) + lx;
+		int wz = (chunkZ << 4) + lz;
+		if(wx == 0 && wz == 0) return;
+
+		int baseY = getHeight(wx, wz) + 1;
+		if(!worldObj.isAirBlock(wx, baseY, wz)) {
+			return;
+		}
+
+		ItemStack ingot = getRandomHbmIngot(rand);
+		if(ingot == null) {
+			return;
+		}
+
+		int meta = SKELETON_HOLDER_METAS[rand.nextInt(SKELETON_HOLDER_METAS.length)];
+		worldObj.setBlock(wx, baseY, wz, ModBlocks.skeleton_holder, meta, 3);
+
+		TileEntitySkeletonHolder te = (TileEntitySkeletonHolder) worldObj.getTileEntity(wx, baseY, wz);
+		if(te != null) {
+			te.item = ingot.copy();
+			te.markDirty();
+			worldObj.markBlockForUpdate(wx, baseY, wz);
+		}
+	}
+
+	private static ItemStack getRandomHbmIngot(Random rand) {
+		if(cachedHbmIngots == null) {
+			cachedHbmIngots = new java.util.ArrayList<>();
+			for(String name : OreDictionary.getOreNames()) {
+				if(!name.startsWith("ingot")) {
+					continue;
+				}
+				for(Object obj : OreDictionary.getOres(name)) {
+					if(!(obj instanceof ItemStack)) {
+						continue;
+					}
+					ItemStack stack = (ItemStack) obj;
+					if(stack == null || stack.getItem() == null) {
+						continue;
+					}
+					Item item = stack.getItem();
+					UniqueIdentifier id = GameRegistry.findUniqueIdentifierFor(item);
+					if(id != null && RefStrings.MODID.equals(id.modId)) {
+						ItemStack copy = stack.copy();
+						copy.stackSize = 1;
+						cachedHbmIngots.add(copy);
+					}
+				}
+			}
+		}
+
+		if(cachedHbmIngots.isEmpty()) {
+			return null;
+		}
+		return cachedHbmIngots.get(rand.nextInt(cachedHbmIngots.size()));
 	}
 
 	private void generateCharredTrees(Random rand, int chunkX, int chunkZ) {

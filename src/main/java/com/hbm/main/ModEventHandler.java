@@ -28,6 +28,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialTeleporter;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.WorldProviderEarth;
 import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -704,6 +705,12 @@ public class ModEventHandler {
 
 		if(!isFlying) {
 			float gravity = CelestialBody.getGravity(event.entityLiving);
+			if(event.entityLiving.worldObj != null && event.entityLiving.worldObj.provider instanceof WorldProviderKerbol) {
+				float mult = ((WorldProviderKerbol) event.entityLiving.worldObj.provider).getGravityMultiplier();
+				if(mult > 0.0F) {
+					gravity /= mult;
+				}
+			}
 
 			if(gravity == 0) {
 				event.entityLiving.motionY /= 0.98F;
@@ -884,6 +891,26 @@ public class ModEventHandler {
 				// Once per second, run atmospheric chemistry
 				if(event.world.getTotalWorldTime() % 20 == 0) {
 					CelestialBody.updateChemistry(event.world);
+				}
+
+				if(event.world.provider instanceof WorldProviderKerbol) {
+					WorldProviderKerbol kerbol = (WorldProviderKerbol) event.world.provider;
+					Float nextGravity = WorldProviderKerbol.rollGravityEvent(event.world);
+					if(nextGravity != null) {
+						kerbol.setGravityMultiplier(nextGravity);
+						for(Object obj : event.world.playerEntities) {
+							EntityPlayer player = (EntityPlayer) obj;
+							PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(
+									ChatBuilder.start("")
+											.color(EnumChatFormatting.DARK_RED)
+											.next(EnumChatFormatting.BOLD + "IT LIVES...")
+											.flush(),
+									ServerProxy.ID_GAS_HAZARD,
+									3000
+							), (EntityPlayerMP) player);
+							event.world.playSoundAtEntity(player, "hbm:misc.itlives_rumble", 1.35F, 0.9F + event.world.rand.nextFloat() * 0.2F);
+						}
+					}
 				}
 			}
 

@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -558,7 +559,12 @@ public class CelestialBody {
 		}
 
 		CelestialBody body = CelestialBody.getBody(entity.worldObj);
-		return body.getSurfaceGravity() * AstronomyUtil.PLAYER_GRAVITY_MODIFIER;
+		float gravity = body.getSurfaceGravity() * AstronomyUtil.PLAYER_GRAVITY_MODIFIER;
+		if(entity.worldObj.provider instanceof WorldProviderKerbol) {
+			WorldProviderKerbol kerbol = (WorldProviderKerbol) entity.worldObj.provider;
+			gravity *= kerbol.getGravityMultiplier();
+		}
+		return gravity;
 	}
 
 	public static boolean inOrbit(World world) {

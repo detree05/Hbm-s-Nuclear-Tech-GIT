@@ -12,6 +12,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -148,6 +149,9 @@ public class ModEventHandlerClient {
 	public static long flashTimestamp;
 	public static final int shakeDuration = 1_500;
 	public static long shakeTimestamp;
+	private static Float lastKerbolGravity;
+	private static long lastKerbolHeartbeatBeat = -1L;
+	private static final double KERBOL_HEARTBEAT_PERIOD_TICKS = 200.0D;
 
 	@SubscribeEvent
 	public void onOverlayRender(RenderGameOverlayEvent.Pre event) {
@@ -1037,6 +1041,11 @@ public class ModEventHandlerClient {
 			if(BlockAshes.ashes > 0) BlockAshes.ashes -= 2;
 			if(BlockAshes.ashes < 0) BlockAshes.ashes = 0;
 
+			maybePlayKerbolBlockSound(mc);
+			maybeUpdateKerbolGravity(mc);
+			maybePlayKerbolHeartbeat(mc);
+			maybeSpawnKerbolRedRain(mc);
+
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
 				lastBrightness = currentBrightness;
 				currentBrightness = mc.theWorld.getLightBrightnessForSkyBlocks(MathHelper.floor_double(mc.thePlayer.posX), MathHelper.floor_double(mc.thePlayer.posY), MathHelper.floor_double(mc.thePlayer.posZ), 0);
@@ -1213,6 +1222,183 @@ public class ModEventHandlerClient {
 		}
 	}
 
+	private void maybeUpdateKerbolGravity(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
+			return;
+		}
+		if(lastKerbolGravity == null) {
+			lastKerbolGravity = ((WorldProviderKerbol) mc.theWorld.provider).getGravityMultiplier();
+		}
+		Float nextGravity = WorldProviderKerbol.rollGravityEvent(mc.theWorld);
+		if(nextGravity == null) {
+			return;
+		}
+		WorldProviderKerbol kerbol = (WorldProviderKerbol) mc.theWorld.provider;
+		kerbol.setGravityMultiplier(nextGravity);
+		shakeTimestamp = System.currentTimeMillis();
+
+		float previous = lastKerbolGravity != null ? lastKerbolGravity : 1.0F;
+		lastKerbolGravity = nextGravity;
+		boolean gravityHeavier = nextGravity > previous;
+		double speed = gravityHeavier ? -0.7D : 0.7D;
+		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
+		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
+		for(int i = 0; i < 90; i++) {
+			double angle = mc.theWorld.rand.nextDouble() * Math.PI * 2.0D;
+			double radius = 2.0D + mc.theWorld.rand.nextDouble() * 6.0D;
+			int x = baseX + MathHelper.floor_double(Math.cos(angle) * radius);
+			int z = baseZ + MathHelper.floor_double(Math.sin(angle) * radius);
+			int topY = mc.theWorld.getTopSolidOrLiquidBlock(x, z);
+			if(topY <= 0) {
+				continue;
+			}
+			Block block = mc.theWorld.getBlock(x, topY - 1, z);
+			if(block == null || block.isAir(mc.theWorld, x, topY - 1, z)) {
+				continue;
+			}
+			int meta = mc.theWorld.getBlockMetadata(x, topY - 1, z);
+			double px = x + 0.5D + (mc.theWorld.rand.nextDouble() - 0.5D) * 0.6D;
+			double pz = z + 0.5D + (mc.theWorld.rand.nextDouble() - 0.5D) * 0.6D;
+			double py = gravityHeavier ? topY + 1.2D : topY + 0.1D;
+			double motionX = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.08D;
+			double motionZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.08D;
+
+			if(gravityHeavier) {
+				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, 0.9F, 0.1F, 0.1F);
+			} else {
+				int color = block.colorMultiplier(mc.theWorld, x, topY - 1, z);
+				float r = ((color >> 16) & 0xFF) / 255.0F;
+				float g = ((color >> 8) & 0xFF) / 255.0F;
+				float b = (color & 0xFF) / 255.0F;
+				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
+			}
+		}
+	}
+
+	private void maybePlayKerbolHeartbeat(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return;
+		}
+		long tick = mc.theWorld.getTotalWorldTime();
+		long beatIndex = (long) Math.floor(tick / KERBOL_HEARTBEAT_PERIOD_TICKS);
+		if(beatIndex == lastKerbolHeartbeatBeat) {
+			return;
+		}
+		lastKerbolHeartbeatBeat = beatIndex;
+		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 1.0F, 1.0F);
+	}
+
+	private void maybeSpawnKerbolRedRain(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return;
+		}
+		float rain = mc.theWorld.getRainStrength(1.0F);
+		if(rain <= 0.0F) {
+			return;
+		}
+		int count = 6 + mc.theWorld.rand.nextInt(6);
+		double radius = 6.0D;
+		for(int i = 0; i < count; i++) {
+			double ox = (mc.theWorld.rand.nextDouble() - 0.5D) * radius * 2.0D;
+			double oz = (mc.theWorld.rand.nextDouble() - 0.5D) * radius * 2.0D;
+			double oy = 6.0D + mc.theWorld.rand.nextDouble() * 4.0D;
+			double x = mc.thePlayer.posX + ox;
+			double y = mc.thePlayer.posY + oy;
+			double z = mc.thePlayer.posZ + oz;
+			double mX = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
+			double mZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
+			double mY = -0.6D - mc.theWorld.rand.nextDouble() * 0.3D;
+			ParticleUtil.spawnKerbolDot(mc.theWorld, x, y, z, mX, mY, mZ, 0.9F, 0.1F, 0.1F);
+		}
+	}
+
+	public static float getKerbolHeartbeatPulse(World world, float partialTicks) {
+		if(world == null || world.provider == null || world.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return 0.0F;
+		}
+		double ticks = world.getTotalWorldTime() + partialTicks;
+		double phase = (ticks / KERBOL_HEARTBEAT_PERIOD_TICKS) % 1.0D;
+		double p1 = 1.0D - Math.abs(phase - 0.0D) / 0.03D;
+		double p2 = 1.0D - Math.abs(phase - 0.02D) / 0.035D;
+		double pulse = Math.max(0.0D, p1);
+		pulse = Math.max(pulse, Math.max(0.0D, p2) * 1.2D);
+		return (float) (pulse * pulse);
+	}
+
+	private void maybePlayKerbolBlockSound(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return;
+		}
+		if(mc.theWorld.getTotalWorldTime() % 20 != 0) {
+			return;
+		}
+		if(mc.theWorld.rand.nextFloat() >= 0.30F) {
+			return;
+		}
+
+		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
+		int baseY = MathHelper.floor_double(mc.thePlayer.posY);
+		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
+
+		float angle = mc.theWorld.rand.nextFloat() * (float)Math.PI * 2.0F;
+		int radius = 2 + mc.theWorld.rand.nextInt(5);
+		int dx = MathHelper.floor_double(Math.cos(angle) * radius);
+		int dz = MathHelper.floor_double(Math.sin(angle) * radius);
+
+		int x = baseX + dx;
+		int z = baseZ + dz;
+		int y = mc.theWorld.getTopSolidOrLiquidBlock(x, z);
+
+		Block block = null;
+		if(y > 0) {
+			block = mc.theWorld.getBlock(x, y - 1, z);
+			if(block != null && block.isAir(mc.theWorld, x, y - 1, z)) {
+				block = null;
+			} else {
+				y -= 1;
+			}
+		}
+
+		if(block == null) {
+			return;
+		}
+
+		int soundType = mc.theWorld.rand.nextInt(3);
+		String sound;
+		if(soundType == 0) {
+			sound = block.stepSound.getStepResourcePath();
+		} else if(soundType == 1) {
+			sound = block.stepSound.getBreakSound();
+		} else {
+			sound = block.stepSound.func_150496_b();
+		}
+
+		if(sound == null || sound.isEmpty()) {
+			return;
+		}
+
+		boolean whisper = mc.theWorld.rand.nextFloat() < 0.35F;
+		float volume = whisper
+			? 0.15F + mc.theWorld.rand.nextFloat() * 0.1F
+			: Math.max(0.7F, block.stepSound.getVolume()) * (0.9F + mc.theWorld.rand.nextFloat() * 0.4F);
+		float pitch = whisper
+			? 0.45F + mc.theWorld.rand.nextFloat() * 0.2F
+			: block.stepSound.getPitch() * (0.85F + mc.theWorld.rand.nextFloat() * 0.3F);
+		mc.theWorld.playSoundEffect(x + 0.5D, y + 0.5D, z + 0.5D, sound, volume, pitch);
+	}
+
 	public static ItemStack getMouseOverStack() {
 
 		Minecraft mc = Minecraft.getMinecraft();
@@ -1304,11 +1490,11 @@ public class ModEventHandlerClient {
 
 			if(player != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
 				if(kerbolWind == null || !kerbolWind.isPlaying()) {
-					kerbolWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.kerbol_wind", player, 0.12F, 6.0F, 1.0F, 10);
+					kerbolWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.kerbol_wind", player, 0.7F, 6.0F, 1.0F, 10);
 					kerbolWind.startSound();
 				}
 
-				kerbolWind.updateVolume(0.12F);
+				kerbolWind.updateVolume(0.7F);
 				kerbolWind.keepAlive();
 			} else if(kerbolWind != null) {
 				kerbolWind.stopSound();

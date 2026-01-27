@@ -7,6 +7,7 @@ import java.util.Random;
 import org.lwjgl.opengl.GL11;
 
 import com.hbm.dim.SolarSystem.AstroMetric;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -201,6 +202,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float starBrightness = world.getStarBrightness(partialTicks) * visibility;
 		float solarAngle = world.getCelestialAngle(partialTicks);
 		float siderealAngle = (float)SolarSystem.calculateSiderealAngle(world, partialTicks, body);
+		if(world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			double t = world.getTotalWorldTime() + partialTicks;
+			siderealAngle += (float)(Math.sin(t / 6000.0D * Math.PI * 2.0D) * 6.0D);
+		}
 
 		// Handle any special per-body sunset rendering
 		renderSunset(partialTicks, world, mc, solarAngle, pressure, body.surfaceTexture);
@@ -793,6 +798,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize) {
 		Tessellator tessellator = Tessellator.instance;
 		float blendDarken = 0.1F;
+		final float redTint = 0.05F;
+		final float greenBlueScale = 0.97F;
+		final float redOverlayAlpha = 0.08F;
 
 		double transitionMinSize = 0.1D;
 		double transitionMaxSize = 0.5D;
@@ -947,7 +955,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 					} else {
 
 						GL11.glDisable(GL11.GL_BLEND);
-						GL11.glColor4f(1.0F, 1.0F, 1.0F, visibility);
+						GL11.glColor4f(1.0F + redTint, 1.0F * greenBlueScale, 1.0F * greenBlueScale, visibility);
 						mc.renderEngine.bindTexture(metric.body.texture);
 
 						tessellator.startDrawingQuads();
@@ -1060,6 +1068,15 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 						GL11.glDisable(GL11.GL_TEXTURE_2D);
 
+						// Extra red overlay to ensure the tint is visible in all skies.
+						GL11.glColor4f(1.0F, 0.5F, 0.5F, redOverlayAlpha * visibility);
+						tessellator.startDrawingQuads();
+						tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
+						tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
+						tessellator.addVertexWithUV(size, 100.0D, size, 1.0D, 1.0D);
+						tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D, 1.0D);
+						tessellator.draw();
+
 						// Draw another layer on top to blend with the atmosphere
 						GL11.glColor4d(planetTint.xCoord - blendDarken, planetTint.yCoord - blendDarken, planetTint.zCoord - blendDarken, (1 - blendAmount * visibility));
 
@@ -1104,7 +1121,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 				if(renderPoint) {
 					float alpha = MathHelper.clamp_float((float)size * 100.0F, 0.0F, 1.0F);
 					alpha *= 1 - BobMathUtil.remap01_clamp((float)size, (float)transitionMinSize, (float)transitionMaxSize);
-					GL11.glColor4f(metric.body.color[0], metric.body.color[1], metric.body.color[2], alpha * visibility);
+					float r = MathHelper.clamp_float(metric.body.color[0] + redTint, 0.0F, 1.0F);
+					float g = MathHelper.clamp_float(metric.body.color[1] * greenBlueScale, 0.0F, 1.0F);
+					float b = MathHelper.clamp_float(metric.body.color[2] * greenBlueScale, 0.0F, 1.0F);
+					GL11.glColor4f(r, g, b, alpha * visibility);
 					mc.renderEngine.bindTexture(planetTexture);
 
 					tessellator.startDrawingQuads();
@@ -1141,21 +1161,26 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		GL11.glPushMatrix();
 		{
-
 			float var12 = 1F + world.rand.nextFloat() * 0.5F;
 			double dist = 100D;
+			double t = world.getTotalWorldTime() + partialTicks;
+			boolean isKerbol = world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension;
+			double orbitYaw = isKerbol ? Math.sin(t / 6000.0D * Math.PI * 2.0D) * 18.0D : 0.0D;
+			double orbitPitch = isKerbol ? Math.sin(t / 4200.0D * Math.PI * 2.0D + 1.2D) * 10.0D : 0.0D;
+			double distOffset = isKerbol ? Math.sin(t / 3600.0D * Math.PI * 2.0D) * 10.0D : 0.0D;
 
 			if(ModEventHandlerClient.renderLodeStar) {
 				GL11.glPushMatrix();
-				GL11.glRotatef(-60.0F, 1.0F, 0.0F, 0.0F);
-				GL11.glRotatef(45.0F, 0.0F, 1.0F, 0.0F);
+				GL11.glRotatef(-60.0F + (float)orbitPitch, 1.0F, 0.0F, 0.0F);
+				GL11.glRotatef(45.0F + (float)orbitYaw, 0.0F, 1.0F, 0.0F);
 				FMLClientHandler.instance().getClient().renderEngine.bindTexture(lodeStar); // genu-ine bona-fide ass whooping
 
+				double lodeDist = dist + distOffset;
 				tessellator.startDrawingQuads();
-				tessellator.addVertexWithUV(-var12, dist, -var12, 0.0D, 0.0D);
-				tessellator.addVertexWithUV(var12, dist, -var12, 0.0D, 1.0D);
-				tessellator.addVertexWithUV(var12, dist, var12, 1.0D, 1.0D);
-				tessellator.addVertexWithUV(-var12, dist, var12, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(-var12, lodeDist, -var12, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(var12, lodeDist, -var12, 0.0D, 1.0D);
+				tessellator.addVertexWithUV(var12, lodeDist, var12, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-var12, lodeDist, var12, 1.0D, 0.0D);
 				tessellator.draw();
 
 				GL11.glPopMatrix();
@@ -1166,16 +1191,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 			float brightness = (float) Math.sin(solarAngle * Math.PI);
 			brightness *= brightness;
 			GL11.glColor4f(brightness, brightness, brightness, brightness);
-			GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+			GL11.glRotatef(-90.0F + (float)orbitYaw, 0.0F, 1.0F, 0.0F);
 			GL11.glRotatef(solarAngle * 360.0F, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(140.0F, 1.0F, 0.0F, 0.0F);
+			GL11.glRotatef(140.0F + (float)orbitPitch, 1.0F, 0.0F, 0.0F);
 			GL11.glRotatef(-90.0F, 0.0F, 0.0F, 1.0F);
 
 			mc.renderEngine.bindTexture(digammaStar);
 
 			float digamma = HbmLivingProps.getDigamma(Minecraft.getMinecraft().thePlayer);
 			var12 = 1F * (1 + digamma * 0.25F);
-			dist = 100D - digamma * 2.5;
+			dist = 100D - digamma * 2.5 - distOffset;
 
 			tessellator.startDrawingQuads();
 			tessellator.addVertexWithUV(-var12, dist, -var12, 0.0D, 0.0D);
