@@ -3,6 +3,7 @@ package com.hbm.dim.kerbol;
 import java.util.Random;
 
 import com.hbm.blocks.ModBlocks;
+import com.hbm.blocks.fluid.MeltedFlesh;
 import com.hbm.blocks.generic.BlockSkeletonHolder.TileEntitySkeletonHolder;
 import com.hbm.config.SpaceConfig;
 import com.hbm.util.Compat;
@@ -14,6 +15,7 @@ import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
 import cpw.mods.fml.common.registry.GameRegistry.UniqueIdentifier;
 import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.IProgressUpdate;
@@ -24,13 +26,12 @@ import net.minecraft.world.chunk.IChunkProvider;
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.world.ChunkPosition;
 import net.minecraft.world.gen.NoiseGeneratorPerlin;
-import net.minecraft.world.gen.feature.WorldGenLakes;
 import java.util.List;
 import net.minecraftforge.oredict.OreDictionary;
 
 public class ChunkProviderKerbol implements IChunkProvider {
 	private final World worldObj;
-	private final NoiseGeneratorPerlin terrainNoise;
+private final NoiseGeneratorPerlin terrainNoise;
 	private final MapGenCrater blackenedCraters;
 
 	private static final int BASE_HEIGHT = 64;
@@ -47,25 +48,18 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int TESSERACT_SIZE_MIN = 6;
 	private static final int TESSERACT_SIZE_MAX = 10;
 	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
-	private static final int CHARRED_LOG_BLOCK_ID = 1197;
-	private static final int CHARRED_TREE_CHANCE = 6;
-	private static final int CHARRED_TREE_ATTEMPTS = 2;
-	private static final int CHARRED_TREE_HEIGHT_MIN = 4;
-	private static final int CHARRED_TREE_HEIGHT_MAX = 9;
 	private static final int BLACKENED_RBMK_DEBRIS_ID = 1495;
 	private static final int LINGERING_DIGAMMA_ID = 1744;
 	private static final int CRATER_FREQUENCY = 1000;
 	private static final int CRATER_SIZE_MIN = 6;
 	private static final int CRATER_SIZE_MAX = 12;
-	private static final int SELLAFITE_SPIKE_CHANCE = 180;
-	private static final int SELLAFITE_SPIKE_HEIGHT_MIN = 8;
-	private static final int SELLAFITE_SPIKE_HEIGHT_MAX = 20;
-	private static final int SELLAFITE_SPIKE_RADIUS_MIN = 1;
-	private static final int SELLAFITE_SPIKE_RADIUS_MAX = 3;
 	private static final int SKELETON_HOLDER_CHANCE = 1000;
 	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
-	private static final int BLOOD_POOL_CHANCE = 120;
-	private static final int BLOOD_POOL_ATTEMPTS = 2;
+	private static final int FLESH_LEVEL = 50;
+	private static final int FLESH_MASS_BLOCK_ID = 1219;
+	private static final int BLOOD_SEA_LEVEL = 62;
+	private static final int BLOOD_CAVITY_SCALE = 4;
+	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
 	private static List<ItemStack> cachedHbmIngots = null;
 
 	public ChunkProviderKerbol(World world) {
@@ -87,11 +81,36 @@ public class ChunkProviderKerbol implements IChunkProvider {
 				int wx = (x << 4) + lx;
 				int wz = (z << 4) + lz;
 				int height = getHeight(wx, wz);
+				Block fleshMass = getFleshMassBlock();
+				Block blood = ModBlocks.blood_block;
+				Block voidRegolith = ModBlocks.void_regolith;
+				Block ashLayer = ModBlocks.ash_digamma;
 
 				for(int y = 0; y <= height; y++) {
 					int index = (lx << 12) | (lz << 8) | y;
-					blocks[index] = ModBlocks.ash_digamma;
+					if(y == 0) {
+						blocks[index] = Blocks.bedrock;
+					} else if(y <= 4) {
+						blocks[index] = voidRegolith != null ? voidRegolith : (ashLayer != null ? ashLayer : fleshMass);
+					} else if(y < FLESH_LEVEL) {
+						blocks[index] = ashLayer != null ? ashLayer : fleshMass;
+					} else {
+						if(blood != null && isBloodCavity(wx, y, wz)) {
+							blocks[index] = blood;
+						} else {
+							blocks[index] = fleshMass;
+						}
+					}
 					meta[index] = 0;
+				}
+
+				if(blood != null && height < BLOOD_SEA_LEVEL) {
+					int startY = height + 1;
+					for(int y = startY; y <= BLOOD_SEA_LEVEL; y++) {
+						int index = (lx << 12) | (lz << 8) | y;
+						blocks[index] = blood;
+						meta[index] = 0;
+					}
 				}
 			}
 		}
@@ -145,11 +164,8 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		// No forced spawn block at world origin
 
 		generateGeometricFigures(rand, x, z);
-		generateSellafiteSpikes(rand, x, z);
 		generateSkeletonHolder(rand, x, z);
 		generateCraterLingeringDigamma(rand, x, z);
-		generateBloodPools(rand, x, z);
-		generateCharredTrees(rand, x, z);
 	}
 
 	@Override public boolean saveChunks(boolean combined, IProgressUpdate progress) { return true; }
@@ -164,11 +180,33 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	@Override public void saveExtraData() {}
 
 	private int getHeight(int worldX, int worldZ) {
-		// Very gentle, smooth plains-like variation (no dips below base).
+		// Gentle variation with dips to allow blood seas to form.
 		double scale = 0.01D;
 		double n = terrainNoise.func_151601_a(worldX * scale, worldZ * scale);
-		double height = BASE_HEIGHT + Math.max(0D, n) * 2.0D; // 0..~2 blocks
+		double height = BASE_HEIGHT + (n * 6.0D); // ~-6..6 blocks
 		return MathHelper.floor_double(height);
+	}
+
+	private Block getFleshMassBlock() {
+		Block block = Block.getBlockById(FLESH_MASS_BLOCK_ID);
+		if(block == null || block instanceof MeltedFlesh) {
+			block = ModBlocks.tumor != null ? ModBlocks.tumor : ModBlocks.ash_digamma;
+		}
+		return block;
+	}
+
+	private boolean isBloodCavity(int worldX, int worldY, int worldZ) {
+		if(worldY <= 1 || worldY >= FLESH_LEVEL - 1) {
+			return false;
+		}
+		int sx = worldX / BLOOD_CAVITY_SCALE;
+		int sy = worldY / BLOOD_CAVITY_SCALE;
+		int sz = worldZ / BLOOD_CAVITY_SCALE;
+		long seed = worldObj.getSeed();
+		long n = seed + (sx * 73428767L) + (sy * 912931L) + (sz * 42317861L);
+		n = (n << 13) ^ n;
+		double noise = 1.0D - ((n * (n * n * 15731L + 789221L) + 1376312589L) & 0x7fffffffL) / 1073741824.0D;
+		return noise > BLOOD_CAVITY_THRESHOLD;
 	}
 
 	private void generateGeometricFigures(Random rand, int chunkX, int chunkZ) {
@@ -207,46 +245,6 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		}
 	}
 
-	private void generateSellafiteSpikes(Random rand, int chunkX, int chunkZ) {
-		if(rand.nextInt(SELLAFITE_SPIKE_CHANCE) != 0) {
-			return;
-		}
-
-		int lx = rand.nextInt(16);
-		int lz = rand.nextInt(16);
-		int wx = (chunkX << 4) + lx;
-		int wz = (chunkZ << 4) + lz;
-		if(wx == 0 && wz == 0) return;
-
-		int baseY = getHeight(wx, wz) + 1;
-		int height = randRange(rand, SELLAFITE_SPIKE_HEIGHT_MIN, SELLAFITE_SPIKE_HEIGHT_MAX);
-		int baseRadius = randRange(rand, SELLAFITE_SPIKE_RADIUS_MIN, SELLAFITE_SPIKE_RADIUS_MAX);
-
-		if(isNearGeometricFigure(wx, baseY, wz, baseRadius + 2, height + 2)) {
-			return;
-		}
-
-		for(int dy = 0; dy < height; dy++) {
-			int radius = baseRadius - (int)Math.floor((double)baseRadius * dy / height);
-			int meta = MathHelper.clamp_int(5 - (int)Math.floor(6.0 * dy / Math.max(1, height - 1)), 0, 5);
-			int y = baseY + dy;
-
-			for(int dx = -radius; dx <= radius; dx++) {
-				for(int dz = -radius; dz <= radius; dz++) {
-					if(dx * dx + dz * dz > radius * radius) {
-						continue;
-					}
-					int x = wx + dx;
-					int z = wz + dz;
-					if(!worldObj.isAirBlock(x, y, z)) {
-						continue;
-					}
-					worldObj.setBlock(x, y, z, ModBlocks.sellafield, meta, 3);
-				}
-			}
-		}
-	}
-
 	private void generateCraterLingeringDigamma(Random rand, int chunkX, int chunkZ) {
 		Block debris = Block.getBlockById(BLACKENED_RBMK_DEBRIS_ID);
 		Block digamma = Block.getBlockById(LINGERING_DIGAMMA_ID);
@@ -267,29 +265,6 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			if(below == debris && worldObj.isAirBlock(wx, y, wz)) {
 				worldObj.setBlock(wx, y, wz, digamma);
 			}
-		}
-	}
-
-	private void generateBloodPools(Random rand, int chunkX, int chunkZ) {
-		if(ModBlocks.blood_block == null) {
-			return;
-		}
-		if(rand.nextInt(BLOOD_POOL_CHANCE) != 0) {
-			return;
-		}
-		for(int i = 0; i < BLOOD_POOL_ATTEMPTS; i++) {
-			int lx = rand.nextInt(16);
-			int lz = rand.nextInt(16);
-			int wx = (chunkX << 4) + lx;
-			int wz = (chunkZ << 4) + lz;
-			if(wx == 0 && wz == 0) continue;
-
-			int surface = getHeight(wx, wz);
-			int y = MathHelper.clamp_int(surface - 1 - rand.nextInt(3), 1, 250);
-			if(isNearGeometricFigure(wx, surface + 1, wz, 6, 6)) {
-				continue;
-			}
-			new WorldGenLakes(ModBlocks.blood_block).generate(worldObj, rand, wx, y, wz);
 		}
 	}
 
@@ -355,64 +330,6 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			return null;
 		}
 		return cachedHbmIngots.get(rand.nextInt(cachedHbmIngots.size()));
-	}
-
-	private void generateCharredTrees(Random rand, int chunkX, int chunkZ) {
-		Block log = Block.getBlockById(CHARRED_LOG_BLOCK_ID);
-		if(log == null) {
-			return;
-		}
-		if(rand.nextInt(CHARRED_TREE_CHANCE) != 0) {
-			return;
-		}
-
-		int attempts = 1 + rand.nextInt(CHARRED_TREE_ATTEMPTS);
-		for(int i = 0; i < attempts; i++) {
-			int lx = rand.nextInt(16);
-			int lz = rand.nextInt(16);
-			int wx = (chunkX << 4) + lx;
-			int wz = (chunkZ << 4) + lz;
-			if(wx == 0 && wz == 0) continue;
-
-			int baseY = getHeight(wx, wz) + 1;
-			int height = randRange(rand, CHARRED_TREE_HEIGHT_MIN, CHARRED_TREE_HEIGHT_MAX);
-
-			if(!worldObj.isAirBlock(wx, baseY, wz)) {
-				continue;
-			}
-			if(isNearGeometricFigure(wx, baseY, wz, 2, height + 2)) {
-				continue;
-			}
-
-			for(int y = 0; y < height; y++) {
-				if(!worldObj.isAirBlock(wx, baseY + y, wz)) {
-					break;
-				}
-				worldObj.setBlock(wx, baseY + y, wz, log);
-			}
-
-			int branches = 1 + rand.nextInt(2);
-			for(int b = 0; b < branches; b++) {
-				int branchY = baseY + height - 2 - rand.nextInt(3);
-				int dir = rand.nextInt(4);
-				int dx = (dir == 0 ? 1 : dir == 1 ? -1 : 0);
-				int dz = (dir == 2 ? 1 : dir == 3 ? -1 : 0);
-				int length = 1 + rand.nextInt(2);
-				int bx = wx;
-				int bz = wz;
-				for(int step = 0; step < length; step++) {
-					bx += dx;
-					bz += dz;
-					if(!worldObj.isAirBlock(bx, branchY, bz)) {
-						break;
-					}
-					worldObj.setBlock(bx, branchY, bz, log);
-				}
-				if(worldObj.isAirBlock(bx, branchY + 1, bz)) {
-					worldObj.setBlock(bx, branchY + 1, bz, log);
-				}
-			}
-		}
 	}
 
 	private boolean isNearGeometricFigure(int centerX, int centerY, int centerZ, int radius, int height) {

@@ -42,6 +42,7 @@ import com.hbm.entity.mob.EntityCreeperTainted;
 import com.hbm.entity.mob.EntityCyberCrab;
 import com.hbm.entity.projectile.EntityBulletBaseMK4;
 import com.hbm.entity.projectile.EntityBurningFOEQ;
+import com.hbm.entity.projectile.EntityKerbolMeteor;
 import com.hbm.entity.train.EntityRailCarBase;
 import com.hbm.explosion.vanillant.ExplosionVNT;
 import com.hbm.explosion.vanillant.standard.EntityProcessorCrossSmooth;
@@ -192,6 +193,8 @@ public class ModEventHandler {
 	private static Random rand = new Random();
 	private static long lastKerbolHeartbeatBeat = -1L;
 	private static final long KERBOL_HEARTBEAT_PERIOD_TICKS = 200L;
+	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
+	private static final int KERBOL_METEOR_CHANCE = 100;
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -354,6 +357,7 @@ public class ModEventHandler {
 						event.setCanceled(true);
 						return;
 					}
+
 				}
 			}
 		}
@@ -973,6 +977,12 @@ public class ModEventHandler {
 							event.world.playSoundEffect(x + 0.5D, y + 0.5D, z + 0.5D, sound, volume, pitch);
 						}
 					}
+
+					if(tick % KERBOL_METEOR_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
+						if(event.world.rand.nextInt(KERBOL_METEOR_CHANCE) == 0) {
+							spawnKerbolMeteor(event.world);
+						}
+					}
 				}
 			}
 
@@ -1013,6 +1023,17 @@ public class ModEventHandler {
 
 		Blocks.water.setLightOpacity(waterOpacity);
 		Blocks.flowing_water.setLightOpacity(waterOpacity);
+	}
+
+	// Spawn a purely cosmetic meteor so Kerbol's sky keeps pulsing without leaving debris.
+	private void spawnKerbolMeteor(World world) {
+		EntityPlayer player = (EntityPlayer) world.playerEntities.get(world.rand.nextInt(world.playerEntities.size()));
+		EntityKerbolMeteor meteor = new EntityKerbolMeteor(world);
+		meteor.setPositionAndRotation(player.posX + world.rand.nextInt(401) - 200, 384, player.posZ + world.rand.nextInt(401) - 200, 0, 0);
+		meteor.motionX = (world.rand.nextDouble() - 0.5D) * 0.25D;
+		meteor.motionY = -2.5;
+		meteor.motionZ = (world.rand.nextDouble() - 0.5D) * 0.25D;
+		world.spawnEntityInWorld(meteor);
 	}
 
 	@SubscribeEvent
@@ -2003,8 +2024,8 @@ public class ModEventHandler {
 					MainRegistry.logger.error("Prevented spawning of multipart entity " + entity.getClass().getCanonicalName() + " due to parts being null!");
 					event.setCanceled(true);
 					return;
+							}
+						}
+					}
 				}
 			}
-		}
-	}
-}

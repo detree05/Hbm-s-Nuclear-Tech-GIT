@@ -321,9 +321,9 @@ private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 	public Vec3 getSkyColor(Entity camera, float partialTicks) {
 		// Dark red sky with heartbeat pulse
 		float pulse = getHeartbeatPulse(partialTicks);
-		double r = 0.18 + pulse * 0.08;
-		double g = 0.02 + pulse * 0.01;
-		double b = 0.02 + pulse * 0.01;
+		double r = 0.18 + pulse * 0.05;
+		double g = 0.02 + pulse * 0.006;
+		double b = 0.02 + pulse * 0.006;
 		return Vec3.createVectorHelper(r, g, b);
 	}
 
@@ -331,9 +331,9 @@ private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 	public Vec3 getFogColor(float x, float y) {
 		// Darker red fog to match the sky, with heartbeat pulse
 		float pulse = getHeartbeatPulse(0.0F);
-		double r = 0.10 + pulse * 0.05;
-		double g = 0.01 + pulse * 0.005;
-		double b = 0.01 + pulse * 0.005;
+		double r = 0.10 + pulse * 0.03;
+		double g = 0.01 + pulse * 0.003;
+		double b = 0.01 + pulse * 0.003;
 		return Vec3.createVectorHelper(r, g, b);
 	}
 

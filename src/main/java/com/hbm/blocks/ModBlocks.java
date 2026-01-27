@@ -449,6 +449,7 @@ public class ModBlocks {
 	public static Block ferric_clay;
 
 	public static Block ike_regolith;
+	public static Block void_regolith;
 	public static Block ike_stone; //Genuinely wish i stopped fucking doing this 5000 stone type shit
 
 	public static Block dres_rock;
@@ -1841,6 +1842,7 @@ public class ModBlocks {
 
 
 		ike_regolith = new BlockTint(Material.rock, "ike_regolith2", "ike_regolith3", "ike_regolith4", "ike_regolith5").setBlockName("ike_regolith").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ike_regolith");
+		void_regolith = new BlockTint(Material.rock, "ike_regolith2", "ike_regolith3", "ike_regolith4", "ike_regolith5").setBlockName("void_regolith").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ike_regolith");
 		ike_stone = new BlockGeneric(Material.rock).setBlockName("ike_stone").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ike_stone");
 
 		dres_rock = new BlockGeneric(Material.rock).setBlockName("dres_rock").setStepSound(Block.soundTypeStone).setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":dresbase");
@@ -3296,6 +3298,7 @@ public class ModBlocks {
 		GameRegistry.registerBlock(laythe_silt, laythe_silt.getUnlocalizedName());
 
 		GameRegistry.registerBlock(ike_regolith, ike_regolith.getUnlocalizedName());
+		GameRegistry.registerBlock(void_regolith, void_regolith.getUnlocalizedName());
 		GameRegistry.registerBlock(ike_stone, ike_stone.getUnlocalizedName());
 
 		GameRegistry.registerBlock(dres_rock, dres_rock.getUnlocalizedName());

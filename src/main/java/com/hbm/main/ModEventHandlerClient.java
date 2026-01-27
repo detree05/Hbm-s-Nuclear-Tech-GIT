@@ -93,8 +93,8 @@ import cpw.mods.fml.common.gameevent.TickEvent.WorldTickEvent;
 import cpw.mods.fml.relauncher.ReflectionHelper;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
-import net.minecraft.block.Block;
-import net.minecraft.block.BlockRedstoneOre;
+	import net.minecraft.block.Block;
+	import net.minecraft.block.BlockRedstoneOre;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.ISound;
 import net.minecraft.client.audio.PositionedSoundRecord;
@@ -122,7 +122,8 @@ import net.minecraft.network.play.client.C03PacketPlayer;
 import net.minecraft.network.play.client.C0CPacketInput;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
-import net.minecraft.util.*;
+	import net.minecraft.util.*;
+	import net.minecraft.block.material.Material;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProvider;
@@ -157,6 +158,8 @@ public class ModEventHandlerClient {
 	public void onOverlayRender(RenderGameOverlayEvent.Pre event) {
 
 		EntityPlayer player = Minecraft.getMinecraft().thePlayer;
+
+		// removed custom tints; only nuke flash remains
 
 		/// NUKE FLASH ///
 		if(event.type == ElementType.CROSSHAIRS && (flashTimestamp + flashDuration - Clock.get_ms()) > 0 && ClientConfig.NUKE_HUD_FLASH.get()) {
@@ -1223,6 +1226,7 @@ public class ModEventHandlerClient {
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
+
 		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
 			return;
 		}
