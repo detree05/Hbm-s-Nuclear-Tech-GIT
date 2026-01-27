@@ -71,6 +71,8 @@ public class PacketDispatcher {
 		wrapper.registerMessage(SerializableRecipePacket.Handler.class, SerializableRecipePacket.class, i++, Side.CLIENT);
 		//Syncing of NBT for guns
 		wrapper.registerMessage(HeldItemNBTPacket.Handler.class, HeldItemNBTPacket.class, i++, Side.CLIENT);
+		//Sync Kerbol gravity events
+		wrapper.registerMessage(KerbolGravityEventPacket.Handler.class, KerbolGravityEventPacket.class, i++, Side.CLIENT);
 
 		// Sends info about currently linked transporters to player
 		wrapper.registerMessage(TransporterLinkerPacket.Handler.class, TransporterLinkerPacket.class, i++, Side.CLIENT);

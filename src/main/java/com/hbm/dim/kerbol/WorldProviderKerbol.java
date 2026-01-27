@@ -30,10 +30,11 @@ import java.util.Random;
 public class WorldProviderKerbol extends WorldProviderCelestial {
 private static final float GRAVITY_MIN = 0.05F;
 private static final float GRAVITY_MAX = 6.0F;
-	private static final int GRAVITY_INTERVAL_SECONDS = 60;
+private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 	private static final long GRAVITY_SEED_SALT = 0x9E3779B97F4A7C15L;
 
 	private float gravityMultiplier = 1.0F;
+	private long lastGravityEventMillis = -1L;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
 	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
@@ -279,14 +280,17 @@ private static final float GRAVITY_MAX = 6.0F;
 	}
 
 	public static Float rollGravityEvent(World world) {
-		if(world.getTotalWorldTime() % 20 != 0) {
+		if(!(world.provider instanceof WorldProviderKerbol)) {
 			return null;
 		}
-		long seconds = world.getTotalWorldTime() / 20;
-		if(seconds % GRAVITY_INTERVAL_SECONDS != 0) {
+		WorldProviderKerbol kerbol = (WorldProviderKerbol) world.provider;
+		long now = System.currentTimeMillis();
+		if(kerbol.lastGravityEventMillis >= 0L && (now - kerbol.lastGravityEventMillis) < GRAVITY_EVENT_INTERVAL_MILLIS) {
 			return null;
 		}
-		long seed = world.getSeed() ^ (seconds * GRAVITY_SEED_SALT);
+		kerbol.lastGravityEventMillis = now;
+		long intervalIndex = now / GRAVITY_EVENT_INTERVAL_MILLIS;
+		long seed = world.getSeed() ^ (intervalIndex * GRAVITY_SEED_SALT);
 		Random rand = new Random(seed);
 		float next = GRAVITY_MIN + rand.nextFloat() * (GRAVITY_MAX - GRAVITY_MIN);
 		if(world.provider instanceof WorldProviderKerbol) {

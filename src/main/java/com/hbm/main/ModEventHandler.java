@@ -84,6 +84,7 @@ import com.hbm.lib.ModDamageSource;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
+import com.hbm.packet.toclient.KerbolGravityEventPacket;
 import com.hbm.packet.toclient.PermaSyncPacket;
 import com.hbm.packet.toclient.PlayerInformPacket;
 import com.hbm.packet.toclient.SerializableRecipePacket;
@@ -189,6 +190,8 @@ import net.minecraftforge.event.world.WorldEvent;
 public class ModEventHandler {
 
 	private static Random rand = new Random();
+	private static long lastKerbolHeartbeatBeat = -1L;
+	private static final long KERBOL_HEARTBEAT_PERIOD_TICKS = 200L;
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -705,12 +708,6 @@ public class ModEventHandler {
 
 		if(!isFlying) {
 			float gravity = CelestialBody.getGravity(event.entityLiving);
-			if(event.entityLiving.worldObj != null && event.entityLiving.worldObj.provider instanceof WorldProviderKerbol) {
-				float mult = ((WorldProviderKerbol) event.entityLiving.worldObj.provider).getGravityMultiplier();
-				if(mult > 0.0F) {
-					gravity /= mult;
-				}
-			}
 
 			if(gravity == 0) {
 				event.entityLiving.motionY /= 0.98F;
@@ -900,15 +897,80 @@ public class ModEventHandler {
 						kerbol.setGravityMultiplier(nextGravity);
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
-							PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(
-									ChatBuilder.start("")
-											.color(EnumChatFormatting.DARK_RED)
-											.next(EnumChatFormatting.BOLD + "IT LIVES...")
-											.flush(),
-									ServerProxy.ID_GAS_HAZARD,
-									3000
-							), (EntityPlayerMP) player);
+							if(player instanceof EntityPlayerMP) {
+								PacketDispatcher.wrapper.sendTo(new KerbolGravityEventPacket(nextGravity), (EntityPlayerMP) player);
+							}
 							event.world.playSoundAtEntity(player, "hbm:misc.itlives_rumble", 1.35F, 0.9F + event.world.rand.nextFloat() * 0.2F);
+						}
+					}
+
+					long tick = event.world.getTotalWorldTime();
+					long beatIndex = tick / KERBOL_HEARTBEAT_PERIOD_TICKS;
+					if(beatIndex != lastKerbolHeartbeatBeat) {
+						lastKerbolHeartbeatBeat = beatIndex;
+						for(Object obj : event.world.playerEntities) {
+							EntityPlayer player = (EntityPlayer) obj;
+							event.world.playSoundAtEntity(player, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
+						}
+					}
+
+					if(tick % 1200 == 0) {
+						for(Object obj : event.world.playerEntities) {
+							EntityPlayer player = (EntityPlayer) obj;
+							Random rand = player.getRNG();
+							if(rand.nextFloat() >= 0.10F) {
+								continue;
+							}
+
+							int baseX = MathHelper.floor_double(player.posX);
+							int baseY = MathHelper.floor_double(player.posY);
+							int baseZ = MathHelper.floor_double(player.posZ);
+
+							float angle = rand.nextFloat() * (float)Math.PI * 2.0F;
+							int radius = 2 + rand.nextInt(5);
+							int dx = MathHelper.floor_double(Math.cos(angle) * radius);
+							int dz = MathHelper.floor_double(Math.sin(angle) * radius);
+
+							int x = baseX + dx;
+							int z = baseZ + dz;
+							int y = event.world.getTopSolidOrLiquidBlock(x, z);
+
+							Block block = null;
+							if(y > 0) {
+								block = event.world.getBlock(x, y - 1, z);
+								if(block != null && block.isAir(event.world, x, y - 1, z)) {
+									block = null;
+								} else {
+									y -= 1;
+								}
+							}
+
+							if(block == null) {
+								continue;
+							}
+
+							int soundType = rand.nextInt(3);
+							String sound;
+							if(soundType == 0) {
+								sound = block.stepSound.getStepResourcePath();
+							} else if(soundType == 1) {
+								sound = block.stepSound.getBreakSound();
+							} else {
+								sound = block.stepSound.func_150496_b();
+							}
+
+							if(sound == null || sound.isEmpty()) {
+								continue;
+							}
+
+							boolean whisper = rand.nextFloat() < 0.35F;
+							float volume = whisper
+								? 0.15F + rand.nextFloat() * 0.1F
+								: Math.max(0.7F, block.stepSound.getVolume()) * (0.9F + rand.nextFloat() * 0.4F);
+							float pitch = whisper
+								? 0.45F + rand.nextFloat() * 0.2F
+								: block.stepSound.getPitch() * (0.85F + rand.nextFloat() * 0.3F);
+							event.world.playSoundEffect(x + 0.5D, y + 0.5D, z + 0.5D, sound, volume, pitch);
 						}
 					}
 				}

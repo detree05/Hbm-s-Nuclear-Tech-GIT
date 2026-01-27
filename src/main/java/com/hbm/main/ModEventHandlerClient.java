@@ -1041,9 +1041,6 @@ public class ModEventHandlerClient {
 			if(BlockAshes.ashes > 0) BlockAshes.ashes -= 2;
 			if(BlockAshes.ashes < 0) BlockAshes.ashes = 0;
 
-			maybePlayKerbolBlockSound(mc);
-			maybeUpdateKerbolGravity(mc);
-			maybePlayKerbolHeartbeat(mc);
 			maybeSpawnKerbolRedRain(mc);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
@@ -1222,8 +1219,8 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private void maybeUpdateKerbolGravity(Minecraft mc) {
-		if(mc.theWorld == null || mc.thePlayer == null) {
+	public static void handleKerbolGravityEvent(Minecraft mc, float nextGravity) {
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
 		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
@@ -1232,13 +1229,10 @@ public class ModEventHandlerClient {
 		if(lastKerbolGravity == null) {
 			lastKerbolGravity = ((WorldProviderKerbol) mc.theWorld.provider).getGravityMultiplier();
 		}
-		Float nextGravity = WorldProviderKerbol.rollGravityEvent(mc.theWorld);
-		if(nextGravity == null) {
-			return;
-		}
 		WorldProviderKerbol kerbol = (WorldProviderKerbol) mc.theWorld.provider;
 		kerbol.setGravityMultiplier(nextGravity);
 		shakeTimestamp = System.currentTimeMillis();
+		MainRegistry.proxy.displayTooltip(EnumChatFormatting.DARK_RED.toString() + EnumChatFormatting.BOLD + "IT LIVES...", ServerProxy.ID_GAS_HAZARD);
 
 		float previous = lastKerbolGravity != null ? lastKerbolGravity : 1.0F;
 		lastKerbolGravity = nextGravity;
@@ -1259,7 +1253,6 @@ public class ModEventHandlerClient {
 			if(block == null || block.isAir(mc.theWorld, x, topY - 1, z)) {
 				continue;
 			}
-			int meta = mc.theWorld.getBlockMetadata(x, topY - 1, z);
 			double px = x + 0.5D + (mc.theWorld.rand.nextDouble() - 0.5D) * 0.6D;
 			double pz = z + 0.5D + (mc.theWorld.rand.nextDouble() - 0.5D) * 0.6D;
 			double py = gravityHeavier ? topY + 1.2D : topY + 0.1D;
@@ -1291,7 +1284,7 @@ public class ModEventHandlerClient {
 			return;
 		}
 		lastKerbolHeartbeatBeat = beatIndex;
-		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 1.0F, 1.0F);
+		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
 	}
 
 	private void maybeSpawnKerbolRedRain(Minecraft mc) {
@@ -1332,71 +1325,6 @@ public class ModEventHandlerClient {
 		double pulse = Math.max(0.0D, p1);
 		pulse = Math.max(pulse, Math.max(0.0D, p2) * 1.2D);
 		return (float) (pulse * pulse);
-	}
-
-	private void maybePlayKerbolBlockSound(Minecraft mc) {
-		if(mc.theWorld == null || mc.thePlayer == null) {
-			return;
-		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
-			return;
-		}
-		if(mc.theWorld.getTotalWorldTime() % 20 != 0) {
-			return;
-		}
-		if(mc.theWorld.rand.nextFloat() >= 0.30F) {
-			return;
-		}
-
-		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
-		int baseY = MathHelper.floor_double(mc.thePlayer.posY);
-		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
-
-		float angle = mc.theWorld.rand.nextFloat() * (float)Math.PI * 2.0F;
-		int radius = 2 + mc.theWorld.rand.nextInt(5);
-		int dx = MathHelper.floor_double(Math.cos(angle) * radius);
-		int dz = MathHelper.floor_double(Math.sin(angle) * radius);
-
-		int x = baseX + dx;
-		int z = baseZ + dz;
-		int y = mc.theWorld.getTopSolidOrLiquidBlock(x, z);
-
-		Block block = null;
-		if(y > 0) {
-			block = mc.theWorld.getBlock(x, y - 1, z);
-			if(block != null && block.isAir(mc.theWorld, x, y - 1, z)) {
-				block = null;
-			} else {
-				y -= 1;
-			}
-		}
-
-		if(block == null) {
-			return;
-		}
-
-		int soundType = mc.theWorld.rand.nextInt(3);
-		String sound;
-		if(soundType == 0) {
-			sound = block.stepSound.getStepResourcePath();
-		} else if(soundType == 1) {
-			sound = block.stepSound.getBreakSound();
-		} else {
-			sound = block.stepSound.func_150496_b();
-		}
-
-		if(sound == null || sound.isEmpty()) {
-			return;
-		}
-
-		boolean whisper = mc.theWorld.rand.nextFloat() < 0.35F;
-		float volume = whisper
-			? 0.15F + mc.theWorld.rand.nextFloat() * 0.1F
-			: Math.max(0.7F, block.stepSound.getVolume()) * (0.9F + mc.theWorld.rand.nextFloat() * 0.4F);
-		float pitch = whisper
-			? 0.45F + mc.theWorld.rand.nextFloat() * 0.2F
-			: block.stepSound.getPitch() * (0.85F + mc.theWorld.rand.nextFloat() * 0.3F);
-		mc.theWorld.playSoundEffect(x + 0.5D, y + 0.5D, z + 0.5D, sound, volume, pitch);
 	}
 
 	public static ItemStack getMouseOverStack() {

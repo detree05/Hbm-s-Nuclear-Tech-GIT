@@ -5,7 +5,7 @@
 	"misc.rumble": {"category": "player", "sounds": [{"name": "misc/rumble", "stream": false}]},
 	"misc.itlives_bell": {"category": "player", "sounds": [{"name": "misc/itlives_bell", "stream": false}]},
 	"misc.itlives_rumble": {"category": "player", "sounds": [{"name": "misc/itlives_rumble", "stream": false}]},
-	"misc.itlives_heartbeat": {"category": "player", "sounds": [{"name": "misc/itlives_heartbeat", "stream": false}]},
+	"misc.itlives_heartbeat": {"category": "player", "sounds": [{"name": "misc/itlives_heartbeat", "stream": true}]},
 	"misc.flesh": {"category": "player", "sounds": [{"name": "misc/flesh", "stream": false}]},
 	"misc.impact": {"category": "player", "sounds": [{"name": "misc/cenimp", "stream": false}]},
 	"misc.lpwstart": {"category": "block", "sounds": [{"name": "misc/lpw2start", "stream": false}]},

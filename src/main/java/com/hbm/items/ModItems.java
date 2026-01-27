@@ -2370,6 +2370,7 @@ public class ModItems {
 	public static Item bucket_mercury;
 	public static Item bucket_bromine;
 	public static Item bucket_ccl;
+	public static Item bucket_blood;
 
 	public static Item door_metal;
 	public static Item door_office;
@@ -5324,6 +5325,7 @@ public class ModItems {
 		bucket_mercury = new ItemModBucket(ModBlocks.mercury_block).setUnlocalizedName("bucket_mercury").setContainerItem(Items.bucket).setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":bucket_mercury");
 		bucket_bromine = new ItemModBucket(ModBlocks.bromine_block).setUnlocalizedName("bucket_bromine").setContainerItem(Items.bucket).setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":bucket_bromine");
 		bucket_ccl = new ItemModBucket(ModBlocks.ccl_block).setUnlocalizedName("bucket_ccl").setContainerItem(Items.bucket).setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":bucket_ccl");
+		bucket_blood = new ItemModBucket(ModBlocks.blood_block).setUnlocalizedName("bucket_blood").setContainerItem(Items.bucket).setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":bucket_blood");
 
 		door_metal = new ItemModDoor().setUnlocalizedName("door_metal").setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":door_metal");
 		door_office = new ItemModDoor().setUnlocalizedName("door_office").setCreativeTab(MainRegistry.blockTab).setTextureName(RefStrings.MODID + ":door_office");
@@ -5411,6 +5413,7 @@ public class ModItems {
 		FluidContainerRegistry.registerFluidContainer(new FluidStack(ModBlocks.mercury_fluid, 1000), new ItemStack(ModItems.bucket_mercury), new ItemStack(Items.bucket));
 		FluidContainerRegistry.registerFluidContainer(new FluidStack(ModBlocks.bromine_fluid, 1000), new ItemStack(ModItems.bucket_bromine), new ItemStack(Items.bucket));
 		FluidContainerRegistry.registerFluidContainer(new FluidStack(ModBlocks.ccl_fluid, 1000), new ItemStack(ModItems.bucket_ccl), new ItemStack(Items.bucket));
+		FluidContainerRegistry.registerFluidContainer(new FluidStack(ModBlocks.blood_fluid, 1000), new ItemStack(ModItems.bucket_blood), new ItemStack(Items.bucket));
 
 		BucketHandler.INSTANCE.buckets.put(ModBlocks.mud_block, ModItems.bucket_mud);
 		BucketHandler.INSTANCE.buckets.put(ModBlocks.acid_block, ModItems.bucket_acid);
@@ -5420,6 +5423,7 @@ public class ModItems {
 		BucketHandler.INSTANCE.buckets.put(ModBlocks.mercury_block, ModItems.bucket_mercury);
 		BucketHandler.INSTANCE.buckets.put(ModBlocks.bromine_block, ModItems.bucket_bromine);
 		BucketHandler.INSTANCE.buckets.put(ModBlocks.ccl_block, ModItems.bucket_ccl);
+		BucketHandler.INSTANCE.buckets.put(ModBlocks.blood_block, ModItems.bucket_blood);
 
 		MinecraftForge.EVENT_BUS.register(BucketHandler.INSTANCE);
 	}
@@ -7709,6 +7713,7 @@ public class ModItems {
 		GameRegistry.registerItem(bucket_mercury, bucket_mercury.getUnlocalizedName());
 		GameRegistry.registerItem(bucket_bromine, bucket_bromine.getUnlocalizedName());
 		GameRegistry.registerItem(bucket_ccl, bucket_ccl.getUnlocalizedName());
+		GameRegistry.registerItem(bucket_blood, bucket_blood.getUnlocalizedName());
 
 		//Door Items
 		GameRegistry.registerItem(door_metal, door_metal.getUnlocalizedName());
