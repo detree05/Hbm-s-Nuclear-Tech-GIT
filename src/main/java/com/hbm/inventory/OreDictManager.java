@@ -719,6 +719,7 @@ public class OreDictManager {
 		OreDictionary.registerOre("blockGlassBlack", glass_ash);
 
 		OreDictionary.registerOre("container1000lubricant", bdcl);
+		OreDictionary.registerOre("container1000blood", bucket_blood);
 		OreDictionary.registerOre("itemSilicon", billet_silicon);
 
 		OreDictionary.registerOre(KEY_SAND, duna_sands);
@@ -732,6 +733,7 @@ public class OreDictManager {
 		OreDictionary.registerOre(KEY_COBBLESTONE, duna_cobble);
 		OreDictionary.registerOre(KEY_COBBLESTONE, dres_rock);
 		OreDictionary.registerOre(KEY_COBBLESTONE, ike_regolith);
+		OreDictionary.registerOre(KEY_COBBLESTONE, void_regolith);
 		OreDictionary.registerOre(KEY_STONE, ike_stone);
 		OreDictionary.registerOre(KEY_COBBLESTONE, eve_rock);
 		OreDictionary.registerOre(KEY_COBBLESTONE, moho_regolith);

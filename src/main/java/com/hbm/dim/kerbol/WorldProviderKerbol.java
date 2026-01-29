@@ -28,12 +28,11 @@ import net.minecraft.util.ResourceLocation;
 import java.util.Random;
 
 public class WorldProviderKerbol extends WorldProviderCelestial {
-private static final float GRAVITY_MIN = 0.05F;
-private static final float GRAVITY_MAX = 6.0F;
-private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
+	private static final float GRAVITY_MIN = 1F;
+	private static final float GRAVITY_MAX = 6.0F;
+	private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 	private static final long GRAVITY_SEED_SALT = 0x9E3779B97F4A7C15L;
 
-	private float gravityMultiplier = 1.0F;
 	private long lastGravityEventMillis = -1L;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
 	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
@@ -271,12 +270,9 @@ private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 		return com.hbm.dim.CelestialBody.getBody(worldObj).getRotationalPeriod();
 	}
 
-	public float getGravityMultiplier() {
-		return gravityMultiplier;
-	}
-
+	@Override
 	public void setGravityMultiplier(float multiplier) {
-		this.gravityMultiplier = MathHelper.clamp_float(multiplier, GRAVITY_MIN, GRAVITY_MAX);
+		super.setGravityMultiplier(MathHelper.clamp_float(multiplier, GRAVITY_MIN, GRAVITY_MAX));
 	}
 
 	public static Float rollGravityEvent(World world) {
@@ -297,9 +293,9 @@ private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 			float current = ((WorldProviderKerbol) world.provider).getGravityMultiplier();
 			if(Math.abs(next - current) < 2.0F) {
 				if(next >= current) {
-					next = Math.min(current + 2.0F, GRAVITY_MAX);
+					next = GRAVITY_MAX;
 				} else {
-					next = Math.max(current - 2.0F, GRAVITY_MIN);
+					next = GRAVITY_MIN;
 				}
 			}
 		}
@@ -352,12 +348,6 @@ private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
 	@Override
 	public float[] calcSunriseSunsetColors(float solarAngle, float partialTicks) {
 		return null;
-	}
-
-	@Override
-	public ChunkCoordinates getSpawnPoint() {
-		// Spawn one block above the single basalt block at origin
-		return new ChunkCoordinates(0, 65, 0);
 	}
 
 	private float getHeartbeatPulse(float partialTicks) {

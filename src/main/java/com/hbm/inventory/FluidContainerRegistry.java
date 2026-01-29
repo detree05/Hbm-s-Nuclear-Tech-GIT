@@ -40,6 +40,7 @@ public class FluidContainerRegistry {
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.bucket_mercury), new ItemStack(Items.bucket), Fluids.MERCURY, 1000));
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.bucket_bromine), new ItemStack(Items.bucket), Fluids.BROMINE, 1000));
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.bucket_ccl), new ItemStack(Items.bucket), Fluids.CCL, 1000));
+		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.bucket_blood), new ItemStack(Items.bucket), Fluids.BLOOD, 1000));
 
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModBlocks.red_barrel), new ItemStack(ModItems.tank_steel), Fluids.DIESEL, 10000));
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModBlocks.pink_barrel), new ItemStack(ModItems.tank_steel), Fluids.KEROSENE, 10000));

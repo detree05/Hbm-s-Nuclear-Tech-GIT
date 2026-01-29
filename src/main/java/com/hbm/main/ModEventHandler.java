@@ -26,6 +26,7 @@ import com.hbm.config.ServerConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialTeleporter;
+import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
@@ -85,7 +86,7 @@ import com.hbm.lib.ModDamageSource;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
-import com.hbm.packet.toclient.KerbolGravityEventPacket;
+import com.hbm.packet.toclient.GravityEventPacket;
 import com.hbm.packet.toclient.PermaSyncPacket;
 import com.hbm.packet.toclient.PlayerInformPacket;
 import com.hbm.packet.toclient.SerializableRecipePacket;
@@ -195,6 +196,7 @@ public class ModEventHandler {
 	private static final long KERBOL_HEARTBEAT_PERIOD_TICKS = 200L;
 	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
 	private static final int KERBOL_METEOR_CHANCE = 100;
+	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -902,7 +904,7 @@ public class ModEventHandler {
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
 							if(player instanceof EntityPlayerMP) {
-								PacketDispatcher.wrapper.sendTo(new KerbolGravityEventPacket(nextGravity), (EntityPlayerMP) player);
+								PacketDispatcher.wrapper.sendTo(new GravityEventPacket(nextGravity), (EntityPlayerMP) player);
 							}
 							event.world.playSoundAtEntity(player, "hbm:misc.itlives_rumble", 1.35F, 0.9F + event.world.rand.nextFloat() * 0.2F);
 						}
@@ -981,6 +983,55 @@ public class ModEventHandler {
 					if(tick % KERBOL_METEOR_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
 						if(event.world.rand.nextInt(KERBOL_METEOR_CHANCE) == 0) {
 							spawnKerbolMeteor(event.world);
+						}
+					}
+				}
+
+				if(!event.world.isRemote && event.world.provider.dimensionId != SpaceConfig.orbitDimension) {
+					long dayIndex = event.world.getWorldTime() / AstronomyUtil.TICKS_IN_DAY;
+					boolean shouldBroadcast = false;
+					float nextGravity = 0.0F;
+
+					if(event.world.provider instanceof WorldProviderCelestial && !(event.world.provider instanceof WorldProviderKerbol)) {
+						WorldProviderCelestial provider = (WorldProviderCelestial) event.world.provider;
+						long lastDay = provider.getGravityDay();
+
+						if(lastDay < 0) {
+							provider.setGravityDay(dayIndex);
+						} else if(dayIndex > lastDay) {
+							long daysPassed = dayIndex - lastDay;
+							provider.setGravityDay(dayIndex);
+							float currentGravity = provider.getGravityMultiplier();
+							nextGravity = Math.max(0.0F, currentGravity - (PLANET_GRAVITY_DECAY * daysPassed));
+							if(nextGravity < currentGravity) {
+								provider.setGravityMultiplier(nextGravity);
+								shouldBroadcast = true;
+							}
+						}
+					} else if(event.world.provider.dimensionId == 0) {
+						SolarSystemWorldSavedData data = SolarSystemWorldSavedData.get(event.world);
+						long lastDay = data.getKerbinGravityDay();
+
+						if(lastDay < 0) {
+							data.setKerbinGravityDay(dayIndex);
+						} else if(dayIndex > lastDay) {
+							long daysPassed = dayIndex - lastDay;
+							data.setKerbinGravityDay(dayIndex);
+							float currentGravity = data.getKerbinGravityMultiplier();
+							nextGravity = Math.max(0.0F, currentGravity - (PLANET_GRAVITY_DECAY * daysPassed));
+							if(nextGravity < currentGravity) {
+								data.setKerbinGravityMultiplier(nextGravity);
+								shouldBroadcast = true;
+							}
+						}
+					}
+
+					if(shouldBroadcast) {
+						for(Object obj : event.world.playerEntities) {
+							EntityPlayer player = (EntityPlayer) obj;
+							if(player instanceof EntityPlayerMP) {
+								PacketDispatcher.wrapper.sendTo(new GravityEventPacket(nextGravity), (EntityPlayerMP) player);
+							}
 						}
 					}
 				}

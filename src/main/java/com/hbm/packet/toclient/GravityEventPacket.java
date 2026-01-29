@@ -10,13 +10,13 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
 
-public class KerbolGravityEventPacket implements IMessage {
+public class GravityEventPacket implements IMessage {
 
 	private float nextGravity;
 
-	public KerbolGravityEventPacket() { }
+	public GravityEventPacket() { }
 
-	public KerbolGravityEventPacket(float nextGravity) {
+	public GravityEventPacket(float nextGravity) {
 		this.nextGravity = nextGravity;
 	}
 
@@ -30,13 +30,13 @@ public class KerbolGravityEventPacket implements IMessage {
 		buf.writeFloat(nextGravity);
 	}
 
-	public static class Handler implements IMessageHandler<KerbolGravityEventPacket, IMessage> {
+	public static class Handler implements IMessageHandler<GravityEventPacket, IMessage> {
 
 		@Override
 		@SideOnly(Side.CLIENT)
-		public IMessage onMessage(KerbolGravityEventPacket m, MessageContext ctx) {
+		public IMessage onMessage(GravityEventPacket m, MessageContext ctx) {
 			Minecraft mc = Minecraft.getMinecraft();
-			ModEventHandlerClient.handleKerbolGravityEvent(mc, m.nextGravity);
+			ModEventHandlerClient.handleGravityEvent(mc, m.nextGravity);
 			return null;
 		}
 	}

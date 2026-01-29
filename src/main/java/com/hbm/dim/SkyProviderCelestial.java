@@ -612,7 +612,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			shader.use();
 
-			float time = ((float)world.getWorldTime() + partialTicks) / 20.0F;
+			// Keep time in a tight range to avoid float precision jitter after large /time adds.
+			long timeTicks = world.getWorldTime() % 24000L;
+			float time = ((float)timeTicks + partialTicks) / 20.0F;
 
 			mc.renderEngine.bindTexture(noise);
 			GL11.glPushMatrix();

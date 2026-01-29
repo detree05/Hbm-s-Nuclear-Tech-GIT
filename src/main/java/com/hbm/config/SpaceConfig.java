@@ -43,6 +43,7 @@ public class SpaceConfig {
 	// Most mods start at 40 and go up, so easiest way to avoid conflicts is to count backwards!
 
 	public static int kerbolBiome = 128;
+	public static int kerbolOceanBiome = 129;
 	public static int orbitBiome = 126;
 
 	public static int moonBiome = 125;
@@ -158,6 +159,7 @@ public class SpaceConfig {
 		tektoVinylIslandBiome = createConfigBiome(config, CATEGORY_BIOME, "16.31_tektoVinylSandsBiome", "Tekto Vinyl Sands Biome ID", tektoVinylIslandBiome + defaultBiomeOffset);
 		thatmoBiome = createConfigBiome(config, CATEGORY_BIOME, "16.32_thatmoBiome", "Thatmo Biome ID", thatmoBiome + defaultBiomeOffset);
 		kerbolBiome = createConfigBiome(config, CATEGORY_BIOME, "16.33_kerbolBiome", "Kerbol Biome ID", kerbolBiome + defaultBiomeOffset);
+		kerbolOceanBiome = createConfigBiome(config, CATEGORY_BIOME, "16.34_kerbolOceanBiome", "Kerbol Ocean Biome ID", kerbolOceanBiome + defaultBiomeOffset);
 	}
 
 	private static HashMap<Integer, String> registeredIds = new HashMap<>();

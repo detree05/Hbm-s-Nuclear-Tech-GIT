@@ -1222,19 +1222,26 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	public static void handleKerbolGravityEvent(Minecraft mc, float nextGravity) {
+	public static void handleGravityEvent(Minecraft mc, float nextGravity) {
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
 
-		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
+		if(!(mc.theWorld.provider instanceof WorldProviderCelestial)) {
 			return;
 		}
-		if(lastKerbolGravity == null) {
-			lastKerbolGravity = ((WorldProviderKerbol) mc.theWorld.provider).getGravityMultiplier();
+
+		WorldProviderCelestial provider = (WorldProviderCelestial) mc.theWorld.provider;
+		provider.setGravityMultiplier(nextGravity);
+
+		if(!(provider instanceof WorldProviderKerbol)) {
+			return;
 		}
-		WorldProviderKerbol kerbol = (WorldProviderKerbol) mc.theWorld.provider;
-		kerbol.setGravityMultiplier(nextGravity);
+
+		WorldProviderKerbol kerbol = (WorldProviderKerbol) provider;
+		if(lastKerbolGravity == null) {
+			lastKerbolGravity = kerbol.getGravityMultiplier();
+		}
 		shakeTimestamp = System.currentTimeMillis();
 		MainRegistry.proxy.displayTooltip(EnumChatFormatting.DARK_RED.toString() + EnumChatFormatting.BOLD + "IT LIVES...", ServerProxy.ID_GAS_HAZARD);
 

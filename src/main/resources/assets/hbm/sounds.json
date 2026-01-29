@@ -92,6 +92,7 @@
 	"block.teto": {"category": "block", "sounds": [{"name": "block/teto", "stream": false}]},
 	"block.akita": {"category": "block", "sounds": [{"name": "block/akita", "stream": false}]},
 	"block.miku": {"category": "block", "sounds": [{"name": "block/miku", "stream": false}]},
+	"block.fickle": {"category": "block", "sounds": [{"name": "block/fickle", "stream": false}]},
 	"block.chemicalPlant": {"category": "block", "sounds": [{"name": "block/chemicalPlant", "stream": false}]},
 	"block.assemblerStrike": {"category": "block", "sounds": ["block/assemblerStrike1", "block/assemblerStrike2"]},
 	"block.assemblerStart": {"category": "block", "sounds": [{"name": "block/assemblerStart", "stream": false}]},

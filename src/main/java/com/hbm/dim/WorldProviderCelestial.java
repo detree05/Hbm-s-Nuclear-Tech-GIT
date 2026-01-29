@@ -47,6 +47,8 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 	private double eclipseAmount;
 	private long localTime = -1;
+	private float gravityMultiplier = 1.0F;
+	private long lastGravityDay = -1L;
 
 	@Override
 	public abstract void registerWorldChunkManager();
@@ -113,24 +115,53 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	 * also we don't need to mark the WorldSavedData as dirty because the world time is updated every tick and marks it as such
 	 */
 	public void writeToNBT(NBTTagCompound nbt) {
-
+		nbt.setFloat("hbm.gravityMultiplier", gravityMultiplier);
+		nbt.setLong("hbm.gravityDay", lastGravityDay);
 	}
 
 	public void readFromNBT(NBTTagCompound nbt) {
-
+		if(nbt.hasKey("hbm.gravityMultiplier")) {
+			gravityMultiplier = nbt.getFloat("hbm.gravityMultiplier");
+		}
+		if(nbt.hasKey("hbm.gravityDay")) {
+			lastGravityDay = nbt.getLong("hbm.gravityDay");
+		}
 	}
 
 	public void serialize(ByteBuf buf) {
 		buf.writeLong(getWorldTime());
+		buf.writeFloat(gravityMultiplier);
+		buf.writeLong(lastGravityDay);
 	}
 
 	public void deserialize(ByteBuf buf) {
 		long time = buf.readLong();
+		float multiplier = buf.readFloat();
+		long day = buf.readLong();
 
 		// Allow a half second desync for smoothness
 		if(Math.abs(time - getWorldTime()) > 10) {
 			setWorldTime(time);
 		}
+
+		setGravityMultiplier(multiplier);
+		setGravityDay(day);
+	}
+
+	public float getGravityMultiplier() {
+		return gravityMultiplier;
+	}
+
+	public void setGravityMultiplier(float multiplier) {
+		this.gravityMultiplier = multiplier;
+	}
+
+	public long getGravityDay() {
+		return lastGravityDay;
+	}
+
+	public void setGravityDay(long day) {
+		this.lastGravityDay = day;
 	}
 
 

@@ -2,21 +2,16 @@ package com.hbm.dim.kerbol.biome;
 
 import java.util.Random;
 
-import com.hbm.config.SpaceConfig;
 import com.hbm.dim.BiomeGenBaseCelestial;
 
 import net.minecraft.block.Block;
 import net.minecraft.world.World;
-import net.minecraft.world.biome.BiomeGenBase;
 
-public class BiomeGenKerbol extends BiomeGenBaseCelestial {
+public class BiomeGenKerbolOcean extends BiomeGenBaseCelestial {
 
-	public static final BiomeGenBase digammaWastelands = new BiomeGenKerbol(SpaceConfig.kerbolBiome);
-	public static final BiomeGenBase digmaOcean = new BiomeGenKerbolOcean(SpaceConfig.kerbolOceanBiome);
-
-	public BiomeGenKerbol(int id) {
+	public BiomeGenKerbolOcean(int id) {
 		super(id);
-		this.setBiomeName("Digma Wastelands");
+		this.setBiomeName("Digma Ocean");
 		this.setDisableRain();
 	}
 

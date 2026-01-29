@@ -6,10 +6,12 @@ import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.fluid.MeltedFlesh;
 import com.hbm.blocks.generic.BlockSkeletonHolder.TileEntitySkeletonHolder;
 import com.hbm.config.SpaceConfig;
+import com.hbm.config.WorldConfig;
 import com.hbm.util.Compat;
 import com.hbm.world.WorldUtil;
 import com.hbm.lib.RefStrings;
 import com.hbm.world.gen.terrain.MapGenCrater;
+import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -31,8 +33,8 @@ import net.minecraftforge.oredict.OreDictionary;
 
 public class ChunkProviderKerbol implements IChunkProvider {
 	private final World worldObj;
-private final NoiseGeneratorPerlin terrainNoise;
-	private final MapGenCrater blackenedCraters;
+	private final NoiseGeneratorPerlin terrainNoise;
+	private final MapGenCrater sellafieldCraters;
 
 	private static final int BASE_HEIGHT = 64;
 	private static final int[] FIGURE_BLOCK_IDS = { 1095, 1096, 1098, 1099 };
@@ -48,15 +50,13 @@ private final NoiseGeneratorPerlin terrainNoise;
 	private static final int TESSERACT_SIZE_MIN = 6;
 	private static final int TESSERACT_SIZE_MAX = 10;
 	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
-	private static final int BLACKENED_RBMK_DEBRIS_ID = 1495;
 	private static final int LINGERING_DIGAMMA_ID = 1744;
-	private static final int CRATER_FREQUENCY = 1000;
-	private static final int CRATER_SIZE_MIN = 6;
-	private static final int CRATER_SIZE_MAX = 12;
+	private static final int SELLAFIELD_CRATER_MIN = 8;
+	private static final int SELLAFIELD_CRATER_MAX = 16;
 	private static final int SKELETON_HOLDER_CHANCE = 1000;
 	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
 	private static final int FLESH_LEVEL = 50;
-	private static final int FLESH_MASS_BLOCK_ID = 1219;
+	private static final int FLESH_MASS_BLOCK_ID = 1220;
 	private static final int BLOOD_SEA_LEVEL = 62;
 	private static final int BLOOD_CAVITY_SCALE = 4;
 	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
@@ -65,8 +65,11 @@ private final NoiseGeneratorPerlin terrainNoise;
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
 		this.terrainNoise = new NoiseGeneratorPerlin(new Random(world.getSeed() ^ 0x5deece66dL), 4);
-		this.blackenedCraters = new MapGenCrater(CRATER_FREQUENCY);
-		this.blackenedCraters.setSize(CRATER_SIZE_MIN, CRATER_SIZE_MAX);
+		this.sellafieldCraters = new MapGenCrater(Math.max(1, WorldConfig.radfreq / 10));
+		this.sellafieldCraters.setSize(SELLAFIELD_CRATER_MIN, SELLAFIELD_CRATER_MAX);
+		this.sellafieldCraters.regolith = ModBlocks.sellafield;
+		this.sellafieldCraters.rock = ModBlocks.sellafield_slaked;
+		this.sellafieldCraters.targetBiome = BiomeGenKerbol.digammaWastelands;
 	}
 
 	@Override public boolean chunkExists(int x, int z) { return true; }
@@ -75,12 +78,19 @@ private final NoiseGeneratorPerlin terrainNoise;
 	public Chunk provideChunk(int x, int z) {
 		Block[] blocks = new Block[65536];
 		byte[] meta = new byte[65536];
+		int[] heightMap = new int[256];
 
 		for(int lx = 0; lx < 16; lx++) {
 			for(int lz = 0; lz < 16; lz++) {
 				int wx = (x << 4) + lx;
 				int wz = (z << 4) + lz;
 				int height = getHeight(wx, wz);
+				if(height < 0) {
+					height = 0;
+				} else if(height > 255) {
+					height = 255;
+				}
+				heightMap[(lz << 4) | lx] = height;
 				Block fleshMass = getFleshMassBlock();
 				Block blood = ModBlocks.blood_block;
 				Block voidRegolith = ModBlocks.void_regolith;
@@ -90,15 +100,18 @@ private final NoiseGeneratorPerlin terrainNoise;
 					int index = (lx << 12) | (lz << 8) | y;
 					if(y == 0) {
 						blocks[index] = Blocks.bedrock;
-					} else if(y <= 4) {
-						blocks[index] = voidRegolith != null ? voidRegolith : (ashLayer != null ? ashLayer : fleshMass);
-					} else if(y < FLESH_LEVEL) {
-						blocks[index] = ashLayer != null ? ashLayer : fleshMass;
 					} else {
-						if(blood != null && isBloodCavity(wx, y, wz)) {
-							blocks[index] = blood;
+						int depth = height - y;
+						if(depth < 4) {
+							blocks[index] = voidRegolith != null ? voidRegolith : (ashLayer != null ? ashLayer : fleshMass);
+						} else if(depth < 24) {
+							blocks[index] = ashLayer != null ? ashLayer : fleshMass;
 						} else {
-							blocks[index] = fleshMass;
+							if(blood != null && isBloodCavity(wx, y, wz)) {
+								blocks[index] = blood;
+							} else {
+								blocks[index] = fleshMass;
+							}
 						}
 					}
 					meta[index] = 0;
@@ -106,7 +119,14 @@ private final NoiseGeneratorPerlin terrainNoise;
 
 				if(blood != null && height < BLOOD_SEA_LEVEL) {
 					int startY = height + 1;
-					for(int y = startY; y <= BLOOD_SEA_LEVEL; y++) {
+					if(startY < 0) {
+						startY = 0;
+					}
+					int endY = BLOOD_SEA_LEVEL;
+					if(endY > 255) {
+						endY = 255;
+					}
+					for(int y = startY; y <= endY; y++) {
 						int index = (lx << 12) | (lz << 8) | y;
 						blocks[index] = blood;
 						meta[index] = 0;
@@ -115,25 +135,21 @@ private final NoiseGeneratorPerlin terrainNoise;
 			}
 		}
 
-		Block debris = Block.getBlockById(BLACKENED_RBMK_DEBRIS_ID);
-		Block digamma = Block.getBlockById(LINGERING_DIGAMMA_ID);
-		if(debris != null && digamma != null) {
-			blackenedCraters.rock = debris;
-			blackenedCraters.regolith = debris;
-			blackenedCraters.func_151539_a(this, worldObj, x, z, blocks);
-		}
+		sellafieldCraters.func_151539_a(this, worldObj, x, z, blocks);
 
 		Chunk chunk = new Chunk(worldObj, blocks, meta, x, z);
 
 		if(Loader.isModLoaded(Compat.MOD_EIDS)) {
 			short[] biomes = WorldUtil.getBiomeShortArray(chunk);
 			for(int i = 0; i < biomes.length; i++) {
-				biomes[i] = (short) SpaceConfig.kerbolBiome;
+				int height = heightMap[i];
+				biomes[i] = (short) (height < BLOOD_SEA_LEVEL ? SpaceConfig.kerbolOceanBiome : SpaceConfig.kerbolBiome);
 			}
 		} else {
 			byte[] biomes = chunk.getBiomeArray();
 			for(int i = 0; i < biomes.length; i++) {
-				biomes[i] = (byte) SpaceConfig.kerbolBiome;
+				int height = heightMap[i];
+				biomes[i] = (byte) (height < BLOOD_SEA_LEVEL ? SpaceConfig.kerbolOceanBiome : SpaceConfig.kerbolBiome);
 			}
 		}
 
@@ -165,7 +181,6 @@ private final NoiseGeneratorPerlin terrainNoise;
 
 		generateGeometricFigures(rand, x, z);
 		generateSkeletonHolder(rand, x, z);
-		generateCraterLingeringDigamma(rand, x, z);
 	}
 
 	@Override public boolean saveChunks(boolean combined, IProgressUpdate progress) { return true; }
@@ -241,29 +256,6 @@ private final NoiseGeneratorPerlin terrainNoise;
 				default:
 					placeSierpinskiTetrahedron(wx, baseY, wz, pickSierpinskiSize(rand), orientation);
 					break;
-			}
-		}
-	}
-
-	private void generateCraterLingeringDigamma(Random rand, int chunkX, int chunkZ) {
-		Block debris = Block.getBlockById(BLACKENED_RBMK_DEBRIS_ID);
-		Block digamma = Block.getBlockById(LINGERING_DIGAMMA_ID);
-		if(debris == null || digamma == null) {
-			return;
-		}
-
-		int attempts = 10;
-		for(int i = 0; i < attempts; i++) {
-			int lx = rand.nextInt(16);
-			int lz = rand.nextInt(16);
-			int wx = (chunkX << 4) + lx;
-			int wz = (chunkZ << 4) + lz;
-			if(wx == 0 && wz == 0) continue;
-
-			int y = getHeight(wx, wz) + 1;
-			Block below = worldObj.getBlock(wx, y - 1, wz);
-			if(below == debris && worldObj.isAirBlock(wx, y, wz)) {
-				worldObj.setBlock(wx, y, wz, digamma);
 			}
 		}
 	}

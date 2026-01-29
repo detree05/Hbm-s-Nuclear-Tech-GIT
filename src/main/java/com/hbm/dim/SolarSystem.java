@@ -66,6 +66,7 @@ public class SolarSystem {
 					.withColor(0.408F, 0.298F, 0.553F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/eve_stone_2.png", RefStrings.MODID + ":textures/blocks/eve_silt.png")
 					.withMinProcessingLevel(3)
+					.withAxialTilt(0F)
 					.withTraits(new CBT_Atmosphere(Fluids.EVEAIR, 5D), new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
 					.withSatellites(
 
@@ -73,6 +74,7 @@ public class SolarSystem {
 							.withMassRadius(1.242e17F, 13)
 							.withOrbitalParameters(31_500, 0.55F, 10.0F, 12.0F, 80.0F)
 							.withRotationalPeriod(28_255)
+							.withAxialTilt(0F)
 							.withTexture(new ResourceLocation(RefStrings.MODID, "textures/misc/space/planet.png"))
 
 					),
@@ -83,7 +85,7 @@ public class SolarSystem {
 					.withRotationalPeriod(21_549)
 					.withColor(0.608F, 0.914F, 1.0F)
 					.withTraits(new CBT_Atmosphere(Fluids.EARTHAIR, 1D), new CBT_Water())
-					.withAxialTilt(20F)
+					.withAxialTilt(0F)
 					.withBlockTextures("textures/blocks/stone.png", "textures/blocks/dirt.png")
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_mask.png"))
 					.withBiomeMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_biomes.png"))
@@ -93,7 +95,7 @@ public class SolarSystem {
 							.withMassRadius(9.76e20F, 200)
 							.withOrbitalParameters(16_000, 0.054F, 0.0F, 5.15F, 17.0F)
 							.withRotationalPeriod(138_984)
-							.withAxialTilt(25F)
+							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/moon_rock.png", RefStrings.MODID + ":textures/blocks/moon_turf.png")
 							.withIce(true),
 
@@ -101,7 +103,7 @@ public class SolarSystem {
 							.withMassRadius(2.646e19F, 60)
 							.withOrbitalParameters(47_000, 0, 38.0F, 6.0F, 78.0F)
 							.withRotationalPeriod(40_400)
-							.withAxialTilt(135F)
+							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/minmus_stone.png", RefStrings.MODID + ":textures/blocks/minmus_regolith.png")
 							.withTraits(new CBT_Water(Fluids.MILK))
 							.withIce(true)
@@ -116,6 +118,7 @@ public class SolarSystem {
 					.withColor(0.6471f, 0.2824f, 0.1608f)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/duna_rock.png", RefStrings.MODID + ":textures/blocks/duna_sands.png")
 					.withTraits(new CBT_Atmosphere(Fluids.DUNAAIR, 0.1D))
+					.withAxialTilt(0F)
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/duna_mask.png"))
 					.withIce(true)
 					.withSatellites(
@@ -125,7 +128,7 @@ public class SolarSystem {
 							.withOrbitalParameters(3_200, 0.03F, 0.0F, 0.2F, 0.0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/ike_stone.png", RefStrings.MODID + ":textures/blocks/ike_regolith.png")
 							.withRotationalPeriod(65_518)
-							.withAxialTilt(15F)
+							.withAxialTilt(0F)
 							.withTraits(new CBT_Water(Fluids.BROMINE))
 							.withIce(true)
 
@@ -137,6 +140,7 @@ public class SolarSystem {
 					.withRotationalPeriod(34_800)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/dresbase.png", RefStrings.MODID + ":textures/blocks/sellafield_slaked.png")
 					.withRings(10.0F, 3, 0.4F, 0.4F, 0.4F)
+					.withAxialTilt(0F)
 					.withMinProcessingLevel(2)
 					.withIce(true),
 
@@ -147,13 +151,14 @@ public class SolarSystem {
 					.withRotationalPeriod(36_000)
 					.withColor(0.4588f, 0.6784f, 0.3059f)
 					.withGas(Fluids.JOOLGAS)
+					.withAxialTilt(0F)
 					.withSatellites(
 
 						new CelestialBody("laythe", SpaceConfig.laytheDimension, Body.LAYTHE)
 							.withMassRadius(2.94e22F, 500)
 							.withOrbitalParameters(27_184, 0.0288F, 0.0F, 0.348F, 0.0F)
 							.withRotationalPeriod(52_981)
-							.withTidalLockingTo("jool")
+							.withAxialTilt(0F)
 							.withMinProcessingLevel(3)
 							.withTraits(new CBT_Atmosphere(Fluids.EARTHAIR, 0.45D).and(Fluids.XENON, 0.15D), new CBT_Water())
 							.withBlockTextures("textures/blocks/stone.png", RefStrings.MODID + ":textures/blocks/laythe_silt.png")
@@ -161,21 +166,25 @@ public class SolarSystem {
 
 						new CelestialBody("vall") //probably
 							.withMassRadius(3.109e21F, 300)
+							.withAxialTilt(0F)
 							.withOrbitalParameters(43_152, 0.111F, 342.9F, 7.48F, 128.0F)
 							.withRotationalPeriod(105_962),
 
 						new CelestialBody("tylo") // what value is this planet gonna add???
 							.withMassRadius(4.233e22F, 600)
+							.withAxialTilt(0F)
 							.withOrbitalParameters(68_500, 0.002F, 0.0F, 0.3F, 0.0F)
 							.withRotationalPeriod(211_926),
 
 						new CelestialBody("bop")
 							.withMassRadius(3.726e19F, 65)
+							.withAxialTilt(0F)
 							.withOrbitalParameters(128_500, 0.235F, 25.0F, 15F, 10.0F)
 							.withRotationalPeriod(544_507),
 
 						new CelestialBody("pol")
 							.withMassRadius(1.081e19F, 44)
+							.withAxialTilt(0F)
 							.withOrbitalParameters(179_890, 0.171F, 15.0F, 4.25F, 2.0F)
 							.withRotationalPeriod(901_902)
 
@@ -186,27 +195,32 @@ public class SolarSystem {
 					.withOrbitalParameters(125_798_522, 0.0534F, 0.0F, 2.02F, 184.0F)
 					.withRotationalPeriod(28_500)
 					.withColor(1f, 0.6862f, 0.5882f)
+					.withAxialTilt(0F)
 					.withRings(10.0F, 3, 0.6F, 0.4F, 0.3F)
 					.withGas(Fluids.SARNUSGAS)
 					.withSatellites(
 
 					new CelestialBody("hale") //no
 						.withMassRadius(1.2166e16F, 6)
+						.withAxialTilt(0F)
 						.withOrbitalParameters(10_488, 0, 0.0F, 1.0F, 55.0F)
 						.withRotationalPeriod(23_555),
 
 					new CelestialBody("ovok") //nah
 						.withMassRadius(4.233e17F, 26)
+						.withAxialTilt(0F)
 						.withOrbitalParameters(12_169, 0.01F, 0.0F, 1.5F, 55.0F)
 						.withRotationalPeriod(29_440),
 
 					new CelestialBody("eeloo") //will add
 						.withMassRadius(1.115e21F, 210)
+						.withAxialTilt(0F)
 						.withOrbitalParameters(19_106, 0.0034F, 0.0F, 2.3F, 55.0F)
 						.withRotationalPeriod(57_915),
 
 					new CelestialBody("slate") //not you tho
 						.withMassRadius(2.965e22F, 540)
+						.withAxialTilt(0F)
 						.withOrbitalParameters(42_593, 0.04F, 0.0F, 2.3F, 55.0F)
 						.withRotationalPeriod(192_771),
 

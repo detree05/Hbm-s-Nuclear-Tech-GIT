@@ -35,6 +35,8 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	private HashMap<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>> traitMap = new HashMap<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>>();
 	private HashMap<ChunkCoordIntPair, OrbitalStation> stations = new HashMap<>();
+	private float kerbinGravityMultiplier = 1.0F;
+	private long kerbinGravityDay = -1L;
 
 	public static SolarSystemWorldSavedData get() {
 		return get(DimensionManager.getWorlds()[0]);
@@ -53,6 +55,13 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	@Override
 	public void readFromNBT(NBTTagCompound nbt) {
+		if(nbt.hasKey("kerbinGravityMultiplier")) {
+			kerbinGravityMultiplier = nbt.getFloat("kerbinGravityMultiplier");
+		}
+		if(nbt.hasKey("kerbinGravityDay")) {
+			kerbinGravityDay = nbt.getLong("kerbinGravityDay");
+		}
+
 		for(CelestialBody body : CelestialBody.getAllBodies()) {
 			if(nbt.hasKey("b_" + body.name)) {
 				NBTTagCompound data = nbt.getCompoundTag("b_" + body.name);
@@ -102,6 +111,9 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	@Override
 	public void writeToNBT(NBTTagCompound nbt) {
+		nbt.setFloat("kerbinGravityMultiplier", kerbinGravityMultiplier);
+		nbt.setLong("kerbinGravityDay", kerbinGravityDay);
+
 		for(Entry<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>> entry : traitMap.entrySet()) {
 			NBTTagCompound data = new NBTTagCompound();
 
@@ -132,6 +144,24 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 			stationList.appendTag(stationTag);
 		}
 		nbt.setTag("stations", stationList);
+	}
+
+	public float getKerbinGravityMultiplier() {
+		return kerbinGravityMultiplier;
+	}
+
+	public void setKerbinGravityMultiplier(float multiplier) {
+		this.kerbinGravityMultiplier = multiplier;
+		markDirty();
+	}
+
+	public long getKerbinGravityDay() {
+		return kerbinGravityDay;
+	}
+
+	public void setKerbinGravityDay(long day) {
+		this.kerbinGravityDay = day;
+		markDirty();
 	}
 
 	public void setTraits(String bodyName, CelestialBodyTrait... traits) {

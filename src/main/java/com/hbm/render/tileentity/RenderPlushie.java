@@ -36,6 +36,11 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 	public static final ResourceLocation numbernineTex = new ResourceLocation(RefStrings.MODID, "textures/models/horse/numbernine.png");
 	public static final ResourceLocation hundunTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/hundun.png");
 
+	//this man wanted me to add fickle and i aint want no damn fickle//
+	public static final IModelCustom fickleModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/fickle.obj")).asVBO();
+	public static final ResourceLocation fickleTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/fickle.png");
+	public static final ResourceLocation fickleBlush = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/fickle_squished.png");
+
 	//VOCALOIDS//
 	public static final IModelCustom tetoModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/teto.obj")).asVBO();
 	public static final ResourceLocation tetoTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/teto.png");
@@ -72,6 +77,7 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 		case TETO: GL11.glScaled(0.5, 0.5, 0.5); break;
 		case MIKU: GL11.glScaled(0.5, 0.5, 0.5); break;
 		case NERU: GL11.glScaled(0.5, 0.5, 0.5); break;
+		case FICKLE: GL11.glScaled(0.5, 0.5, 0.5); break;
 		case HUNDUN: GL11.glScaled(1, 1, 1); break;
 		}
 		renderPlushie(te.type, te.squishTimer);
@@ -145,6 +151,10 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 			Minecraft.getMinecraft().getTextureManager().bindTexture(squishTimer > 6 ? neruBlush : neruTex);
 			neruModel.renderAll();
 			break;
+		case FICKLE:
+			Minecraft.getMinecraft().getTextureManager().bindTexture(squishTimer > 6 ? fickleBlush : fickleTex);
+			fickleModel.renderAll();
+			break;
 		}
 	}
 
@@ -173,6 +183,7 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 				case TETO: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
 				case MIKU: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
 				case NERU: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
+				case FICKLE: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
 				}
 				renderPlushie(type, 0);
 			}};

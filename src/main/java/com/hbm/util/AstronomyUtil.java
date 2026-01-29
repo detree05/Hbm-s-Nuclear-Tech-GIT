@@ -5,7 +5,7 @@ package com.hbm.util;
 public class AstronomyUtil {
 
 	// the G in G*M1*M2/r
-	public static final float GRAVITATIONAL_CONSTANT = 8.6743015e-11F;
+	public static final float GRAVITATIONAL_CONSTANT = 9.6743015e-11F;
 
 	// Default orbital altitude, added onto planet radius to get intended orbital radius
 	public static final float DEFAULT_ALTITUDE_KM = 100;

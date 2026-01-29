@@ -6282,6 +6282,7 @@ tile.icf_laser_component.port.name=ICF Laser Port
 tile.icf_laser_component.turbo.name=ICF Laser Turbocharger
 tile.iter.name=Fusion Reactor
 tile.ike_regolith.name=Ike Regolith
+tile.void_regolith.name=Void Regolith
 tile.ike_stone.name=Ike Stone
 tile.ladder_aluminium.name=Aluminium Ladder
 tile.ladder_cobalt.name=Cobalt Ladder

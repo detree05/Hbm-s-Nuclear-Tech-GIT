@@ -163,7 +163,8 @@ public class BlockPlushie extends BlockContainer implements IBlockMulti, IToolti
 		HUNDUN(		"Hundun",				"混沌", "hbm:block.hunduns_magnificent_howl"),
 		TETO(		"Kasane Teto",		"please help I've been trapped in her basement for da-", "hbm:block.teto"),
 		MIKU(		"Hatsune Miku",		"In your wifi, and your heart.", "hbm:block.miku"),
-		NERU(		"Akita Neru",			"Careful, she might electrocute you.", "hbm:block.akita");
+		NERU(		"Akita Neru",			"Careful, she might electrocute you.", "hbm:block.akita"),
+		FICKLE(		"Fickle",			"Fickle? i dont want no damn Fickle!", "hbm:block.fickle");
 
 		public String label;
 		public String inscription;

@@ -560,9 +560,11 @@ public class CelestialBody {
 
 		CelestialBody body = CelestialBody.getBody(entity.worldObj);
 		float gravity = body.getSurfaceGravity() * AstronomyUtil.PLAYER_GRAVITY_MODIFIER;
-		if(entity.worldObj.provider instanceof WorldProviderKerbol) {
-			WorldProviderKerbol kerbol = (WorldProviderKerbol) entity.worldObj.provider;
-			gravity *= kerbol.getGravityMultiplier();
+		if(entity.worldObj.provider instanceof WorldProviderCelestial) {
+			WorldProviderCelestial provider = (WorldProviderCelestial) entity.worldObj.provider;
+			gravity *= provider.getGravityMultiplier();
+		} else if(entity.worldObj.provider.dimensionId == 0) {
+			gravity *= SolarSystemWorldSavedData.get(entity.worldObj).getKerbinGravityMultiplier();
 		}
 		return gravity;
 	}
