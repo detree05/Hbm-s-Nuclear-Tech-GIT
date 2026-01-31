@@ -40,6 +40,7 @@ public abstract class CelestialBodyTrait {
 		registerTrait("impact", CBT_Impact.class);
 		registerTrait("lights", CBT_Lights.class);
 		registerTrait("invasion", CBT_Invasion.class);
+		registerTrait("orbit", CBT_Orbit.class);
 
 	};
 

@@ -1028,31 +1028,36 @@ public class ModEventHandler {
 						}
 
 						for(CelestialBody body : CelestialBody.getAllBodies()) {
-							if(body.parent == null || body.parent.parent != null) {
+							if(body.parent == null) {
 								continue;
 							}
 
 							long lastOrbitDay = data.getOrbitDay(body.name);
-							float axialTilt = data.getAxialTilt(body.name);
-							float semiMajorAxis = data.getSemiMajorAxisKm(body.name);
+							float axialTilt = body.axialTilt;
+							float semiMajorAxis = body.semiMajorAxisKm;
+							com.hbm.dim.trait.CBT_Orbit orbitTrait = body.getTrait(com.hbm.dim.trait.CBT_Orbit.class);
+							if(orbitTrait != null) {
+								axialTilt = orbitTrait.axialTilt;
+								semiMajorAxis = orbitTrait.semiMajorAxisKm;
+							}
 
 							if(lastOrbitDay < 0) {
 								data.setOrbitDay(body.name, dayIndex);
-								axialTilt = body.axialTilt;
-								semiMajorAxis = body.semiMajorAxisKm;
-								data.setAxialTilt(body.name, axialTilt);
-								data.setSemiMajorAxisKm(body.name, semiMajorAxis);
+								body.modifyTraits(new com.hbm.dim.trait.CBT_Orbit(axialTilt, semiMajorAxis));
 							} else if(dayIndex > lastOrbitDay) {
 								long daysPassed = dayIndex - lastOrbitDay;
 								data.setOrbitDay(body.name, dayIndex);
 								axialTilt += PLANET_AXIAL_TILT_PER_DAY * daysPassed;
-								semiMajorAxis -= PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY * daysPassed;
-								data.setAxialTilt(body.name, axialTilt);
-								data.setSemiMajorAxisKm(body.name, semiMajorAxis);
+								if(body.parent.parent == null) {
+									semiMajorAxis -= PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY * daysPassed;
+								}
+								body.modifyTraits(new com.hbm.dim.trait.CBT_Orbit(axialTilt, semiMajorAxis));
 							}
 
 							body.axialTilt = axialTilt;
-							body.semiMajorAxisKm = semiMajorAxis;
+							if(body.parent.parent == null) {
+								body.semiMajorAxisKm = semiMajorAxis;
+							}
 						}
 					}
 

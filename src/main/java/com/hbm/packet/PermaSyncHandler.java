@@ -11,6 +11,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.OrbitalStation;
+import com.hbm.dim.trait.CBT_Orbit;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_War.Projectile;
 import com.hbm.dim.trait.CelestialBodyTrait;
@@ -109,21 +110,6 @@ public class PermaSyncHandler {
 			buf.writeBoolean(false);
 		}
 		/// CBT ///
-
-		/// ORBITS ///
-		SolarSystemWorldSavedData solarSystemData = SolarSystemWorldSavedData.get(world);
-		buf.writeInt(CelestialBody.getAllBodies().size());
-		for(CelestialBody body : CelestialBody.getAllBodies()) {
-			float axialTilt = solarSystemData.getAxialTilt(body.name);
-			float semiMajorAxis = solarSystemData.getSemiMajorAxisKm(body.name);
-			if(solarSystemData.getOrbitDay(body.name) < 0) {
-				axialTilt = body.axialTilt;
-				semiMajorAxis = body.semiMajorAxisKm;
-			}
-			buf.writeFloat(axialTilt);
-			buf.writeFloat(semiMajorAxis);
-		}
-		/// ORBITS ///
 
 		/// SATELLITES ///
 		// Only syncs data required for rendering satellites on the client
@@ -243,20 +229,17 @@ public class PermaSyncHandler {
 		/// CBT ///
 
 		/// ORBITS ///
-		int orbitCount = buf.readInt();
-		int orbitIndex = 0;
 		for(CelestialBody body : CelestialBody.getAllBodies()) {
-			if(orbitIndex >= orbitCount) {
-				break;
+			HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = SolarSystemWorldSavedData.clientTraits.get(body.name);
+			if(traits == null) {
+				continue;
 			}
-			body.axialTilt = buf.readFloat();
-			body.semiMajorAxisKm = buf.readFloat();
-			orbitIndex++;
-		}
-		while(orbitIndex < orbitCount) {
-			buf.readFloat();
-			buf.readFloat();
-			orbitIndex++;
+			CBT_Orbit orbit = (CBT_Orbit) traits.get(CBT_Orbit.class);
+			if(orbit == null) {
+				continue;
+			}
+			body.axialTilt = orbit.axialTilt;
+			body.semiMajorAxisKm = orbit.semiMajorAxisKm;
 		}
 		/// ORBITS ///
 
