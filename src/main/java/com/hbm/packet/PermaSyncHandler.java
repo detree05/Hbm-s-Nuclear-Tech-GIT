@@ -11,7 +11,6 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.OrbitalStation;
-import com.hbm.dim.trait.CBT_Orbit;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_War.Projectile;
 import com.hbm.dim.trait.CelestialBodyTrait;
@@ -227,21 +226,6 @@ public class PermaSyncHandler {
 			}
 		}
 		/// CBT ///
-
-		/// ORBITS ///
-		for(CelestialBody body : CelestialBody.getAllBodies()) {
-			HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = SolarSystemWorldSavedData.clientTraits.get(body.name);
-			if(traits == null) {
-				continue;
-			}
-			CBT_Orbit orbit = (CBT_Orbit) traits.get(CBT_Orbit.class);
-			if(orbit == null) {
-				continue;
-			}
-			body.axialTilt = orbit.axialTilt;
-			body.semiMajorAxisKm = orbit.semiMajorAxisKm;
-		}
-		/// ORBITS ///
 
 		/// SATELLITES ///
 		int satSize = buf.readInt();

@@ -25,6 +25,7 @@ import com.hbm.config.RadiationConfig;
 import com.hbm.config.ServerConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialBodyWorldSavedData;
 import com.hbm.dim.CelestialTeleporter;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
@@ -197,8 +198,6 @@ public class ModEventHandler {
 	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
 	private static final int KERBOL_METEOR_CHANCE = 100;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
-	private static final float PLANET_AXIAL_TILT_PER_DAY = 0.1F;
-	private static final float PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY = 10_000F;
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -317,6 +316,12 @@ public class ModEventHandler {
 		HbmPlayerProps data = HbmPlayerProps.getData(player);
 		data.setKeyPressed(EnumKeybind.JETPACK, false);
 		data.setKeyPressed(EnumKeybind.DASH, false);
+
+		if(!player.worldObj.isRemote && player instanceof EntityPlayerMP && player.worldObj.provider instanceof WorldProviderCelestial) {
+			WorldProviderCelestial provider = (WorldProviderCelestial) player.worldObj.provider;
+			CelestialBodyWorldSavedData.get(provider); // force-load per-dimension gravity state
+			PacketDispatcher.wrapper.sendTo(new GravityEventPacket(provider.getGravityMultiplier()), (EntityPlayerMP) player);
+		}
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -1027,38 +1032,6 @@ public class ModEventHandler {
 							}
 						}
 
-						for(CelestialBody body : CelestialBody.getAllBodies()) {
-							if(body.parent == null) {
-								continue;
-							}
-
-							long lastOrbitDay = data.getOrbitDay(body.name);
-							float axialTilt = body.axialTilt;
-							float semiMajorAxis = body.semiMajorAxisKm;
-							com.hbm.dim.trait.CBT_Orbit orbitTrait = body.getTrait(com.hbm.dim.trait.CBT_Orbit.class);
-							if(orbitTrait != null) {
-								axialTilt = orbitTrait.axialTilt;
-								semiMajorAxis = orbitTrait.semiMajorAxisKm;
-							}
-
-							if(lastOrbitDay < 0) {
-								data.setOrbitDay(body.name, dayIndex);
-								body.modifyTraits(new com.hbm.dim.trait.CBT_Orbit(axialTilt, semiMajorAxis));
-							} else if(dayIndex > lastOrbitDay) {
-								long daysPassed = dayIndex - lastOrbitDay;
-								data.setOrbitDay(body.name, dayIndex);
-								axialTilt += PLANET_AXIAL_TILT_PER_DAY * daysPassed;
-								if(body.parent.parent == null) {
-									semiMajorAxis -= PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY * daysPassed;
-								}
-								body.modifyTraits(new com.hbm.dim.trait.CBT_Orbit(axialTilt, semiMajorAxis));
-							}
-
-							body.axialTilt = axialTilt;
-							if(body.parent.parent == null) {
-								body.semiMajorAxisKm = semiMajorAxis;
-							}
-						}
 					}
 
 					if(shouldBroadcast) {
