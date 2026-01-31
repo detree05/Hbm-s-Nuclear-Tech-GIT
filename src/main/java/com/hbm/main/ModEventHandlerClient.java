@@ -732,6 +732,14 @@ public class ModEventHandlerClient {
 
 		WorldClient wc = mc.theWorld;
 
+		if(wc != null && wc.provider != null && wc.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			String soundId = r != null ? r.toString() : "";
+			if("minecraft:ambient.cave.cave".equals(soundId) || "ambient.cave.cave".equals(soundId)) {
+				e.result = new PositionedSoundRecord(new ResourceLocation("hbm:misc.itlives_dialogue"), e.sound.getVolume(), e.sound.getPitch(), e.sound.getXPosF(), e.sound.getYPosF(), e.sound.getZPosF());
+				return;
+			}
+		}
+
 		//Alright, alright, I give the fuck up, you've wasted my time enough with this bullshit. You win.
 		//A winner is you.
 		//Conglaturations.

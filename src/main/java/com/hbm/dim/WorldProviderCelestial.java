@@ -176,7 +176,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		}
 
 		boolean changed = false;
-		final int redBoost = 12;
+		final int redBoost = 0;
 		final float greenBlueScale = 0.95F;
 
 		for(int i = 0; i < lightmap.length; i++) {

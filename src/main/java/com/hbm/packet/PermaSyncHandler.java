@@ -110,6 +110,21 @@ public class PermaSyncHandler {
 		}
 		/// CBT ///
 
+		/// ORBITS ///
+		SolarSystemWorldSavedData solarSystemData = SolarSystemWorldSavedData.get(world);
+		buf.writeInt(CelestialBody.getAllBodies().size());
+		for(CelestialBody body : CelestialBody.getAllBodies()) {
+			float axialTilt = solarSystemData.getAxialTilt(body.name);
+			float semiMajorAxis = solarSystemData.getSemiMajorAxisKm(body.name);
+			if(solarSystemData.getOrbitDay(body.name) < 0) {
+				axialTilt = body.axialTilt;
+				semiMajorAxis = body.semiMajorAxisKm;
+			}
+			buf.writeFloat(axialTilt);
+			buf.writeFloat(semiMajorAxis);
+		}
+		/// ORBITS ///
+
 		/// SATELLITES ///
 		// Only syncs data required for rendering satellites on the client
 		HashMap<Integer, Satellite> sats = SatelliteSavedData.getData(world, (int)player.posX, (int)player.posZ).sats;
@@ -226,6 +241,24 @@ public class PermaSyncHandler {
 			}
 		}
 		/// CBT ///
+
+		/// ORBITS ///
+		int orbitCount = buf.readInt();
+		int orbitIndex = 0;
+		for(CelestialBody body : CelestialBody.getAllBodies()) {
+			if(orbitIndex >= orbitCount) {
+				break;
+			}
+			body.axialTilt = buf.readFloat();
+			body.semiMajorAxisKm = buf.readFloat();
+			orbitIndex++;
+		}
+		while(orbitIndex < orbitCount) {
+			buf.readFloat();
+			buf.readFloat();
+			orbitIndex++;
+		}
+		/// ORBITS ///
 
 		/// SATELLITES ///
 		int satSize = buf.readInt();

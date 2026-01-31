@@ -197,6 +197,8 @@ public class ModEventHandler {
 	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
 	private static final int KERBOL_METEOR_CHANCE = 100;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
+	private static final float PLANET_AXIAL_TILT_PER_DAY = 0.1F;
+	private static final float PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY = 10_000F;
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -1023,6 +1025,34 @@ public class ModEventHandler {
 								data.setKerbinGravityMultiplier(nextGravity);
 								shouldBroadcast = true;
 							}
+						}
+
+						for(CelestialBody body : CelestialBody.getAllBodies()) {
+							if(body.parent == null || body.parent.parent != null) {
+								continue;
+							}
+
+							long lastOrbitDay = data.getOrbitDay(body.name);
+							float axialTilt = data.getAxialTilt(body.name);
+							float semiMajorAxis = data.getSemiMajorAxisKm(body.name);
+
+							if(lastOrbitDay < 0) {
+								data.setOrbitDay(body.name, dayIndex);
+								axialTilt = body.axialTilt;
+								semiMajorAxis = body.semiMajorAxisKm;
+								data.setAxialTilt(body.name, axialTilt);
+								data.setSemiMajorAxisKm(body.name, semiMajorAxis);
+							} else if(dayIndex > lastOrbitDay) {
+								long daysPassed = dayIndex - lastOrbitDay;
+								data.setOrbitDay(body.name, dayIndex);
+								axialTilt += PLANET_AXIAL_TILT_PER_DAY * daysPassed;
+								semiMajorAxis -= PLANET_SEMI_MAJOR_AXIS_DECAY_PER_DAY * daysPassed;
+								data.setAxialTilt(body.name, axialTilt);
+								data.setSemiMajorAxisKm(body.name, semiMajorAxis);
+							}
+
+							body.axialTilt = axialTilt;
+							body.semiMajorAxisKm = semiMajorAxis;
 						}
 					}
 

@@ -276,29 +276,25 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	}
 
 	public static Float rollGravityEvent(World world) {
-		if(!(world.provider instanceof WorldProviderKerbol)) {
+		if (!(world.provider instanceof WorldProviderKerbol)) {
 			return null;
 		}
+
 		WorldProviderKerbol kerbol = (WorldProviderKerbol) world.provider;
 		long now = System.currentTimeMillis();
-		if(kerbol.lastGravityEventMillis >= 0L && (now - kerbol.lastGravityEventMillis) < GRAVITY_EVENT_INTERVAL_MILLIS) {
+
+		if (kerbol.lastGravityEventMillis >= 0L &&
+			(now - kerbol.lastGravityEventMillis) < GRAVITY_EVENT_INTERVAL_MILLIS) {
 			return null;
 		}
+
 		kerbol.lastGravityEventMillis = now;
-		long intervalIndex = now / GRAVITY_EVENT_INTERVAL_MILLIS;
-		long seed = world.getSeed() ^ (intervalIndex * GRAVITY_SEED_SALT);
-		Random rand = new Random(seed);
-		float next = GRAVITY_MIN + rand.nextFloat() * (GRAVITY_MAX - GRAVITY_MIN);
-		if(world.provider instanceof WorldProviderKerbol) {
-			float current = ((WorldProviderKerbol) world.provider).getGravityMultiplier();
-			if(Math.abs(next - current) < 2.0F) {
-				if(next >= current) {
-					next = GRAVITY_MAX;
-				} else {
-					next = GRAVITY_MIN;
-				}
-			}
-		}
+
+		float current = kerbol.getGravityMultiplier();
+		float next = GRAVITY_MIN + GRAVITY_MAX - current; // 🔄 flip
+
+		next = Math.max(GRAVITY_MIN, Math.min(GRAVITY_MAX, next));
+
 		return next;
 	}
 

@@ -37,6 +37,9 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 	private HashMap<ChunkCoordIntPair, OrbitalStation> stations = new HashMap<>();
 	private float kerbinGravityMultiplier = 1.0F;
 	private long kerbinGravityDay = -1L;
+	private HashMap<String, Float> axialTiltByBody = new HashMap<>();
+	private HashMap<String, Float> semiMajorAxisKmByBody = new HashMap<>();
+	private HashMap<String, Long> orbitDayByBody = new HashMap<>();
 
 	public static SolarSystemWorldSavedData get() {
 		return get(DimensionManager.getWorlds()[0]);
@@ -60,6 +63,35 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 		}
 		if(nbt.hasKey("kerbinGravityDay")) {
 			kerbinGravityDay = nbt.getLong("kerbinGravityDay");
+		}
+		if(nbt.hasKey("orbitData", NBT.TAG_COMPOUND)) {
+			NBTTagCompound orbitData = nbt.getCompoundTag("orbitData");
+			for(CelestialBody body : CelestialBody.getAllBodies()) {
+				if(!orbitData.hasKey(body.name, NBT.TAG_COMPOUND)) {
+					continue;
+				}
+				NBTTagCompound bodyData = orbitData.getCompoundTag(body.name);
+				if(bodyData.hasKey("axialTilt")) {
+					axialTiltByBody.put(body.name, bodyData.getFloat("axialTilt"));
+				}
+				if(bodyData.hasKey("semiMajorAxisKm")) {
+					semiMajorAxisKmByBody.put(body.name, bodyData.getFloat("semiMajorAxisKm"));
+				}
+				if(bodyData.hasKey("orbitDay")) {
+					orbitDayByBody.put(body.name, bodyData.getLong("orbitDay"));
+				}
+			}
+		} else if(nbt.hasKey("eveAxialTilt") || nbt.hasKey("eveSemiMajorAxisKm") || nbt.hasKey("eveOrbitDay")) {
+			// Legacy Eve-only fields.
+			if(nbt.hasKey("eveAxialTilt")) {
+				axialTiltByBody.put("eve", nbt.getFloat("eveAxialTilt"));
+			}
+			if(nbt.hasKey("eveSemiMajorAxisKm")) {
+				semiMajorAxisKmByBody.put("eve", nbt.getFloat("eveSemiMajorAxisKm"));
+			}
+			if(nbt.hasKey("eveOrbitDay")) {
+				orbitDayByBody.put("eve", nbt.getLong("eveOrbitDay"));
+			}
 		}
 
 		for(CelestialBody body : CelestialBody.getAllBodies()) {
@@ -113,6 +145,29 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 	public void writeToNBT(NBTTagCompound nbt) {
 		nbt.setFloat("kerbinGravityMultiplier", kerbinGravityMultiplier);
 		nbt.setLong("kerbinGravityDay", kerbinGravityDay);
+		if(!axialTiltByBody.isEmpty() || !semiMajorAxisKmByBody.isEmpty() || !orbitDayByBody.isEmpty()) {
+			NBTTagCompound orbitData = new NBTTagCompound();
+			HashMap<String, Boolean> keys = new HashMap<>();
+			for(String key : axialTiltByBody.keySet()) keys.put(key, true);
+			for(String key : semiMajorAxisKmByBody.keySet()) keys.put(key, true);
+			for(String key : orbitDayByBody.keySet()) keys.put(key, true);
+
+			for(String key : keys.keySet()) {
+				NBTTagCompound bodyData = new NBTTagCompound();
+				if(axialTiltByBody.containsKey(key)) {
+					bodyData.setFloat("axialTilt", axialTiltByBody.get(key));
+				}
+				if(semiMajorAxisKmByBody.containsKey(key)) {
+					bodyData.setFloat("semiMajorAxisKm", semiMajorAxisKmByBody.get(key));
+				}
+				if(orbitDayByBody.containsKey(key)) {
+					bodyData.setLong("orbitDay", orbitDayByBody.get(key));
+				}
+				orbitData.setTag(key, bodyData);
+			}
+
+			nbt.setTag("orbitData", orbitData);
+		}
 
 		for(Entry<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>> entry : traitMap.entrySet()) {
 			NBTTagCompound data = new NBTTagCompound();
@@ -161,6 +216,36 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	public void setKerbinGravityDay(long day) {
 		this.kerbinGravityDay = day;
+		markDirty();
+	}
+
+	public float getAxialTilt(String bodyName) {
+		Float value = axialTiltByBody.get(bodyName);
+		return value == null ? 0.0F : value;
+	}
+
+	public void setAxialTilt(String bodyName, float tilt) {
+		axialTiltByBody.put(bodyName, tilt);
+		markDirty();
+	}
+
+	public float getSemiMajorAxisKm(String bodyName) {
+		Float value = semiMajorAxisKmByBody.get(bodyName);
+		return value == null ? 0.0F : value;
+	}
+
+	public void setSemiMajorAxisKm(String bodyName, float semiMajorAxisKm) {
+		semiMajorAxisKmByBody.put(bodyName, semiMajorAxisKm);
+		markDirty();
+	}
+
+	public long getOrbitDay(String bodyName) {
+		Long value = orbitDayByBody.get(bodyName);
+		return value == null ? -1L : value;
+	}
+
+	public void setOrbitDay(String bodyName, long day) {
+		orbitDayByBody.put(bodyName, day);
 		markDirty();
 	}
 
