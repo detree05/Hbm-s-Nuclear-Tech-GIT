@@ -158,9 +158,11 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 					ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset).getRotation(ForgeDirection.UP);
 
 					NBTTagCompound data = new NBTTagCompound();
-					data.setDouble("posX", xCoord + 0.5D + dir.offsetX * EXHAUST_OFFSET);
+					ForgeDirection right = dir.getRotation(ForgeDirection.UP).getOpposite();
+					double lateral = 0.35D;
+					data.setDouble("posX", xCoord + 0.5D + dir.offsetX * EXHAUST_OFFSET + right.offsetX * lateral);
 					data.setDouble("posY", yCoord + 0.5D);
-					data.setDouble("posZ", zCoord + 0.5D + dir.offsetZ * EXHAUST_OFFSET);
+					data.setDouble("posZ", zCoord + 0.5D + dir.offsetZ * EXHAUST_OFFSET + right.offsetZ * lateral);
 					data.setString("type", "htrs5Contrail");
 					data.setFloat("scale", 3);
 					data.setDouble("moX", dir.offsetX * 10);
@@ -334,33 +336,36 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 			baseX,
 			baseX,
 			baseX,
-			baseX - rot.offsetX,
+			baseX,
 			baseX - rot.offsetX,
 			nearX + rot.offsetX,
 			nearX,
-			nearX - rot.offsetX,
+			nearX,
 			nearX - rot.offsetX
 		};
+		int yBottom = yCoord - 3;
+		int yMid = yCoord;
+		int yTop = yCoord + 1;
 		int[] conY = new int[] {
-			yCoord,
-			yCoord,
-			yCoord + 1,
-			yCoord,
-			yCoord + 1,
-			yCoord,
-			yCoord + 1,
-			yCoord,
-			yCoord + 1
+			yMid,
+			yMid,
+			yTop,
+			yBottom,
+			yTop,
+			yMid,
+			yTop,
+			yBottom,
+			yTop
 		};
 		int[] conZ = new int[] {
 			baseZ,
 			baseZ + rot.offsetZ,
 			baseZ,
-			baseZ - rot.offsetZ,
+			baseZ,
 			baseZ - rot.offsetZ,
 			nearZ + rot.offsetZ,
 			nearZ,
-			nearZ - rot.offsetZ,
+			nearZ,
 			nearZ - rot.offsetZ
 		};
 		ForgeDirection[] facing = new ForgeDirection[] {

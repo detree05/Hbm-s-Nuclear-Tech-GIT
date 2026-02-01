@@ -10,6 +10,7 @@ import com.hbm.render.item.ItemRenderBase;
 import com.hbm.render.util.BeamPronter;
 import com.hbm.render.util.BeamPronter.EnumBeamType;
 import com.hbm.render.util.BeamPronter.EnumWaveType;
+import com.hbm.render.util.RenderSparks;
 import com.hbm.tileentity.machine.TileEntityMachineHTRS5;
 
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -79,9 +80,28 @@ public class RenderHTRS5 extends TileEntitySpecialRenderer implements IItemRende
 			GL11.glColor3f(0.02F, 0.02F, 0.02F);
 			GL11.glPushMatrix();
 			GL11.glTranslated(0.0D, 1.5D + floatOffset, 0.0D);
-			double sphereScale = 0.25D + dmatterRatio * 0.5D;
+			double sphereScale = (0.25D + dmatterRatio * 0.5D) * 1.1D;
 			GL11.glScaled(sphereScale, sphereScale, sphereScale);
 			ResourceManager.sphere_uv.renderAll();
+			if(htrs.tanks != null && htrs.tanks.length > 0 && htrs.tanks[0].getTankType() == Fluids.DMAT && htrs.tanks[0].getFill() > 0) {
+				GL11.glEnable(GL11.GL_BLEND);
+				GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+				GL11.glDisable(GL11.GL_LIGHTING);
+				GL11.glColor4f(0.35F, 0.0F, 0.5F, 0.3F);
+				GL11.glPushMatrix();
+				double fieldScale = 1.15D;
+				GL11.glScaled(fieldScale, fieldScale, fieldScale);
+				ResourceManager.sphere_uv.renderAll();
+				GL11.glPopMatrix();
+				GL11.glEnable(GL11.GL_LIGHTING);
+				GL11.glDisable(GL11.GL_BLEND);
+			}
+			if((System.currentTimeMillis() / 100) % 10 == 0) {
+				for(int i = 0; i < 3; i++) {
+					RenderSparks.renderSpark((int) System.currentTimeMillis() / 100 + i * 10000, 0, 0, 0, 1.0F, 4, 8, 0x2b2b2b, 0x4a4a4a);
+					RenderSparks.renderSpark((int) System.currentTimeMillis() / 50 + i * 10000, 0, 0, 0, 1.0F, 4, 8, 0x2b2b2b, 0x4a4a4a);
+				}
+			}
 			GL11.glPopMatrix();
 			GL11.glColor4f(1F, 1F, 1F, 1F);
 			GL11.glEnable(GL11.GL_TEXTURE_2D);

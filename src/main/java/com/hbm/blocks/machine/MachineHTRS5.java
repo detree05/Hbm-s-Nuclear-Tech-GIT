@@ -86,6 +86,10 @@ public class MachineHTRS5 extends BlockDummyable implements ILookOverlay, IFluid
 		this.makeExtra(world, nearX, y + 1, nearZ);
 		this.makeExtra(world, nearX - rot.offsetX, y, nearZ - rot.offsetZ);
 		this.makeExtra(world, nearX - rot.offsetX, y + 1, nearZ - rot.offsetZ);
+
+		// Bottom-facing connectors sit on the lowest layer.
+		this.makeExtra(world, baseX, y - 3, baseZ);
+		this.makeExtra(world, nearX, y - 3, nearZ);
 	}
 
 	@Override
@@ -180,6 +184,9 @@ public class MachineHTRS5 extends BlockDummyable implements ILookOverlay, IFluid
 
 	@Override
 	public boolean canConnect(FluidType type, net.minecraft.world.IBlockAccess world, int x, int y, int z, ForgeDirection dir) {
+		if(hasExtra(world.getBlockMetadata(x, y, z))) {
+			return true;
+		}
 		TileEntity te = world.getTileEntity(x, y, z);
 		if(te instanceof IFluidConnectorMK2) {
 			return ((IFluidConnectorMK2) te).canConnect(type, dir);

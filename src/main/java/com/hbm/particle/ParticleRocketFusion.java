@@ -39,9 +39,11 @@ public class ParticleRocketFusion extends ParticleRocketFlame {
 			float light = 1 - Math.min(((float) (age) / (float) (maxAge * 0.25F)), 1);
 
 			if(hasCustomColor) {
-				this.particleRed = customRed * light + add;
-				this.particleGreen = customGreen * light + add;
-				this.particleBlue = customBlue * light + add;
+				float whiteWeight = light;
+				float colorWeight = 1F - light;
+				this.particleRed = (1F * whiteWeight + customRed * colorWeight) + add;
+				this.particleGreen = (1F * whiteWeight + customGreen * colorWeight) + add;
+				this.particleBlue = (1F * whiteWeight + customBlue * colorWeight) + add;
 			} else {
 				this.particleRed = 1 + add;
 				this.particleGreen = 1 + add;
