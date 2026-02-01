@@ -99,6 +99,7 @@ public class Fluids {
 	public static FluidType SAS3;
 	public static FluidType SCHRABIDIC;
 	public static FluidType AMAT;
+	public static FluidType DMAT;
 	public static FluidType ASCHRAB;
 	public static FluidType PEROXIDE;
 	public static FluidType WATZ;
@@ -541,6 +542,7 @@ public class Fluids {
 
 		// ^ ^ ^ ^ ^ ^ ^ ^
 		//ADD NEW FLUIDS HERE
+		DMAT =					new FluidType("DMAT",				0x1A1A1A, 5, 0, 5, EnumSymbol.ANTIMATTER).addTraits(ANTI, GASEOUS);
 
 		File folder = MainRegistry.configHbmDir;
 		File customTypes = new File(folder.getAbsolutePath() + File.separatorChar + "hbmFluidTypes.json");
@@ -750,6 +752,7 @@ public class Fluids {
 		metaOrder.add(NITROGLYCERIN);
 		//antimatter
 		metaOrder.add(AMAT);
+		metaOrder.add(DMAT);
 		metaOrder.add(ASCHRAB);
 		//nuclear waste
 		metaOrder.add(WASTEFLUID);

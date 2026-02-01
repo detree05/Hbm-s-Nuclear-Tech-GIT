@@ -305,6 +305,7 @@ public class ClientProxy extends ServerProxy {
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachineLPW2.class, new RenderLPW2());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachineHTR3.class, new RenderHTR3());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachineHTRF4.class, new RenderHTRF4());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachineHTRS5.class, new RenderHTRS5());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachineHTRNeo.class, new RenderHTRNeo());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityXenonThruster.class, new RenderXenonThruster());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityMachinePress.class, new RenderPress());
@@ -1096,6 +1097,26 @@ public class ClientProxy extends ServerProxy {
 
 			ParticleRocketFusion fx = new ParticleRocketFusion(man, world, x, y, z);
 			fx.setScale(scale);
+			fx.motionX = mX;
+			fx.motionY = mY;
+			fx.motionZ = mZ;
+			if(data.hasKey("maxAge")) fx.setMaxAge(data.getInteger("maxAge"));
+			fx.setAtmosphericPressure(pressure);
+			Minecraft.getMinecraft().effectRenderer.addEffect(fx);
+		}
+
+		if("htrs5Contrail".equals(type)) {
+
+			if(player == null || Vec3.createVectorHelper(player.posX - x, player.posY - y, player.posZ - z).lengthVector() > 350) return;
+
+			float scale = data.hasKey("scale") ? data.getFloat("scale") : 1F;
+			double mX = data.getDouble("moX");
+			double mY = data.getDouble("moY");
+			double mZ = data.getDouble("moZ");
+
+			ParticleRocketFusion fx = new ParticleRocketFusion(man, world, x, y, z);
+			fx.setScale(scale);
+			fx.setCustomColor(0.294F, 0.122F, 0.435F);
 			fx.motionX = mX;
 			fx.motionY = mY;
 			fx.motionZ = mZ;

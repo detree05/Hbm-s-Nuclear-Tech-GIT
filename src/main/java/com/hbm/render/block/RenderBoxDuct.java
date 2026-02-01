@@ -129,7 +129,7 @@ public class RenderBoxDuct implements ISimpleBlockRenderingHandler {
 				TileEntityPipeBaseNT pipe = (TileEntityPipeBaseNT) te;
 				type = pipe.getType();
 				if(meta % 3 == 2) {
-					FluidDuctBox.cachedColor = ColorUtil.lightenColor(type.getColor(), 0.25D); //making very dark things not vantablack
+					FluidDuctBox.cachedColor = ColorUtil.lightenColor(getRenderColor(type), 0.25D); //making very dark things not vantablack
 				}
 			}
 
@@ -287,6 +287,13 @@ public class RenderBoxDuct implements ISimpleBlockRenderingHandler {
 	@Override
 	public int getRenderId() {
 		return FluidDuctBox.renderID;
+	}
+
+	private int getRenderColor(FluidType type) {
+		if(type == Fluids.DMAT) {
+			return Fluids.AMAT.getColor();
+		}
+		return type.getColor();
 	}
 
 }

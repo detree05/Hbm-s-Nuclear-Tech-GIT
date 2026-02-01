@@ -116,7 +116,7 @@ public class TileEntityMachinePlasmaHeater extends TileEntityMachineBase impleme
 					}
 				}
 			}
-			
+
 			if(worldObj.getBlock(xCoord + dir.offsetX * dist, yCoord + 2, zCoord + dir.offsetZ * dist) == ModBlocks.iter) {
 				int[] pos = ((MachineITER)ModBlocks.iter).findCore(worldObj, xCoord + dir.offsetX * dist, yCoord + 2, zCoord + dir.offsetZ * dist);
 				

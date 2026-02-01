@@ -35,6 +35,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
 
@@ -113,6 +114,14 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 				rocket.addStage(slots[i], slots[i+1], slots[i+2]);
 			}
 
+			Target toTarget = ItemVOTVdrive.getTarget(slots[0], worldObj);
+			if(toTarget.body != null
+					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& !toTarget.inOrbit
+					&& rocket.capsule != null
+					&& rocket.capsule.part == ModItems.rp_capsule_20) {
+				rocket.addIssue(EnumChatFormatting.RED + "It's a suicide mission.");
+			}
 
 			// ROCKET LAUNCHING
 			updateTanks();

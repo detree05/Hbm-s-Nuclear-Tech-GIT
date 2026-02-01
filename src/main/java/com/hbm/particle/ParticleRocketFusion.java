@@ -11,8 +11,21 @@ import net.minecraft.world.World;
 @SideOnly(Side.CLIENT)
 public class ParticleRocketFusion extends ParticleRocketFlame {
 
+	private boolean hasCustomColor;
+	private float customRed;
+	private float customGreen;
+	private float customBlue;
+
 	public ParticleRocketFusion(TextureManager p_i1213_1_, World p_i1218_1_, double p_i1218_2_, double p_i1218_4_, double p_i1218_6_) {
 		super(p_i1213_1_, p_i1218_1_, p_i1218_2_, p_i1218_4_, p_i1218_6_);
+	}
+
+	public ParticleRocketFusion setCustomColor(float red, float green, float blue) {
+		this.hasCustomColor = true;
+		this.customRed = red;
+		this.customGreen = green;
+		this.customBlue = blue;
+		return this;
 	}
 
 	@Override
@@ -25,9 +38,15 @@ public class ParticleRocketFusion extends ParticleRocketFlame {
 			float add = urandom.nextFloat() * 0.3F;
 			float light = 1 - Math.min(((float) (age) / (float) (maxAge * 0.25F)), 1);
 
-			this.particleRed = 1 + add;
-			this.particleGreen = 1 + add;
-			this.particleBlue = 1 * light + add;
+			if(hasCustomColor) {
+				this.particleRed = customRed * light + add;
+				this.particleGreen = customGreen * light + add;
+				this.particleBlue = customBlue * light + add;
+			} else {
+				this.particleRed = 1 + add;
+				this.particleGreen = 1 + add;
+				this.particleBlue = 1 * light + add;
+			}
 
 			this.particleAlpha = (float) Math.pow(1 - Math.min(((float) (age) / (float) (maxAge)), 1), 0.5);
 

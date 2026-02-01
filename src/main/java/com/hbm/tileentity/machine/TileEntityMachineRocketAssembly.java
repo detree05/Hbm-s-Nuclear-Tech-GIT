@@ -13,10 +13,13 @@ import com.hbm.inventory.container.ContainerMachineRocketAssembly;
 import com.hbm.inventory.gui.GUIMachineRocketAssembly;
 import com.hbm.items.ISatChip;
 import com.hbm.items.ItemVOTVdrive;
+import com.hbm.items.ItemVOTVdrive.Target;
+import com.hbm.items.ModItems;
 import com.hbm.items.weapon.ItemCustomRocket;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.TileEntityMachineBase;
 import com.hbm.util.BobMathUtil;
+import com.hbm.dim.SolarSystem;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -62,7 +65,7 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 
 			// updates the orbital station information and syncs it to the client, if necessary
 			ItemVOTVdrive.getTarget(fromStack, worldObj);
-			ItemVOTVdrive.getTarget(toStack, worldObj);
+			Target toTarget = ItemVOTVdrive.getTarget(toStack, worldObj);
 
 			rocket = new RocketStruct(slots[0]);
 			if(slots[0] != null && slots[0].getItem() instanceof ISatChip) {
@@ -83,6 +86,14 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 					}
 				}
 				rocket.addStage(slots[i], slots[i+1], slots[i+2]);
+			}
+
+			if(toTarget.body != null
+					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& !toTarget.inOrbit
+					&& rocket.capsule != null
+					&& rocket.capsule.part == ModItems.rp_capsule_20) {
+				rocket.addIssue(EnumChatFormatting.RED + "It's a suicide mission.");
 			}
 
 			int height = (int)rocket.getHeight();

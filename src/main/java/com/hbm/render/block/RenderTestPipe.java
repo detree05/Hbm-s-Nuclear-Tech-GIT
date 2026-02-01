@@ -74,8 +74,8 @@ public class RenderTestPipe implements ISimpleBlockRenderingHandler {
 		
 		if(te instanceof TileEntityPipeBaseNT) {
 			TileEntityPipeBaseNT pipe = (TileEntityPipeBaseNT) te;
-			color = pipe.getType().getColor();
 			type = pipe.getType();
+			color = getRenderColor(type);
 		}
 
 		tessellator.setBrightness(block.getMixedBrightnessForBlock(world, x, y, z));
@@ -130,6 +130,13 @@ public class RenderTestPipe implements ISimpleBlockRenderingHandler {
 		tessellator.addTranslation(-x - 0.5F, -y - 0.5F, -z - 0.5F);
 
 		return true;
+	}
+
+	private int getRenderColor(FluidType type) {
+		if(type == Fluids.DMAT) {
+			return Fluids.AMAT.getColor();
+		}
+		return type.getColor();
 	}
 	
 	private void renderDuct(IIcon iicon, IIcon overlay, int color, Tessellator tessellator, String part) {
