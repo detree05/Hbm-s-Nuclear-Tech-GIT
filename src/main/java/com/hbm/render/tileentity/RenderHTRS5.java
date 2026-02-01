@@ -41,7 +41,7 @@ public class RenderHTRS5 extends TileEntitySpecialRenderer implements IItemRende
 
 		GL11.glShadeModel(GL11.GL_SMOOTH);
 		bindTexture(ResourceManager.htrs5_tex);
-		ResourceManager.htrs5.renderAllExcept("Magnet1", "Magnet2");
+		ResourceManager.htrs5.renderAllExcept("Magnet1", "Magnet2", "Exhaust");
 
 		if(tile instanceof TileEntityMachineHTRS5) {
 			float spin = ((TileEntityMachineHTRS5) tile).getSpinAngle(interp);
@@ -63,6 +63,29 @@ public class RenderHTRS5 extends TileEntitySpecialRenderer implements IItemRende
 		} else {
 			ResourceManager.htrs5.renderPart("Magnet1");
 			ResourceManager.htrs5.renderPart("Magnet2");
+		}
+
+		if(tile instanceof TileEntityMachineHTRS5 && ((TileEntityMachineHTRS5) tile).isBurning()) {
+			double pulseTime = tile.getWorldObj() != null ? tile.getWorldObj().getTotalWorldTime() + interp : 0D;
+			float pulse = 0.5F + 0.5F * (float)Math.sin(pulseTime * 1.6D);
+			float jitter = 0.008F * (float)Math.sin(pulseTime * 9.8D) + 0.006F * (float)Math.sin(pulseTime * 22.4D);
+			float scaleX = 1.2F + 0.08F * pulse + jitter;
+			float scaleYZ = 1.0F + 0.02F * pulse;
+			float alpha = 0.28F + 0.2F * pulse + jitter * 2F;
+
+			GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_LIGHTING_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_CURRENT_BIT);
+			GL11.glPushMatrix();
+			GL11.glDisable(GL11.GL_LIGHTING);
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+			OpenGlHelper.setLightmapTextureCoords(OpenGlHelper.lightmapTexUnit, 240F, 240F);
+			GL11.glColor4f(0.7F, 0.2F, 1.0F, alpha);
+			GL11.glTranslatef(-4.723555F, 1.5F, 0.0F);
+			GL11.glScalef(scaleX, scaleYZ, scaleYZ);
+			GL11.glTranslatef(4.723555F, -1.5F, 0.0F);
+			ResourceManager.htrs5.renderPart("Exhaust");
+			GL11.glPopMatrix();
+			GL11.glPopAttrib();
 		}
 
 		if(tile instanceof TileEntityMachineHTRS5 && ((TileEntityMachineHTRS5) tile).hasCatalyst()) {
@@ -196,7 +219,7 @@ public class RenderHTRS5 extends TileEntitySpecialRenderer implements IItemRende
 				GL11.glScaled(0.5, 0.5, 0.5);
 				GL11.glShadeModel(GL11.GL_SMOOTH);
 				bindTexture(ResourceManager.htrs5_tex);
-				ResourceManager.htrs5.renderAll();
+				ResourceManager.htrs5.renderAllExcept("Exhaust");
 				GL11.glShadeModel(GL11.GL_FLAT);
 			}
 		};

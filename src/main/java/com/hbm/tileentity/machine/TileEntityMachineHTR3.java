@@ -5,6 +5,7 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
+import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.tank.FluidTank;
@@ -250,6 +251,11 @@ public class TileEntityMachineHTR3 extends TileEntityMachineBase implements IPro
 
 	@Override
 	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isKerbolAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
+			return;
+		}
+
 		for(FluidTank tank : tanks) {
 			if(tank.getFill() < fuelCost) {
 				errors.add(EnumChatFormatting.RED + I18nUtil.resolveKey(getBlockType().getUnlocalizedName() + ".name") + " - Insufficient fuel: needs " + fuelCost + "mB");

@@ -5,6 +5,7 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
+import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.inventory.fluid.trait.FT_Rocket;
@@ -255,6 +256,11 @@ public class TileEntityMachineHTRF4 extends TileEntityMachineBase implements IPr
 
 	@Override
 	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isKerbolAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
+			return;
+		}
+
 		if(power < fuelCost * POWER_COST_MULTIPLIER) {
 			errors.add(EnumChatFormatting.RED + I18nUtil.resolveKey(getBlockType().getUnlocalizedName() + ".name") + " - Insufficient power: needs " + BobMathUtil.getShortNumber(fuelCost * POWER_COST_MULTIPLIER) + "HE");
 		}

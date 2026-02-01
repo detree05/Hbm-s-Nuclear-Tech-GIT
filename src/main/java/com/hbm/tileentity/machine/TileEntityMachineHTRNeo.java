@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
+import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.inventory.fluid.trait.FT_Rocket;
@@ -248,6 +249,10 @@ implements IPropulsion, IFluidStandardTransceiverMK2, IFluidStandardReceiver, IE
 
 	@Override
 	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isKerbolAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
+			return;
+		}
 
 		if(plasmaEnergySync < fuelCost) {
 			errors.add(EnumChatFormatting.RED + "Insufficient power: needs " + BobMathUtil.getShortNumber(fuelCost) + " HE");

@@ -5,6 +5,7 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
+import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.inventory.fluid.trait.FT_Rocket;
@@ -343,7 +344,7 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 			nearX,
 			nearX - rot.offsetX
 		};
-		int yBottom = yCoord - 3;
+		int yBottom = yCoord - 1;
 		int yMid = yCoord;
 		int yTop = yCoord + 1;
 		int[] conY = new int[] {
@@ -406,10 +407,15 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 	public boolean canPerformBurn(int shipMass, double deltaV) {
 		if(!hasCatalyst()) return false;
 
-		FT_Rocket trait = tanks[0].getTankType().getTrait(FT_Rocket.class);
-		int isp = trait != null ? trait.getISP() : 300;
+		if(OrbitalStation.isKerbolAttempt(this)) {
+			fuelCost = 1_024_000; // 1024 buckets, static
+		} else {
+			FT_Rocket trait = tanks[0].getTankType().getTrait(FT_Rocket.class);
+			int isp = trait != null ? trait.getISP() : 300;
 
-		fuelCost = SolarSystem.getFuelCost(deltaV, shipMass, isp);
+			fuelCost = SolarSystem.getFuelCost(deltaV, shipMass, isp);
+			fuelCost = Math.max(1, Math.round(fuelCost * 0.8F));
+		}
 
 		for(FluidTank tank : tanks) {
 			if(tank.getFill() < fuelCost) return false;
@@ -433,7 +439,7 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 
 	@Override
 	public float getThrust() {
-		return 1_600_000_000.0F; // F1 thrust
+		return 3_200_000_000.0F; // x2 thrust
 	}
 
 	@Override
@@ -518,6 +524,10 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 			return hasCatalystClient;
 		}
 		return slots.length > 0 && slots[0] != null && slots[0].getItem() == ModItems.black_hole;
+	}
+
+	public boolean isBurning() {
+		return isOn;
 	}
 
 	@SideOnly(Side.CLIENT)

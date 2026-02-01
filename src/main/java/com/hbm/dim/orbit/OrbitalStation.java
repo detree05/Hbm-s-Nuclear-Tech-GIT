@@ -16,6 +16,7 @@ import com.hbm.entity.missile.EntityRideableRocket;
 import com.hbm.entity.missile.EntityRideableRocket.RocketState;
 import com.hbm.handler.ThreeInts;
 import com.hbm.items.ItemVOTVdrive.Destination;
+import com.hbm.tileentity.machine.TileEntityMachineHTRS5;
 import com.hbm.tileentity.machine.TileEntityOrbitalStation;
 import com.hbm.util.BufferUtil;
 
@@ -32,6 +33,7 @@ public class OrbitalStation {
 
 	public CelestialBody orbiting;
 	public CelestialBody target;
+	private CelestialBody lastAttemptedTarget;
 
 	public StationState state = StationState.ORBIT;
 	public int stateTimer;
@@ -83,6 +85,7 @@ public class OrbitalStation {
 	public OrbitalStation(CelestialBody orbiting) {
 		this.orbiting = orbiting;
 		this.target = orbiting;
+		this.lastAttemptedTarget = orbiting;
 	}
 
 	// For server
@@ -134,14 +137,25 @@ public class OrbitalStation {
 	private boolean canTravel(CelestialBody from, CelestialBody to) {
 		if(engines.size() == 0) return false;
 
+		lastAttemptedTarget = to;
+
 		double deltaV = SolarSystem.getDeltaVBetween(from, to);
 		int shipMass = 200_000; // Always static, to not punish building big cool stations
 		float totalThrust = getTotalThrust();
+		boolean isKerbolTarget = to == SolarSystem.kerbol;
 
 		boolean canTravel = true;
 		errorsAt = new ArrayList<ThreeInts>();
 
 		for(IPropulsion engine : engines) {
+			if(isKerbolTarget && !(engine instanceof TileEntityMachineHTRS5)) {
+				TileEntity te = engine.getTileEntity();
+				canTravel = false;
+				errorsAt.add(new ThreeInts(te.xCoord, te.yCoord, te.zCoord));
+				errorTimer = 100;
+				continue;
+			}
+
 			float massPortion = engine.getThrust() / totalThrust;
 			if(!engine.canPerformBurn(Math.round(shipMass * massPortion), deltaV)) {
 				TileEntity te = engine.getTileEntity();
@@ -348,9 +362,20 @@ public class OrbitalStation {
 		return getStationFromPosition(x * STATION_SIZE, z * STATION_SIZE);
 	}
 
+	public static boolean isKerbolAttempt(TileEntity te) {
+		if(te == null) return false;
+		if(te.getWorldObj() != null && te.getWorldObj().isRemote) {
+			return OrbitalStation.clientStation != null && OrbitalStation.clientStation.lastAttemptedTarget == SolarSystem.kerbol;
+		}
+
+		OrbitalStation station = getStationFromPosition(te.xCoord, te.zCoord);
+		return station != null && station.lastAttemptedTarget == SolarSystem.kerbol;
+	}
+
 	public void serialize(ByteBuf buf) {
 		buf.writeInt(orbiting.dimensionId);
 		buf.writeInt(target.dimensionId);
+		buf.writeInt(lastAttemptedTarget != null ? lastAttemptedTarget.dimensionId : orbiting.dimensionId);
 		buf.writeInt(state.ordinal());
 		buf.writeInt(stateTimer);
 		buf.writeInt(maxStateTimer);
@@ -370,6 +395,7 @@ public class OrbitalStation {
 	public static OrbitalStation deserialize(ByteBuf buf) {
 		OrbitalStation station = new OrbitalStation(CelestialBody.getBody(buf.readInt()));
 		station.target = CelestialBody.getBody(buf.readInt());
+		station.lastAttemptedTarget = CelestialBody.getBody(buf.readInt());
 		station.state = StationState.values()[buf.readInt()];
 		station.stateTimer = buf.readInt();
 		station.maxStateTimer = buf.readInt();

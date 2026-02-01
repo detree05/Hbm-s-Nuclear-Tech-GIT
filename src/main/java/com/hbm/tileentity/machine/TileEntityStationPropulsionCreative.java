@@ -3,9 +3,11 @@ package com.hbm.tileentity.machine;
 import java.util.List;
 
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.orbit.OrbitalStation;
 
 import api.hbm.tile.IPropulsion;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 
 public class TileEntityStationPropulsionCreative extends TileEntity implements IPropulsion {
 
@@ -54,7 +56,11 @@ public class TileEntityStationPropulsionCreative extends TileEntity implements I
 	}
 
 	@Override
-	public void addErrors(List<String> errors) { }
+	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isKerbolAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
+		}
+	}
 
 	@Override
 	public float getThrust() {

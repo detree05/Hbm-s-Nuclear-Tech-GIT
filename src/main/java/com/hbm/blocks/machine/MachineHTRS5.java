@@ -88,8 +88,8 @@ public class MachineHTRS5 extends BlockDummyable implements ILookOverlay, IFluid
 		this.makeExtra(world, nearX - rot.offsetX, y + 1, nearZ - rot.offsetZ);
 
 		// Bottom-facing connectors sit on the lowest layer.
-		this.makeExtra(world, baseX, y - 3, baseZ);
-		this.makeExtra(world, nearX, y - 3, nearZ);
+		this.makeExtra(world, baseX, y - 1, baseZ);
+		this.makeExtra(world, nearX, y - 1, nearZ);
 	}
 
 	@Override
