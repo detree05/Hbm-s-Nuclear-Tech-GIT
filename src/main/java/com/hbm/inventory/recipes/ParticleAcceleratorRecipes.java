@@ -22,7 +22,6 @@ public class ParticleAcceleratorRecipes extends SerializableRecipe {
 
 	@Override
 	public void registerDefaults() {
-
 		recipes.add(new ParticleAcceleratorRecipe(
 				new ComparableStack(ModItems.particle_hydrogen),
 				new ComparableStack(ModItems.particle_copper),

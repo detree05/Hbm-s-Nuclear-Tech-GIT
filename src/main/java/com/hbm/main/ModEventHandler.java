@@ -1043,6 +1043,10 @@ public class ModEventHandler {
 						}
 					}
 				}
+
+				if(event.world.provider.dimensionId == 0) {
+					SolarSystemWorldSavedData.get(event.world).tickStations(event.world);
+				}
 			}
 
 			// Tick our per celestial body timer

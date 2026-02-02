@@ -195,6 +195,35 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 		return stations;
 	}
 
+	public void tickStations(World world) {
+		if(world.isRemote) return;
+		if(world.provider.dimensionId != 0) return;
+
+		boolean anyTravelling = false;
+		for(OrbitalStation station : stations.values()) {
+			if(station.state != StationState.ORBIT) {
+				anyTravelling = true;
+				break;
+			}
+		}
+		if(!anyTravelling) return;
+
+		World orbitWorld = DimensionManager.getWorld(SpaceConfig.orbitDimension);
+		if(orbitWorld == null) {
+			DimensionManager.initDimension(SpaceConfig.orbitDimension);
+			orbitWorld = DimensionManager.getWorld(SpaceConfig.orbitDimension);
+		}
+		if(orbitWorld == null) return;
+
+		for(OrbitalStation station : stations.values()) {
+			if(station.state != StationState.ORBIT) {
+				if(!station.isCoreChunkLoaded(orbitWorld)) {
+					station.tickServer(orbitWorld);
+				}
+			}
+		}
+	}
+
 	// Grabs an existing station
 	public OrbitalStation getStationFromPosition(int x, int z) {
 		// yeah they aren't exactly chunks but this is a nice little hashable that already exists
@@ -253,6 +282,17 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 		if(station == null || station.hasStation) return;
 
 		stations.remove(pos);
+	}
+
+	public void removeStationForce(OrbitalStation station) {
+		removeStationForce(station.dX, station.dZ);
+	}
+
+	public void removeStationForce(int x, int z) {
+		ChunkCoordIntPair pos = new ChunkCoordIntPair(x, z);
+		if(stations.remove(pos) != null) {
+			markDirty();
+		}
 	}
 
 

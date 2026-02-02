@@ -11,7 +11,7 @@ public class BiomeGenKerbolOcean extends BiomeGenBaseCelestial {
 
 	public BiomeGenKerbolOcean(int id) {
 		super(id);
-		this.setBiomeName("Digma Ocean");
+		this.setBiomeName(" o   c ea n");
 		this.setDisableRain();
 	}
 

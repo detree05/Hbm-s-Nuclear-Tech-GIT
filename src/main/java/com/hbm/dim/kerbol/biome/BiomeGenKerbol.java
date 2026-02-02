@@ -16,7 +16,7 @@ public class BiomeGenKerbol extends BiomeGenBaseCelestial {
 
 	public BiomeGenKerbol(int id) {
 		super(id);
-		this.setBiomeName("Digma Wastelands");
+		this.setBiomeName("  w     as te land   s");
 		this.setDisableRain();
 	}
 

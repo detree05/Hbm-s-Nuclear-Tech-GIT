@@ -22,7 +22,7 @@ public class CryoRecipes extends SerializableRecipe {
 
 	@Override
 	public void registerDefaults() {
-		recipes.put(Fluids.EARTHAIR, new Quartet<>(
+		recipes.put(Fluids.SUBSURFACE_WATER_STEAM, new Quartet<>(
 			new FluidStack(Fluids.NITROGEN, 60),
 			new FluidStack(Fluids.OXYGEN, 25),
 			new FluidStack(Fluids.KRYPTON, 10),

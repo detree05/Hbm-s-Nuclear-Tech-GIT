@@ -12,6 +12,7 @@ import com.hbm.dim.mapgen.MapGenGreg;
 import com.hbm.dim.mapgen.MapGenTiltedSpires;
 import com.hbm.entity.mob.EntityCreeperFlesh;
 import com.hbm.world.gen.terrain.MapGenBubble;
+import com.hbm.world.gen.terrain.MapGenBedrockSubsurfaceWater;
 
 import net.minecraft.entity.EnumCreatureType;
 import net.minecraft.init.Blocks;
@@ -26,6 +27,7 @@ public class ChunkProviderLaythe extends ChunkProviderCelestial {
 	private MapGenTiltedSpires snowires = new MapGenTiltedSpires(2, 14, 0.75F);
 
 	private MapGenBubble oil = new MapGenBubble(WorldConfig.laytheOilSpawn);
+	private MapGenBedrockSubsurfaceWater bedrockWater = new MapGenBedrockSubsurfaceWater(WorldConfig.bedrockOilSpawn);
 
 	private List<SpawnListEntry> spawnedOfFlesh = new ArrayList<SpawnListEntry>();
 
@@ -46,6 +48,10 @@ public class ChunkProviderLaythe extends ChunkProviderCelestial {
 		oil.replace = Blocks.stone;
 		oil.setSize(8, 16);
 
+		bedrockWater.block = ModBlocks.ore_bedrock_subsurface_water;
+		bedrockWater.meta = (byte)CelestialBody.getMeta(world);
+		bedrockWater.replace = Blocks.stone;
+
 		seaBlock = Blocks.water;
 		// seaLevel = 96;
 
@@ -56,6 +62,7 @@ public class ChunkProviderLaythe extends ChunkProviderCelestial {
 	public BlockMetaBuffer getChunkPrimer(int x, int z) {
 		BlockMetaBuffer buffer = super.getChunkPrimer(x, z);
 		oil.setMetas(buffer.metas);
+		bedrockWater.setMetas(buffer.metas);
 
 		if(biomesForGeneration[0] == BiomeGenBaseLaythe.laythePolar) {
 			snowires.func_151539_a(this, worldObj, x, z, buffer.blocks);
@@ -64,6 +71,7 @@ public class ChunkProviderLaythe extends ChunkProviderCelestial {
 		}
 		caveGenV3.func_151539_a(this, worldObj, x, z, buffer.blocks);
 		oil.func_151539_a(this, worldObj, x, z, buffer.blocks);
+		bedrockWater.func_151539_a(this, worldObj, x, z, buffer.blocks);
 
 		return buffer;
 	}

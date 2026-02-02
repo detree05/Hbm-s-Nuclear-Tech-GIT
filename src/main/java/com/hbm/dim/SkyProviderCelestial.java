@@ -1237,7 +1237,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	protected void renderSpecialEffects(float partialTicks, WorldClient world, Minecraft mc) {
-
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

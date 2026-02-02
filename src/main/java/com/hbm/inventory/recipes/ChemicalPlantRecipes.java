@@ -270,6 +270,11 @@ public class ChemicalPlantRecipes extends GenericRecipes<GenericRecipe> {
 				.inputFluids(new FluidStack(Fluids.WATER, 1_000))
 				.outputFluids(new FluidStack(Fluids.PEROXIDE, 1_000)));
 
+		this.register(new GenericRecipe("chem.subsurface_water_purification").setupNamed(50, 100).setIcon(ModItems.fluid_icon, Fluids.PURIFIED_SUBSURFACE_WATER.getID())
+				.inputItems(new OreDictStack(KNO.dust(), 4))
+				.inputFluids(new FluidStack(Fluids.SUBSURFACE_WATER, 1_000, 1))
+				.outputFluids(new FluidStack(Fluids.PURIFIED_SUBSURFACE_WATER, 800)));
+
 		this.register(new GenericRecipe("chem.sulfuricacid").setup(50, 100)
 				.inputItems(new OreDictStack(S.dust()))
 				.inputFluids(new FluidStack(Fluids.PEROXIDE, 1_000), new FluidStack(Fluids.WATER, 1_000))

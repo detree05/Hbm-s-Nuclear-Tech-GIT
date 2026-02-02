@@ -75,6 +75,9 @@ public class GUIMachineStardar extends GuiInfoContainer {
 		boolean inOrbit = CelestialBody.inOrbit(star.getWorldObj());
 
 		for(CelestialBody landable : CelestialBody.getLandableBodies()) {
+			if(landable == SolarSystem.kerbol) {
+				continue;
+			}
 			if(landable != currentBody || inOrbit) {
 				int posX = rnd.nextInt(400) - 200;
 				int posY = rnd.nextInt(400) - 200;

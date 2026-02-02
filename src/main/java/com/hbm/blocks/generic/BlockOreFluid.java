@@ -25,6 +25,7 @@ public class BlockOreFluid extends BlockOre {
 		OIL,
 		GAS,
 		BRINE,
+		SUBSURFACE_WATER,
 	}
 
 	public BlockOreFluid(Material mat, Block empty, ReserveType type) {
@@ -39,6 +40,7 @@ public class BlockOreFluid extends BlockOre {
 		switch(type) {
 		case GAS: return "_gas";
 		case BRINE: return "_brine";
+		case SUBSURFACE_WATER: return "_water";
 		default: return "";
 		}
 	}
@@ -51,6 +53,7 @@ public class BlockOreFluid extends BlockOre {
 			return Fluids.OIL;
 		case GAS: return Fluids.GAS;
 		case BRINE: return Fluids.BRINE;
+		case SUBSURFACE_WATER: return Fluids.SUBSURFACE_WATER;
 		default: return Fluids.NONE;
 		}
 	}
@@ -70,6 +73,7 @@ public class BlockOreFluid extends BlockOre {
 		switch(type) {
 		case OIL: return 250;
 		case GAS: return 100;
+		case SUBSURFACE_WATER: return 0;
 		default: return 0;
 		}
 	}
@@ -77,6 +81,7 @@ public class BlockOreFluid extends BlockOre {
 	public int getPrimaryFluidAmount(int meta) {
 		if(empty == null) {
 			if(meta == SolarSystem.Body.TEKTO.ordinal()) return WorldConfig.tektoBedrockOilPerDeposit;
+			if(type == ReserveType.SUBSURFACE_WATER) return WorldConfig.bedrockOilPerDeposit;
 			return WorldConfig.bedrockOilPerDeposit;
 		}
 
@@ -91,6 +96,7 @@ public class BlockOreFluid extends BlockOre {
 	}
 
 	public int getSecondaryFluidAmount(int meta) {
+		if(type == ReserveType.SUBSURFACE_WATER) return 0;
 		if(empty == null) {
 			if(meta == SolarSystem.Body.TEKTO.ordinal()) return WorldConfig.tektoBedrockGasPerDepositMin + rand.nextInt(WorldConfig.tektoBedrockGasPerDepositMax - WorldConfig.tektoBedrockGasPerDepositMin);
 			return WorldConfig.bedrockGasPerDepositMin + rand.nextInt(WorldConfig.bedrockGasPerDepositMax - WorldConfig.bedrockGasPerDepositMin);

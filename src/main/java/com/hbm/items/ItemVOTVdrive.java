@@ -234,10 +234,11 @@ public class ItemVOTVdrive extends ItemEnumMulti {
 	@Override
 	public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
 		boolean isProcessed = getProcessed(stack);
-		boolean onDestination = world.provider.dimensionId == getDestination(stack).body.getDimensionId();
+		Destination destination = getDestination(stack);
+		boolean onDestination = world.provider.dimensionId == destination.body.getDimensionId();
 
 		// If we're on the body (or in creative), immediately process
-		if(!isProcessed && (player.capabilities.isCreativeMode || onDestination)) {
+		if(!isProcessed && (player.capabilities.isCreativeMode || onDestination) && destination.body != SolarSystem.Body.KERBOL) {
 			isProcessed = true;
 			setProcessed(stack, true);
 		}
@@ -296,6 +297,13 @@ public class ItemVOTVdrive extends ItemEnumMulti {
 		boolean onDestination = world.provider.dimensionId == destination.body.getDimensionId();
 		if(!onDestination)
 			return false;
+
+		if(destination.body == SolarSystem.Body.KERBOL) {
+			setCoordinates(stack, x, z);
+			if(!world.isRemote)
+				player.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "" + EnumChatFormatting.ITALIC + "Kerbol drive requires digamma processing."));
+			return true;
+		}
 
 		setCoordinates(stack, x, z);
 		setProcessed(stack, true);

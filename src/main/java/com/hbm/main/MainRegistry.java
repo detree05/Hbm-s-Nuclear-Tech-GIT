@@ -671,6 +671,7 @@ public class MainRegistry {
 		Compat.handleRailcraftNonsense();
 		SuicideThreadDump.register();
 		CommandReloadClient.register();
+		CommandComet.register();
 
 		WorldTypeTeleport.init();
 

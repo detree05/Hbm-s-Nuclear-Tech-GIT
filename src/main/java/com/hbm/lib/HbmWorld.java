@@ -10,6 +10,7 @@ import com.hbm.world.gen.component.*;
 import com.hbm.world.gen.component.BunkerComponents.BunkerStart;
 import com.hbm.world.gen.nbt.NBTStructure;
 import com.hbm.world.gen.terrain.MapGenBedrockOil;
+import com.hbm.world.gen.terrain.MapGenBedrockSubsurfaceWater;
 import com.hbm.world.gen.terrain.MapGenBubble;
 import com.hbm.world.gen.terrain.MapGenCrater;
 
@@ -77,6 +78,10 @@ public class HbmWorld {
 		if(WorldConfig.bedrockOilSpawn > 0) {
 			MapGenBedrockOil bedrockBubble = new MapGenBedrockOil(WorldConfig.bedrockOilSpawn);
 			MapGenChainloader.addOverworldGenerator(bedrockBubble);
+		}
+		if(WorldConfig.bedrockOilSpawn > 0) {
+			MapGenBedrockSubsurfaceWater bedrockWater = new MapGenBedrockSubsurfaceWater(WorldConfig.bedrockOilSpawn);
+			MapGenChainloader.addOverworldGenerator(bedrockWater);
 		}
 
 		int sandBubbleSpawn = 200;

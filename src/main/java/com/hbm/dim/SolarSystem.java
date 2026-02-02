@@ -44,10 +44,10 @@ public class SolarSystem {
 		kerbol = new CelestialBody("kerbol", SpaceConfig.kerbolDimension, Body.KERBOL)
 			.withMassRadius(1.757e28F, 261_600)
 			.withRotationalPeriod(432_000)
-			.withTexture(new ResourceLocation("textures/environment/sun.png"))
+			.withTexture(new ResourceLocation(RefStrings.MODID, "textures/misc/space/dmitriy.png"))
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 2)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
-			.withTraits(new CBT_Atmosphere(Fluids.VOIDGAS, 5.555D), new CBT_Water(Fluids.BLOOD))
+			.withTraits(new CBT_Atmosphere(Fluids.DMITRIYGAS, 5.555D), new CBT_Water(Fluids.BLOOD))
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)

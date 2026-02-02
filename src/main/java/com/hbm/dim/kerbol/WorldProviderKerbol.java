@@ -36,6 +36,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private long lastGravityEventMillis = -1L;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
 	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
+	private static final ResourceLocation NEIDON_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/neidon.png");
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
 	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
 	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
@@ -78,15 +79,18 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, spikeSize, 0.0D, 1.0D);
 					tessellator.draw();
 
-					mc.renderEngine.bindTexture(SolarSystem.kerbol.texture);
-					GL11.glColor4f(3.0F, 0.4F, 0.4F, 1.0F);
-					double size = 6.0D;
+					OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+					GL11.glDisable(GL11.GL_TEXTURE_2D);
+					GL11.glColor4f(0.0F, 0.0F, 0.0F, 1.0F);
+					double size = 2.4D;
 					tessellator.startDrawingQuads();
-					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
-					tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
-					tessellator.addVertexWithUV(size, 100.0D, size, 1.0D, 1.0D);
-					tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D, 1.0D);
+					tessellator.addVertex(-size, 100.0D, -size);
+					tessellator.addVertex(size, 100.0D, -size);
+					tessellator.addVertex(size, 100.0D, size);
+					tessellator.addVertex(-size, 100.0D, size);
 					tessellator.draw();
+					GL11.glEnable(GL11.GL_TEXTURE_2D);
+					OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 				}
 				GL11.glPopMatrix();
 
@@ -106,9 +110,9 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, spikeSize, 0.0D, 1.0D);
 					tessellator.draw();
 
-					mc.renderEngine.bindTexture(SolarSystem.kerbol.texture);
+					mc.renderEngine.bindTexture(NEIDON_TEXTURE);
 					GL11.glColor4f(2.6F, 0.4F, 3.2F, 1.0F);
-					double size = 2.5D;
+					double size = 0.6666667D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);

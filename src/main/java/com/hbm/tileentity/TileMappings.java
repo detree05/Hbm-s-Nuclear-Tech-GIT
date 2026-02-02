@@ -398,6 +398,7 @@ public class TileMappings {
 		put(TileEntityMachinePUREX.class, "tileentity_purex");
 
 		put(TileEntityMachineOilWell.class, "tileentity_derrick");
+		put(TileEntityWaterExtractionPlant.class, "tileentity_water_extraction_plant");
 		put(TileEntityMachinePumpjack.class, "tileentity_machine_pumpjack");
 		put(TileEntityMachineFrackingTower.class, "tileentity_fracking_tower");
 		put(TileEntityMachineGasFlare.class, "tileentity_gasflare");

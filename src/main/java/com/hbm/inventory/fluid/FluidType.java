@@ -35,6 +35,8 @@ public class FluidType {
 	private int color;
 	//Unlocalized string ID of the fluid
 	private String unlocalized;
+	//Optional override for oredict base name (without quantity/prefix)
+	private String dictNameOverride;
 	//localization override for custom fluids
 	private String localizedOverride;
 	private int guiTint = 0xffffff;
@@ -127,6 +129,17 @@ public class FluidType {
 		this.temperature = temperature;
 		return this;
 	}
+
+	public FluidType setTexture(ResourceLocation texture) {
+		this.texture = texture;
+		return this;
+	}
+
+	public FluidType setGuiTint(int tint) {
+		this.guiTint = tint;
+		this.renderWithTint = true;
+		return this;
+	}
 	
 	public FluidType addContainers(Object... containers) {
 		for(Object container : containers) this.containers.put(container.getClass(), container);
@@ -182,7 +195,15 @@ public class FluidType {
 	}
 	public String getDict(int quantity) {
 		String prefix = GeneralConfig.enableFluidContainerCompat ? "container" : "ntmcontainer";
-		return prefix + quantity + this.stringId.replace("_", "").toLowerCase(Locale.US);
+		String baseName = this.dictNameOverride != null
+				? this.dictNameOverride.replace("_", "").toLowerCase(Locale.US)
+				: this.stringId.replace("_", "").toLowerCase(Locale.US);
+		return prefix + quantity + baseName;
+	}
+
+	public FluidType setDictNameOverride(String dictName) {
+		this.dictNameOverride = dictName;
+		return this;
 	}
 	
 	public boolean isHot() {

@@ -10,6 +10,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.machine.BlockOrbitalStation;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialTeleporter;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.entity.missile.EntityRideableRocket;
@@ -22,9 +23,16 @@ import com.hbm.util.BufferUtil;
 
 import api.hbm.tile.IPropulsion;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Blocks;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldServer;
+import net.minecraftforge.common.DimensionManager;
 import net.minecraftforge.common.util.ForgeDirection;
 
 public class OrbitalStation {
@@ -71,6 +79,9 @@ public class OrbitalStation {
 	public static final int BUFFER_SIZE = 256; // size of the buffer region that drops you out of orbit (preventing seeing other stations)
 	public static final int WARNING_SIZE = 32; // size of the region that warns the player about falling out of orbit
 
+	private static final int STATION_CORE_Y = 127;
+	private static final int PROPULSION_BOUNDS_RADIUS = 6;
+
 
 
 	/**
@@ -111,6 +122,9 @@ public class OrbitalStation {
 				}
 			} else if(state == StationState.TRANSFER) {
 				if(stateTimer > maxStateTimer) {
+					if(target == SolarSystem.kerbol && relocateToKerbol(world)) {
+						return;
+					}
 					setState(StationState.ARRIVING, getArriveTime());
 					orbiting = target;
 				}
@@ -131,6 +145,32 @@ public class OrbitalStation {
 			}
 		}
 
+		stateTimer++;
+	}
+
+	public void tickServer(World world) {
+		if(state == StationState.LEAVING) {
+			if(stateTimer > maxStateTimer) {
+				ensureMainPort(world);
+				if(mainPort != null) {
+					setState(StationState.TRANSFER, getTransferTime());
+				}
+			}
+		} else if(state == StationState.TRANSFER) {
+			if(stateTimer > maxStateTimer) {
+				if(target == SolarSystem.kerbol && relocateToKerbol(world)) {
+					return;
+				}
+				setState(StationState.ARRIVING, getArriveTime());
+				orbiting = target;
+			}
+		} else if(state == StationState.ARRIVING) {
+			if(stateTimer > maxStateTimer) {
+				setState(StationState.ORBIT, 0);
+			}
+		}
+
+		SolarSystemWorldSavedData.get(world).markDirty();
 		stateTimer++;
 	}
 
@@ -439,6 +479,274 @@ public class OrbitalStation {
 
 		station.orbiting = station.target = body;
 		station.hasStation = true;
+	}
+
+	private static class StationBounds {
+		private final int minX;
+		private final int maxX;
+		private final int minY;
+		private final int maxY;
+		private final int minZ;
+		private final int maxZ;
+		private final HashSet<Long> columns;
+
+		private StationBounds(int minX, int maxX, int minY, int maxY, int minZ, int maxZ, HashSet<Long> columns) {
+			this.minX = minX;
+			this.maxX = maxX;
+			this.minY = minY;
+			this.maxY = maxY;
+			this.minZ = minZ;
+			this.maxZ = maxZ;
+			this.columns = columns;
+		}
+	}
+
+	private boolean relocateToKerbol(World world) {
+		ensureMainPort(world);
+		if(mainPort == null) return false;
+
+		loadStationZoneChunks(world);
+		StationBounds bounds = getStationBounds(world);
+		if(bounds == null) return false;
+
+		int targetDimensionId = SolarSystem.kerbol.dimensionId;
+		WorldServer targetWorld = DimensionManager.getWorld(targetDimensionId);
+		if(targetWorld == null) {
+			DimensionManager.initDimension(targetDimensionId);
+			targetWorld = DimensionManager.getWorld(targetDimensionId);
+		}
+		if(targetWorld == null) return false;
+
+		loadChunks(targetWorld, bounds);
+
+		int coreX = getCoreX();
+		int coreZ = getCoreZ();
+		int groundY = targetWorld.getTopSolidOrLiquidBlock(coreX, coreZ);
+		int yOffset = Math.max(1, groundY) - bounds.minY;
+
+		copyStation(world, targetWorld, bounds, yOffset);
+		teleportStationEntities(world, targetWorld, bounds, yOffset);
+		clearStation(world, bounds);
+
+		SolarSystemWorldSavedData.get(world).removeStationForce(this);
+		return true;
+	}
+
+	private StationBounds getStationBounds(World world) {
+		if(mainPort == null) return null;
+
+		int minX = mainPort.xCoord;
+		int maxX = mainPort.xCoord;
+		int minZ = mainPort.zCoord;
+		int maxZ = mainPort.zCoord;
+
+		Stack<ThreeInts> stack = new Stack<ThreeInts>();
+		stack.push(new ThreeInts(mainPort.xCoord, 0, mainPort.zCoord));
+
+		HashSet<Long> visited = new HashSet<Long>();
+
+		while(!stack.isEmpty()) {
+			ThreeInts pos = stack.pop();
+			long key = pack(pos.x, pos.z);
+			if(visited.contains(key)) continue;
+			visited.add(key);
+
+			if(pos.x < minX) minX = pos.x;
+			if(pos.x > maxX) maxX = pos.x;
+			if(pos.z < minZ) minZ = pos.z;
+			if(pos.z > maxZ) maxZ = pos.z;
+
+			for(ForgeDirection dir : horDir) {
+				ThreeInts nextPos = pos.getPositionAtOffset(dir);
+				long nextKey = pack(nextPos.x, nextPos.z);
+				if(!visited.contains(nextKey) && isInStation(world, nextPos)) {
+					stack.push(nextPos);
+				}
+			}
+		}
+
+		if(visited.isEmpty()) return null;
+
+		if(!engines.isEmpty()) {
+			for(IPropulsion engine : engines) {
+				if(engine == null) continue;
+				TileEntity te = engine.getTileEntity();
+				if(te == null) continue;
+
+				int ex = te.xCoord;
+				int ez = te.zCoord;
+				for(int x = ex - PROPULSION_BOUNDS_RADIUS; x <= ex + PROPULSION_BOUNDS_RADIUS; x++) {
+					for(int z = ez - PROPULSION_BOUNDS_RADIUS; z <= ez + PROPULSION_BOUNDS_RADIUS; z++) {
+						long key = pack(x, z);
+						if(visited.add(key)) {
+							if(x < minX) minX = x;
+							if(x > maxX) maxX = x;
+							if(z < minZ) minZ = z;
+							if(z > maxZ) maxZ = z;
+						}
+					}
+				}
+			}
+		}
+
+		int minY = Integer.MAX_VALUE;
+		int maxY = Integer.MIN_VALUE;
+		int height = world.getHeight();
+
+		for(long column : visited) {
+			int x = unpackX(column);
+			int z = unpackZ(column);
+			for(int y = 0; y < height; y++) {
+				Block block = world.getBlock(x, y, z);
+				if(block == Blocks.air) continue;
+				if(y < minY) minY = y;
+				if(y > maxY) maxY = y;
+			}
+		}
+
+		if(minY == Integer.MAX_VALUE || maxY == Integer.MIN_VALUE) return null;
+
+		return new StationBounds(minX, maxX, minY, maxY, minZ, maxZ, visited);
+	}
+
+	private void copyStation(World sourceWorld, World targetWorld, StationBounds bounds, int yOffset) {
+		BlockDummyable.safeRem = true;
+		for(long column : bounds.columns) {
+			int x = unpackX(column);
+			int z = unpackZ(column);
+			for(int y = bounds.minY; y <= bounds.maxY; y++) {
+				int targetY = y + yOffset;
+				Block block = targetWorld.getBlock(x, targetY, z);
+				if(block != Blocks.air) {
+					targetWorld.setBlock(x, targetY, z, Blocks.air, 0, 2);
+				}
+			}
+		}
+
+		for(long column : bounds.columns) {
+			int x = unpackX(column);
+			int z = unpackZ(column);
+			for(int y = bounds.minY; y <= bounds.maxY; y++) {
+				Block block = sourceWorld.getBlock(x, y, z);
+				if(block == Blocks.air) continue;
+
+				int meta = sourceWorld.getBlockMetadata(x, y, z);
+				int targetY = y + yOffset;
+				targetWorld.setBlock(x, targetY, z, block, meta, 2);
+
+				TileEntity sourceTe = sourceWorld.getTileEntity(x, y, z);
+				if(sourceTe != null) {
+					NBTTagCompound nbt = new NBTTagCompound();
+					sourceTe.writeToNBT(nbt);
+					nbt.setInteger("x", x);
+					nbt.setInteger("y", targetY);
+					nbt.setInteger("z", z);
+
+					TileEntity targetTe = targetWorld.getTileEntity(x, targetY, z);
+					if(targetTe != null) {
+						targetTe.readFromNBT(nbt);
+						targetTe.markDirty();
+					} else {
+						TileEntity created = TileEntity.createAndLoadEntity(nbt);
+						if(created != null) {
+							targetWorld.setTileEntity(x, targetY, z, created);
+						}
+					}
+				}
+			}
+		}
+		BlockDummyable.safeRem = false;
+	}
+
+	private void teleportStationEntities(World sourceWorld, World targetWorld, StationBounds bounds, int yOffset) {
+		AxisAlignedBB box = AxisAlignedBB.getBoundingBox(
+			bounds.minX, bounds.minY, bounds.minZ,
+			bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1
+		);
+
+		List<EntityPlayer> players = sourceWorld.getEntitiesWithinAABB(EntityPlayer.class, box);
+		for(EntityPlayer player : players) {
+			CelestialTeleporter.teleport(player, targetWorld.provider.dimensionId, player.posX, player.posY + yOffset, player.posZ, false);
+		}
+
+		List<EntityRideableRocket> rockets = sourceWorld.getEntitiesWithinAABB(EntityRideableRocket.class, box);
+		for(EntityRideableRocket rocket : rockets) {
+			CelestialTeleporter.teleport(rocket, targetWorld.provider.dimensionId, rocket.posX, rocket.posY + yOffset, rocket.posZ, false);
+		}
+	}
+
+	private void clearStation(World world, StationBounds bounds) {
+		BlockDummyable.safeRem = true;
+		for(long column : bounds.columns) {
+			int x = unpackX(column);
+			int z = unpackZ(column);
+			for(int y = bounds.minY; y <= bounds.maxY; y++) {
+				if(world.getBlock(x, y, z) != Blocks.air) {
+					world.setBlock(x, y, z, Blocks.air, 0, 2);
+				}
+			}
+		}
+		BlockDummyable.safeRem = false;
+	}
+
+	private void loadChunks(World world, StationBounds bounds) {
+		for(int x = bounds.minX; x <= bounds.maxX; x += 16) {
+			for(int z = bounds.minZ; z <= bounds.maxZ; z += 16) {
+				world.getChunkFromBlockCoords(x, z);
+			}
+		}
+	}
+
+	private void loadStationZoneChunks(World world) {
+		int minX = dX * STATION_SIZE;
+		int minZ = dZ * STATION_SIZE;
+		int maxX = minX + STATION_SIZE - 1;
+		int maxZ = minZ + STATION_SIZE - 1;
+
+		for(int x = minX; x <= maxX; x += 16) {
+			for(int z = minZ; z <= maxZ; z += 16) {
+				world.getChunkFromBlockCoords(x, z);
+			}
+		}
+	}
+
+	private void ensureMainPort(World world) {
+		if(mainPort != null) return;
+
+		int coreX = getCoreX();
+		int coreZ = getCoreZ();
+		world.getChunkFromBlockCoords(coreX, coreZ);
+
+		TileEntity te = world.getTileEntity(coreX, STATION_CORE_Y, coreZ);
+		if(te instanceof TileEntityOrbitalStation) {
+			mainPort = (TileEntityOrbitalStation) te;
+		}
+	}
+
+	private int getCoreX() {
+		return dX * STATION_SIZE + (STATION_SIZE / 2);
+	}
+
+	private int getCoreZ() {
+		return dZ * STATION_SIZE + (STATION_SIZE / 2);
+	}
+
+	public boolean isCoreChunkLoaded(World world) {
+		int chunkX = getCoreX() >> 4;
+		int chunkZ = getCoreZ() >> 4;
+		return world.getChunkProvider().chunkExists(chunkX, chunkZ);
+	}
+
+	private long pack(int x, int z) {
+		return (((long) x) << 32) ^ (z & 0xffffffffL);
+	}
+
+	private int unpackX(long packed) {
+		return (int) (packed >> 32);
+	}
+
+	private int unpackZ(long packed) {
+		return (int) packed;
 	}
 
 }

@@ -63,7 +63,7 @@ public class TileEntityFusionKlystron extends TileEntityMachineBase implements I
 	public TileEntityFusionKlystron() {
 		super(1);
 
-		compair = new FluidTank(Fluids.AIR, AIR_CONSUMPTION * 60);
+		compair = new FluidTank(Fluids.OXYGEN, AIR_CONSUMPTION * 60).withPressure(1);
 	}
 
 	@Override

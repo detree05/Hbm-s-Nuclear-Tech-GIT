@@ -26,10 +26,12 @@ import com.hbm.inventory.fluid.trait.FT_Heatable.HeatingType;
 import com.hbm.inventory.fluid.trait.FT_Toxin.*;
 import com.hbm.render.util.EnumSymbol;
 import com.hbm.util.ArmorRegistry.HazardClass;
+import com.hbm.lib.RefStrings;
 
 import api.hbm.fluidmk2.IFluidRegisterListener;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.util.ResourceLocation;
 
 public class Fluids {
 
@@ -40,6 +42,9 @@ public class Fluids {
 	public static FluidType NONE;
 	public static FluidType AIR;
 	public static FluidType WATER;
+	public static FluidType SUBSURFACE_WATER;
+	public static FluidType PURIFIED_SUBSURFACE_WATER;
+	public static FluidType SUBSURFACE_WATER_STEAM;
 	public static FluidType STEAM;
 	public static FluidType HOTSTEAM;
 	public static FluidType SUPERHOTSTEAM;
@@ -182,7 +187,7 @@ public class Fluids {
 	public static FluidType SARNUSGAS;
 	public static FluidType UGAS; //urlum
 	public static FluidType NGAS;//neidon
-	public static FluidType VOIDGAS;
+	public static FluidType DMITRIYGAS;
 	public static FluidType MILK;
 	public static FluidType SMILK;
 	public static FluidType XYLENE;				//BTX: benzene, terephthalate and xylene
@@ -535,14 +540,25 @@ public class Fluids {
 		DHC =					new FluidType("DHC",				0xD2AFFF, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
 		AIR =					new FluidType("AIR",				0xE7EAEB, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
 		LITHYDRO =				new FluidType("LITHYDRO",			0xD1CEBE, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
-		LITHCARBONATE =		       new FluidType("LITHCARBONATE",	       0xD1CEBE, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
-		VOIDGAS =				new FluidType("VOIDGAS",			0x7A2E1B, 3, 0, 0, EnumSymbol.ASPHYXIANT)
-				.addContainers(new CD_Gastank(0x5C2316, 0xC6A391))
-				.addTraits(GASEOUS);
+		LITHCARBONATE =		    new FluidType("LITHCARBONATE",	       0xD1CEBE, 0, 0, 0, EnumSymbol.NONE).addTraits(GASEOUS);
+		DMITRIYGAS =			new FluidType("DMITRIYGAS",			0x7A2E1B, 3, 0, 0, EnumSymbol.ASPHYXIANT).addTraits(GASEOUS);
+		DMAT =					new FluidType("DMAT",				0x1A1A1A, 5, 0, 5, EnumSymbol.ANTIMATTER).addTraits(ANTI, GASEOUS);
+		SUBSURFACE_WATER =		new FluidType("SUBSURFACE_WATER",	0x4D5461, 0, 0, 0, EnumSymbol.NONE)
+				.addTraits(LIQUID, UNSIPHONABLE)
+				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/water_base.png"))
+				.setGuiTint(0x4D5461);
+		PURIFIED_SUBSURFACE_WATER = new FluidType("PURIFIED_SUBSURFACE_WATER", 0x2D3161, 0, 0, 0, EnumSymbol.NONE)
+				.addTraits(LIQUID, UNSIPHONABLE)
+				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/water_base.png"))
+				.setGuiTint(0x2D3161);
+		SUBSURFACE_WATER_STEAM = new FluidType("SUBSURFACE_WATER_STEAM", 0xe5e5e5, 3, 0, 0, EnumSymbol.NONE)
+				.setTemp(100)
+				.addTraits(GASEOUS, UNSIPHONABLE)
+				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/steam.png"));
 
 		// ^ ^ ^ ^ ^ ^ ^ ^
 		//ADD NEW FLUIDS HERE
-		DMAT =					new FluidType("DMAT",				0x1A1A1A, 5, 0, 5, EnumSymbol.ANTIMATTER).addTraits(ANTI, GASEOUS);
+
 
 		File folder = MainRegistry.configHbmDir;
 		File customTypes = new File(folder.getAbsolutePath() + File.separatorChar + "hbmFluidTypes.json");
@@ -559,11 +575,14 @@ public class Fluids {
 		//vanilla
 		metaOrder.add(AIR);
 		metaOrder.add(WATER);
+		metaOrder.add(SUBSURFACE_WATER);
+		metaOrder.add(PURIFIED_SUBSURFACE_WATER);
 		metaOrder.add(HEAVYWATER);
 		metaOrder.add(HEAVYWATER_HOT);
 		metaOrder.add(LAVA);
 		//steams
 		metaOrder.add(STEAM);
+		metaOrder.add(SUBSURFACE_WATER_STEAM);
 		metaOrder.add(HOTSTEAM);
 		metaOrder.add(SUPERHOTSTEAM);
 		metaOrder.add(ULTRAHOTSTEAM);
@@ -711,7 +730,7 @@ public class Fluids {
 		metaOrder.add(UGAS);
 		metaOrder.add(NGAS);
 		metaOrder.add(TEKTOAIR);
-		metaOrder.add(VOIDGAS);
+		metaOrder.add(DMITRIYGAS);
 		//NITRIC_ACID
 		metaOrder.add(NITRIC_ACID);
 		metaOrder.add(HCL);
@@ -822,6 +841,8 @@ public class Fluids {
 				.addStep(220, 1, HOTSTEAM, 10)
 				.addStep(238, 1, SUPERHOTSTEAM, 1)
 				.addStep(2500, 10, ULTRAHOTSTEAM, 1));
+		PURIFIED_SUBSURFACE_WATER.addTraits(new FT_Heatable().setEff(HeatingType.BOILER, eff_steam_boil).setEff(HeatingType.HEATEXCHANGER, eff_steam_heatex)
+				.addStep(200, 1, SUBSURFACE_WATER_STEAM, 10));
 
 		STEAM.addTraits(new FT_Heatable().setEff(HeatingType.BOILER, eff_steam_boil).setEff(HeatingType.HEATEXCHANGER, eff_steam_heatex).addStep(2, 10, HOTSTEAM, 1));
 		HOTSTEAM.addTraits(new FT_Heatable().setEff(HeatingType.BOILER, eff_steam_boil).setEff(HeatingType.HEATEXCHANGER, eff_steam_heatex).addStep(18, 10, SUPERHOTSTEAM, 1));
@@ -830,6 +851,7 @@ public class Fluids {
 		double eff_steam_turbine = 1.0D;
 		double eff_steam_cool = 0.5D;
 		STEAM.addTraits(new FT_Coolable(SPENTSTEAM, 100, 1, 200).setEff(CoolingType.TURBINE, eff_steam_turbine).setEff(CoolingType.HEATEXCHANGER, eff_steam_cool));
+		SUBSURFACE_WATER_STEAM.addTraits(new FT_Coolable(SPENTSTEAM, 1000, 1, 200).setEff(CoolingType.TURBINE, eff_steam_turbine).setEff(CoolingType.HEATEXCHANGER, eff_steam_cool));
 		HOTSTEAM.addTraits(new FT_Coolable(STEAM, 1, 10, 2).setEff(CoolingType.TURBINE, eff_steam_turbine).setEff(CoolingType.HEATEXCHANGER, eff_steam_cool));
 		SUPERHOTSTEAM.addTraits(new FT_Coolable(HOTSTEAM, 1, 10, 18).setEff(CoolingType.TURBINE, eff_steam_turbine).setEff(CoolingType.HEATEXCHANGER, eff_steam_cool));
 		ULTRAHOTSTEAM.addTraits(new FT_Coolable(SUPERHOTSTEAM, 1, 10, 120).setEff(CoolingType.TURBINE, eff_steam_turbine).setEff(CoolingType.HEATEXCHANGER, eff_steam_cool));
