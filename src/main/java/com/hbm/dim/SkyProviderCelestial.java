@@ -64,7 +64,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation thatmoShield = new ResourceLocation(RefStrings.MODID, "textures/particle/cens.png");
 
 	private static final Shader fleshShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/fle.frag"));
-
 	private static final ResourceLocation noise = new ResourceLocation(RefStrings.MODID, "shaders/iChannel1.png");
 
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
@@ -87,6 +86,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	public static int glSkyList2;
 
 	private static boolean gl13;
+
 
 	public SkyProviderCelestial() {
 		if(!displayListsInitialized) {

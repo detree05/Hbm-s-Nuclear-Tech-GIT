@@ -134,4 +134,15 @@ public class Shader {
         GL20.glUniform1i(location, value);
     }
 
+    public void setUniform2f(String name, float value0, float value1) {
+        if(!hasLoaded) return;
+        int location = uniforms.computeIfAbsent(name, (n) -> GL20.glGetUniformLocation(shaderProgram, n));
+        GL20.glUniform2f(location, value0, value1);
+    }
+
+    public void setUniform2f(int location, float value0, float value1) {
+        if(!hasLoaded) return;
+        GL20.glUniform2f(location, value0, value1);
+    }
+
 }
