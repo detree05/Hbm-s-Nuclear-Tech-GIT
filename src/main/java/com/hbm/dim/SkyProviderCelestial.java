@@ -1,5 +1,6 @@
 package com.hbm.dim;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -77,6 +78,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static float cometYaw = 0.0F;
 	private static float cometPitch = -70.0F;
 	private static float cometRoll = 0.0F;
+
+	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
+	private static final Map<String, Float> ringFade = new HashMap<>();
+	private static final Map<String, Long> ringFadeTick = new HashMap<>();
 
 	private static final ResourceLocation[] citylights = new ResourceLocation[] {
 		new ResourceLocation(RefStrings.MODID, "textures/misc/space/citylights_0.png"),
@@ -322,7 +327,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 				GL11.glTranslatef(0, -100, 0);
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
 
-				renderRings(partialTicks, world, mc, body.ringTilt, body.ringColor, 200, visibility);
+				float ringVisibility = visibility * getRingFade(body, world);
+				renderRings(partialTicks, world, mc, body.ringTilt, body.ringColor, 200, ringVisibility);
 
 			}
 			GL11.glPopMatrix();
@@ -844,7 +850,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 						GL11.glPushMatrix();
 						{
 
-							GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], visibility);
+							float ringVisibility = visibility * getRingFade(metric.body, world);
+							GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], ringVisibility);
 							mc.renderEngine.bindTexture(ringTexture);
 
 							GL11.glDisable(GL11.GL_CULL_FACE);
@@ -952,16 +959,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 						tessellator.draw();
 
 
-						GL11.glColor4f(1.0F, 1.0F, 1.0F, alpd * 2);
-						mc.renderEngine.bindTexture(shockFlareTexture);
+						if(!"minmus".equals(metric.body.name)) {
+							GL11.glColor4f(1.0F, 1.0F, 1.0F, alpd * 2);
+							mc.renderEngine.bindTexture(shockFlareTexture);
 
-						interpr = size * 3;
-						tessellator.startDrawingQuads();
-						tessellator.addVertexWithUV(-interpr, 100.0D, -interpr, 0.0D + uvOffset, 0.0D);
-						tessellator.addVertexWithUV(interpr, 100.0D, -interpr, 1.0D + uvOffset, 0.0D);
-						tessellator.addVertexWithUV(interpr, 100.0D, interpr, 1.0D + uvOffset, 1.0D);
-						tessellator.addVertexWithUV(-interpr, 100.0D, interpr, 0.0D + uvOffset, 1.0D);
-						tessellator.draw();
+							interpr = size * 3;
+							tessellator.startDrawingQuads();
+							tessellator.addVertexWithUV(-interpr, 100.0D, -interpr, 0.0D + uvOffset, 0.0D);
+							tessellator.addVertexWithUV(interpr, 100.0D, -interpr, 1.0D + uvOffset, 0.0D);
+							tessellator.addVertexWithUV(interpr, 100.0D, interpr, 1.0D + uvOffset, 1.0D);
+							tessellator.addVertexWithUV(-interpr, 100.0D, interpr, 0.0D + uvOffset, 1.0D);
+							tessellator.draw();
+						}
 
 					} else {
 
@@ -1106,7 +1115,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 					// Draw the front half of the ring (unobscured)
 					if(metric.body.hasRings) {
-						GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], visibility);
+						float ringVisibility = visibility * getRingFade(metric.body, world);
+						GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], ringVisibility);
 						mc.renderEngine.bindTexture(ringTexture);
 
 						double ringSize = size * metric.body.ringSize;
@@ -1165,6 +1175,27 @@ public class SkyProviderCelestial extends IRenderHandler {
 		tessellator.addVertexWithUV(offset, ringSize, ringSize, 1.0D, 1.0D);
 		tessellator.addVertexWithUV(offset, -ringSize, ringSize, 0.0D, 1.0D);
 		tessellator.draw();
+	}
+
+	private float getRingFade(CelestialBody body, WorldClient world) {
+		if(body == null || world == null) return 1.0F;
+
+		String key = body.name;
+		long tick = world.getTotalWorldTime();
+		long lastTick = ringFadeTick.containsKey(key) ? ringFadeTick.get(key) : tick;
+		long dt = Math.max(0L, tick - lastTick);
+
+		float fade = ringFade.containsKey(key) ? ringFade.get(key) : 0.0F;
+		if(body.hasRings) {
+			fade = Math.min(1.0F, fade + dt * RING_FADE_PER_TICK);
+		} else {
+			fade = Math.max(0.0F, fade - dt * RING_FADE_PER_TICK);
+		}
+
+		ringFade.put(key, fade);
+		ringFadeTick.put(key, tick);
+
+		return fade;
 	}
 
 	protected void renderDigamma(float partialTicks, WorldClient world, Minecraft mc, float solarAngle) {
