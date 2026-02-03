@@ -64,10 +64,19 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation thatmoShield = new ResourceLocation(RefStrings.MODID, "textures/particle/cens.png");
 
 	private static final Shader fleshShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/fle.frag"));
+	private static final Shader cometShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/comet.frag"));
 	private static final ResourceLocation noise = new ResourceLocation(RefStrings.MODID, "shaders/iChannel1.png");
 
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
+
+	private static boolean cometActive = false;
+	private static long cometStartWorldTime = 0L;
+	private static int cometDurationTicks = 0;
+	private static int cometDimension = Integer.MIN_VALUE;
+	private static float cometYaw = 0.0F;
+	private static float cometPitch = -70.0F;
+	private static float cometRoll = 0.0F;
 
 	private static final ResourceLocation[] citylights = new ResourceLocation[] {
 		new ResourceLocation(RefStrings.MODID, "textures/misc/space/citylights_0.png"),
@@ -1237,11 +1246,92 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	protected void renderSpecialEffects(float partialTicks, WorldClient world, Minecraft mc) {
+		if(!cometActive) return;
+		if(world.provider == null || world.provider.dimensionId != cometDimension) return;
+
+		Tessellator tessellator = Tessellator.instance;
+		float starBrightness = world.getStarBrightness(partialTicks);
+		if(starBrightness <= 0.01F) return;
+
+		float age = (world.getTotalWorldTime() - cometStartWorldTime) + partialTicks;
+		if(age < 0.0F) return;
+		if(age > cometDurationTicks) {
+			cometActive = false;
+			return;
+		}
+
+		float progress = age / cometDurationTicks;
+		float fadeInTicks = 100.0F;
+		float fadeOutTicks = 100.0F;
+		float fadeIn = smoothstep(0.0F, fadeInTicks, age);
+		float fadeOut = smoothstep(0.0F, fadeOutTicks, (cometDurationTicks - age));
+		float alpha = fadeIn * fadeOut * starBrightness;
+
+		// Slow travel across the sky, aligned to comet direction
+		float travel = (progress * 2.0F) - 1.0F; // -1..1
+		float travelRange = 120.0F;
+		float dirX = 1.0F;
+		float dirZ = 0.12F;
+		float invLen = 1.0F / MathHelper.sqrt_float(dirX * dirX + dirZ * dirZ);
+		dirX *= invLen;
+		dirZ *= invLen;
+
+		GL11.glPushMatrix();
+		{
+			GL11.glDisable(GL11.GL_CULL_FACE);
+			GL11.glDisable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+
+			// Position the comet high in the sky and orient it
+			GL11.glRotatef(cometPitch, 1.0F, 0.0F, 0.0F);
+			GL11.glRotatef(cometYaw, 0.0F, 1.0F, 0.0F);
+			GL11.glRotatef(cometRoll, 0.0F, 0.0F, 1.0F);
+
+			GL11.glTranslatef(dirX * travel * travelRange, 0.0F, dirZ * travel * travelRange);
+
+			GL11.glColor4f(1.0F, 1.0F, 1.0F, alpha);
+
+			cometShader.use();
+			cometShader.setUniform1f("iTime", age * 0.02F);
+			cometShader.setUniform1f("uAlpha", alpha);
+
+			double size = 6.0D;
+			double skyHeight = 150.0D;
+			tessellator.startDrawingQuads();
+			tessellator.addVertexWithUV(-size, skyHeight, -size, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(size, skyHeight, -size, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(size, skyHeight, size, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-size, skyHeight, size, 0.0D, 1.0D);
+			tessellator.draw();
+
+			cometShader.stop();
+
+			GL11.glEnable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_CULL_FACE);
+		}
+		GL11.glPopMatrix();
+	}
+
+	private static float smoothstep(float edge0, float edge1, float x) {
+		float t = MathHelper.clamp_float((x - edge0) / (edge1 - edge0), 0.0F, 1.0F);
+		return t * t * (3.0F - 2.0F * t);
+	}
+
+	public static void startComet(long worldTime, int durationTicks, int dimension, float yaw, float pitch, float roll) {
+		cometActive = true;
+		cometStartWorldTime = worldTime;
+		cometDurationTicks = Math.max(1, durationTicks);
+		cometDimension = dimension;
+		cometYaw = yaw;
+		cometPitch = pitch;
+		cometRoll = roll;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {
 
 	}
+
 
 	protected void renderStation(float partialTicks, WorldClient world, Minecraft mc, OrbitalStation station, float solarAngle) {
 		Tessellator tessellator = Tessellator.instance;

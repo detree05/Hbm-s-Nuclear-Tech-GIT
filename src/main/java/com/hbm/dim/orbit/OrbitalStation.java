@@ -183,12 +183,21 @@ public class OrbitalStation {
 		int shipMass = 200_000; // Always static, to not punish building big cool stations
 		float totalThrust = getTotalThrust();
 		boolean isKerbolTarget = to == SolarSystem.kerbol;
+		boolean hasSingularityThruster = false;
+		if(isKerbolTarget) {
+			for(IPropulsion engine : engines) {
+				if(engine instanceof TileEntityMachineHTRS5) {
+					hasSingularityThruster = true;
+					break;
+				}
+			}
+		}
 
 		boolean canTravel = true;
 		errorsAt = new ArrayList<ThreeInts>();
 
 		for(IPropulsion engine : engines) {
-			if(isKerbolTarget && !(engine instanceof TileEntityMachineHTRS5)) {
+			if(isKerbolTarget && !hasSingularityThruster) {
 				TileEntity te = engine.getTileEntity();
 				canTravel = false;
 				errorsAt.add(new ThreeInts(te.xCoord, te.yCoord, te.zCoord));
