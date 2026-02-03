@@ -138,6 +138,10 @@ public class RocketStruct {
 		}
 
 		if(from != null && to != null) {
+			if(to.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
+				issues.add(EnumChatFormatting.RED + "Its gone...");
+				return issues;
+			}
 			if(from.getEnum() == SolarSystem.Body.KERBOL && to.getEnum() != SolarSystem.Body.KERBOL) {
 				issues.add(EnumChatFormatting.RED + "NO WAY HOME");
 			} else {

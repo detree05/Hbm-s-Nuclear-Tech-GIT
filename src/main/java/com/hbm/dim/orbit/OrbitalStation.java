@@ -179,6 +179,16 @@ public class OrbitalStation {
 
 		lastAttemptedTarget = to;
 
+		if(to != null && to.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
+			errorsAt = new ArrayList<ThreeInts>();
+			for(IPropulsion engine : engines) {
+				TileEntity te = engine.getTileEntity();
+				errorsAt.add(new ThreeInts(te.xCoord, te.yCoord, te.zCoord));
+			}
+			errorTimer = 100;
+			return false;
+		}
+
 		double deltaV = SolarSystem.getDeltaVBetween(from, to);
 		int shipMass = 200_000; // Always static, to not punish building big cool stations
 		float totalThrust = getTotalThrust();
@@ -419,6 +429,21 @@ public class OrbitalStation {
 
 		OrbitalStation station = getStationFromPosition(te.xCoord, te.zCoord);
 		return station != null && station.lastAttemptedTarget == SolarSystem.kerbol;
+	}
+
+	public static boolean isMinmusAttempt(TileEntity te) {
+		if(te == null) return false;
+		if(!SolarSystem.isMinmusDestroyed()) return false;
+		if(te.getWorldObj() != null && te.getWorldObj().isRemote) {
+			return OrbitalStation.clientStation != null
+				&& OrbitalStation.clientStation.lastAttemptedTarget != null
+				&& OrbitalStation.clientStation.lastAttemptedTarget.getEnum() == SolarSystem.Body.MINMUS;
+		}
+
+		OrbitalStation station = getStationFromPosition(te.xCoord, te.zCoord);
+		return station != null
+			&& station.lastAttemptedTarget != null
+			&& station.lastAttemptedTarget.getEnum() == SolarSystem.Body.MINMUS;
 	}
 
 	public void serialize(ByteBuf buf) {

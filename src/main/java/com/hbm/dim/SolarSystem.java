@@ -38,6 +38,29 @@ public class SolarSystem {
 	public static final double ORRERY_MAX_RADIUS = 20_000;
 	public static final double ORRERY_MIN_RADIUS = 2_000;
 
+	private static final float MUN_SHATTER_RING_TILT = 10.0F;
+	private static final float MUN_SHATTER_RING_SIZE = 3.0F;
+	private static final float MUN_SHATTER_RING_R = 171.0F / 255.0F;
+	private static final float MUN_SHATTER_RING_G = 235.0F / 255.0F;
+	private static final float MUN_SHATTER_RING_B = 209.0F / 255.0F;
+
+	public static void applyMinmusShatterState() {
+		CelestialBody minmus = CelestialBody.getBody("minmus");
+		if(minmus == null || !"minmus".equals(minmus.name)) return;
+		if(!minmus.hasTrait(CBT_Destroyed.class)) return;
+
+		CelestialBody mun = CelestialBody.getBody("mun");
+		if(mun == null || !"mun".equals(mun.name)) return;
+
+		if(!mun.hasRings || mun.ringTilt != MUN_SHATTER_RING_TILT || mun.ringSize != MUN_SHATTER_RING_SIZE) {
+			mun.withRings(MUN_SHATTER_RING_TILT, MUN_SHATTER_RING_SIZE, MUN_SHATTER_RING_R, MUN_SHATTER_RING_G, MUN_SHATTER_RING_B);
+		}
+	}
+
+	public static boolean isMinmusDestroyed() {
+		CelestialBody minmus = CelestialBody.getBody("minmus");
+		return minmus != null && "minmus".equals(minmus.name) && minmus.hasTrait(CBT_Destroyed.class);
+	}
 
 	public static void init() {
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones

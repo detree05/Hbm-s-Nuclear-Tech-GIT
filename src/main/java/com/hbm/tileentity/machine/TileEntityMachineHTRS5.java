@@ -426,6 +426,10 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 
 	@Override
 	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isMinmusAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "Its gone...");
+			return;
+		}
 		if(!hasCatalyst()) {
 			errors.add(EnumChatFormatting.RED + I18nUtil.resolveKey(getBlockType().getUnlocalizedName() + ".name") + " - Missing Miniature Black Hole");
 		}

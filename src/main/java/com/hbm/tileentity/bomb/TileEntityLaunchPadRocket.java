@@ -426,6 +426,11 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 	}
 
 	public static void findTravelIssues(List<String> issues, RocketStruct rocket, Target from, Target to) {
+		if(to.body != null && to.body.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
+			issues.add(EnumChatFormatting.RED + "Its gone...");
+			return;
+		}
+
 		if(to.inOrbit && !to.isValid && rocket.capsule.part != ModItems.rp_station_core_20) {
 			issues.add(EnumChatFormatting.RED + "Station not yet launched");
 		}

@@ -1046,6 +1046,8 @@ public class ModEventHandlerClient {
 		if(mc.theWorld == null || mc.thePlayer == null)
 			return;
 
+		SolarSystem.applyMinmusShatterState();
+
 		if(event.phase == Phase.START && event.side == Side.CLIENT) {
 
 			if(BlockAshes.ashes > 256) BlockAshes.ashes = 256;

@@ -809,9 +809,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize) {
 		Tessellator tessellator = Tessellator.instance;
 		float blendDarken = 0.1F;
-		final float redTint = 0.05F;
-		final float greenBlueScale = 0.97F;
-		final float redOverlayAlpha = 0.08F;
+		final float redTint = 0.0F;
+		final float greenBlueScale = 1.0F;
+		final float redOverlayAlpha = 0.0F;
 
 		double transitionMinSize = 0.1D;
 		double transitionMaxSize = 0.5D;
@@ -966,7 +966,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 					} else {
 
 						GL11.glDisable(GL11.GL_BLEND);
-						GL11.glColor4f(1.0F + redTint, 1.0F * greenBlueScale, 1.0F * greenBlueScale, visibility);
+						GL11.glColor4f(1.0F, 1.0F, 1.0F, visibility);
 						mc.renderEngine.bindTexture(metric.body.texture);
 
 						tessellator.startDrawingQuads();
@@ -1132,9 +1132,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 				if(renderPoint) {
 					float alpha = MathHelper.clamp_float((float)size * 100.0F, 0.0F, 1.0F);
 					alpha *= 1 - BobMathUtil.remap01_clamp((float)size, (float)transitionMinSize, (float)transitionMaxSize);
-					float r = MathHelper.clamp_float(metric.body.color[0] + redTint, 0.0F, 1.0F);
-					float g = MathHelper.clamp_float(metric.body.color[1] * greenBlueScale, 0.0F, 1.0F);
-					float b = MathHelper.clamp_float(metric.body.color[2] * greenBlueScale, 0.0F, 1.0F);
+					float r = MathHelper.clamp_float(metric.body.color[0], 0.0F, 1.0F);
+					float g = MathHelper.clamp_float(metric.body.color[1], 0.0F, 1.0F);
+					float b = MathHelper.clamp_float(metric.body.color[2], 0.0F, 1.0F);
 					GL11.glColor4f(r, g, b, alpha * visibility);
 					mc.renderEngine.bindTexture(planetTexture);
 

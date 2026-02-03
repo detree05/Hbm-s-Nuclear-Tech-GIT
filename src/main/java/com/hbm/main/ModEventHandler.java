@@ -27,6 +27,7 @@ import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialBodyWorldSavedData;
 import com.hbm.dim.CelestialTeleporter;
+import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
@@ -841,6 +842,9 @@ public class ModEventHandler {
 	public void worldTick(WorldTickEvent event) {
 
 		if(event.world != null && !event.world.isRemote) {
+			if(event.world.provider.dimensionId == 0) {
+				SolarSystem.applyMinmusShatterState();
+			}
 
 			if(reference != null) {
 				for(Object player : event.world.playerEntities) {

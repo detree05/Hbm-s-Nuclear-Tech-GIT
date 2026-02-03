@@ -256,6 +256,10 @@ public class TileEntityMachineHTRF4 extends TileEntityMachineBase implements IPr
 
 	@Override
 	public void addErrors(List<String> errors) {
+		if(OrbitalStation.isMinmusAttempt(this)) {
+			errors.add(EnumChatFormatting.RED + "Its gone...");
+			return;
+		}
 		if(OrbitalStation.isKerbolAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 			return;
