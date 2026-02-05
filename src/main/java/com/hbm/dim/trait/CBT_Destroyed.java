@@ -37,8 +37,9 @@ public class CBT_Destroyed extends CelestialBodyTrait {
 	public void update(boolean isRemote) {
 		if(isRemote) {
 			interp = Math.min(201.0f, interp + 0.0025f * (201.0f - interp) * 0.15f);
+			// Clamp at end so the shatter animation plays once and stays finished.
 			if (interp >= 200) {
-				interp = 0;
+				interp = 200;
 			}
 		}
 	}

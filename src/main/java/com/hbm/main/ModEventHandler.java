@@ -88,7 +88,6 @@ import com.hbm.lib.ModDamageSource;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
-import com.hbm.packet.toclient.CometEventPacket;
 import com.hbm.packet.toclient.GravityEventPacket;
 import com.hbm.packet.toclient.PermaSyncPacket;
 import com.hbm.packet.toclient.PlayerInformPacket;
@@ -833,10 +832,6 @@ public class ModEventHandler {
 
 	public static boolean didSit = false;
 	public static Field reference = null;
-	private static final int COMET_ROLL_INTERVAL_TICKS = 20 * 60;
-	private static final int COMET_CHANCE = 100;
-	private static final int COMET_DURATION_TICKS = 20 * 90;
-	private static final Map<Integer, Long> cometActiveUntil = new HashMap<>();
 
 	@SubscribeEvent
 	public void worldTick(WorldTickEvent event) {
@@ -907,17 +902,6 @@ public class ModEventHandler {
 
 				CelestialTeleporter.runQueuedTeleport();
 
-				if(event.world.provider instanceof WorldProviderEarth) {
-					long worldTime = event.world.getTotalWorldTime();
-					if(worldTime % COMET_ROLL_INTERVAL_TICKS == 0) {
-						int dim = event.world.provider.dimensionId;
-						Long activeUntil = cometActiveUntil.get(dim);
-						if(activeUntil == null) activeUntil = 0L;
-						if(worldTime >= activeUntil && event.world.rand.nextInt(COMET_CHANCE) == 0) {
-							triggerComet(event.world, COMET_DURATION_TICKS);
-						}
-					}
-				}
 
 				// Once per second, run atmospheric chemistry
 				if(event.world.getTotalWorldTime() % 20 == 0) {
@@ -1109,24 +1093,6 @@ public class ModEventHandler {
 		Blocks.flowing_water.setLightOpacity(waterOpacity);
 	}
 
-	public static void triggerComet(World world, int durationTicks) {
-		if(world == null || world.isRemote) return;
-		if(!(world.provider instanceof WorldProviderEarth)) return;
-
-		long worldTime = world.getTotalWorldTime();
-		int dim = world.provider.dimensionId;
-		cometActiveUntil.put(dim, worldTime + durationTicks);
-
-		float yaw = world.rand.nextFloat() * 360.0F;
-		float pitch = -55.0F + (world.rand.nextFloat() * 6.0F - 3.0F);
-		float roll = 0.0F;
-
-		for(Object obj : world.playerEntities) {
-			if(obj instanceof EntityPlayerMP) {
-				PacketDispatcher.wrapper.sendTo(new CometEventPacket(worldTime, durationTicks, dim, yaw, pitch, roll), (EntityPlayerMP) obj);
-			}
-		}
-	}
 
 	// Spawn a purely cosmetic meteor so Kerbol's sky keeps pulsing without leaving debris.
 	private void spawnKerbolMeteor(World world) {

@@ -2,7 +2,10 @@ package com.hbm.commands;
 
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
+import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.trait.CBT_Destroyed;
+import com.hbm.dim.trait.CelestialBodyTrait;
+import java.util.HashMap;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
@@ -30,7 +33,15 @@ public class CommandShatter extends CommandBase {
 		}
 
 		boolean alreadyDestroyed = minmus.hasTrait(CBT_Destroyed.class);
-		minmus.modifyTraits(new CBT_Destroyed());
+
+		SolarSystemWorldSavedData data = SolarSystemWorldSavedData.get();
+		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = data.getTraits(minmus.name);
+		if(traits == null) {
+			traits = new HashMap<>();
+			traits.putAll(minmus.getTraits());
+		}
+		traits.put(CBT_Destroyed.class, new CBT_Destroyed());
+		data.setTraits(minmus.name, traits.values().toArray(new CelestialBodyTrait[traits.size()]));
 		SolarSystem.applyMinmusShatterState();
 
 		if(alreadyDestroyed) {

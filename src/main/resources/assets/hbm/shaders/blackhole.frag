@@ -5,29 +5,6 @@ uniform sampler2D iChannel1;
 
 const float pi = 3.1415927;
 
-
-// Approximate blackbody color from temperature in Kelvin (1000K - 40000K)
-vec3 kelvinToRGB(float K){
-    K = clamp(K, 1000.0, 40000.0) / 100.0;
-
-    float r, g, b;
-
-    // Red
-    if (K <= 66.0) r = 1.0;
-    else r = clamp(1.292936186062745 * pow(K - 60.0, -0.1332047592), 0.0, 1.0);
-
-    // Green
-    if (K <= 66.0) g = clamp(0.3900815787690196 * log(K) - 0.6318414437886275, 0.0, 1.0);
-    else g = clamp(1.129890860895294 * pow(K - 60.0, -0.0755148492), 0.0, 1.0);
-
-    // Blue
-    if (K >= 66.0) b = 1.0;
-    else if (K <= 19.0) b = 0.0;
-    else b = clamp(0.5432067891101961 * log(K - 10.0) - 1.19625408914, 0.0, 1.0);
-
-    return vec3(r, g, b);
-}
-
 //From Dave (https://www.shadertoy.com/view/XlfGWN)
 float hash13(vec3 p){
 	p  = fract(p * vec3(.16532,.17369,.15787));
@@ -81,7 +58,7 @@ void main() {
 	vec3 rd = normalize(front * 1.5 + left * pp.x + up * pp.y);
 
 	vec3 bh = vec3(0.0, 0.0, 0.0);
-	float bhr = 0.3;
+	float bhr = 0.1;
 	float bhmass = 5.0;
 	bhmass *= 0.001; // premul G
 
@@ -91,6 +68,7 @@ void main() {
 	p += pv * hash13(rd + vec3(iTime)) * 0.02;
 
 	float dt = 0.02;
+	float gravity = 4.0;
 	vec3 col = vec3(0.0);
 	float alpha = 1.0;
 	float noncaptured = 1.0;
@@ -103,7 +81,7 @@ void main() {
 
 		vec3 bhv = bh - p;
 		float r = dot(bhv, bhv);
-		pv += normalize(bhv) * ((bhmass) / r);
+		pv += normalize(bhv) * ((bhmass * gravity) / r);
 
 		noncaptured = smoothstep(0.0, 0.01, sdSphere(p - bh, bhr));
 
@@ -112,29 +90,15 @@ void main() {
 		vec2 ra = vec2(dr, da * (0.01 + (dr - bhr) * 0.002) + 2.0 * pi + iTime * 0.002);
 		ra *= vec2(10.0, 20.0);
 
-		// Thin-disk style temperature falloff (T ~ r^(-3/4)) mapped to blackbody color.
-		// r0 matches the torus major radius used below (approx inner edge of the visible disk).
-		float r0 = 0.8;
-		float Tin = 24000.0;   // inner edge temperature (K)
-		float Tout = 3500.0;   // outer edge temperature (K)
-		float tempK = Tin * pow(max(dr, r0) / r0, -0.75);
-		tempK = clamp(tempK, Tout, Tin);
-		tempK *= 0.4; // a touch of extra blue
+		vec3 dcol = mix(c2, c1, pow(length(bhv) - bhr, 2.0)) * max(0.0, texture2D(iChannel1, ra * vec2(0.1, 0.5)).r + 0.15) * (4.0 / ((0.001 + (length(bhv) - bhr) * 50.0)));
 
-		vec3 bb = kelvinToRGB(tempK);
-		bb /= max(max(bb.r, bb.g), bb.b); // preserve hue under high intensity
-		float inner = smoothstep(0.4, 0.0, (length(bhv) - bhr) / bhr);
-		bb.b *= 1.0 + 0.4 * inner;
-		bb.r *= 1.0 - 0.15 * inner;
 
-		vec3 dcol = bb * max(0.0, texture2D(iChannel1, ra * vec2(0.1, 0.5)).r + 0.15) * (4.0 / ((0.001 + (length(bhv) - bhr) * 50.0)));
-
-		col += max(vec3(0.0),dcol * step(0.0,-sdTorus( (p * vec3(1.0,50.0,1.0)) - bh, vec2(0.65,0.9))) * noncaptured);
+		col += max(vec3(0.0),dcol * step(0.0,-sdTorus( (p * vec3(1.0,50.0,1.0)) - bh, vec2(0.8,0.99))) * noncaptured);
 
 		//col += dcol * (1.0/dr) * noncaptured * 0.01;
 
 		// glow
-		col += vec3(0.9, 0.95, 1.0) * (3.0/vec3(dot(bhv,bhv))) * 0.00035 * noncaptured * clamp(r, 0.8, 0.9);
+		col += vec3(1.0,0.9,0.7) * (3.0/vec3(dot(bhv,bhv))) * 0.0008 * noncaptured * clamp(r, 0.8, 0.9);
 		col -= 0.0004;
 
 		if(r < 0.5) {
@@ -144,9 +108,5 @@ void main() {
 		}
 	}
 
-	col = max(col, 0.0);
-	float exposure = 0.35;
-	col = vec3(1.0) - exp(-col * exposure);
-	col = pow(col, vec3(1.0/2.2));
-	gl_FragColor = vec4(col, alpha);
+	gl_FragColor = vec4(smoothstep(0.1, 0.6, col.r), smoothstep(0.5, 0.9, col.g), smoothstep(0.1, 0.9, col.b),alpha);
 }
