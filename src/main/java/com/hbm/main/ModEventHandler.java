@@ -89,6 +89,8 @@ import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
 import com.hbm.packet.toclient.GravityEventPacket;
+import com.hbm.packet.toclient.SupernovaeSkyPacket;
+import com.hbm.saveddata.NovaeSavedData;
 import com.hbm.packet.toclient.PermaSyncPacket;
 import com.hbm.packet.toclient.PlayerInformPacket;
 import com.hbm.packet.toclient.SerializableRecipePacket;
@@ -269,6 +271,14 @@ public class ModEventHandler {
 					PacketDispatcher.wrapper.sendTo(new SerializableRecipePacket(true), (EntityPlayerMP) event.player);
 				}
 			}
+
+			NovaeSavedData novae = NovaeSavedData.forWorld(event.player.worldObj);
+			if(novae.active && event.player instanceof EntityPlayerMP) {
+				PacketDispatcher.wrapper.sendTo(
+					new SupernovaeSkyPacket(novae.startWorldTime, event.player.worldObj.provider.dimensionId, novae.yaw, novae.pitch, novae.roll, false),
+					(EntityPlayerMP) event.player
+				);
+			}
 		}
 	}
 
@@ -322,6 +332,16 @@ public class ModEventHandler {
 			WorldProviderCelestial provider = (WorldProviderCelestial) player.worldObj.provider;
 			CelestialBodyWorldSavedData.get(provider); // force-load per-dimension gravity state
 			PacketDispatcher.wrapper.sendTo(new GravityEventPacket(provider.getGravityMultiplier()), (EntityPlayerMP) player);
+		}
+
+		if(!player.worldObj.isRemote && player instanceof EntityPlayerMP) {
+			NovaeSavedData novae = NovaeSavedData.forWorld(player.worldObj);
+			if(novae.active) {
+				PacketDispatcher.wrapper.sendTo(
+					new SupernovaeSkyPacket(novae.startWorldTime, player.worldObj.provider.dimensionId, novae.yaw, novae.pitch, novae.roll, false),
+					(EntityPlayerMP) player
+				);
+			}
 		}
 	}
 
@@ -688,6 +708,17 @@ public class ModEventHandler {
 
 		if(event.entityLiving instanceof EntityCreeper && event.entityLiving.getEntityData().getBoolean("hfr_defused")) {
 			ItemModDefuser.defuse((EntityCreeper) event.entityLiving, null, false);
+		}
+
+		if(!event.entity.worldObj.isRemote && event.entity instanceof EntityPlayer) {
+			EntityPlayer player = (EntityPlayer) event.entity;
+			if(player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+				if(player.capabilities.isFlying || player.capabilities.allowFlying) {
+					player.capabilities.isFlying = false;
+					player.capabilities.allowFlying = false;
+					player.sendPlayerAbilities();
+				}
+			}
 		}
 
 		if(!event.entity.worldObj.isRemote && event.entityLiving.isPotionActive(HbmPotion.slippery.id)) {

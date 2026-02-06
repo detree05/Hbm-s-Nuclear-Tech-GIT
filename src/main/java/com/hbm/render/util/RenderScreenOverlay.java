@@ -23,6 +23,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.entity.RenderItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.client.GuiIngameForge;
@@ -439,6 +440,10 @@ public class RenderScreenOverlay {
 	}
 
 	public static void renderFlashbangOverlay(ScaledResolution resolution) {
+		renderFlashbangOverlay(resolution, 1.0F);
+	}
+
+	public static void renderFlashbangOverlay(ScaledResolution resolution, float alpha) {
 		ResourceLocation tex = new ResourceLocation (RefStrings.MODID + ":textures/misc/overlay_flashbang.png");
 
 		Minecraft.getMinecraft().getTextureManager().bindTexture(tex);
@@ -447,7 +452,7 @@ public class RenderScreenOverlay {
 		GL11.glDisable(GL11.GL_DEPTH_TEST);
 		GL11.glDepthMask(false);
 		OpenGlHelper.glBlendFunc(770, 771, 1, 0);
-		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, MathHelper.clamp_float(alpha, 0.0F, 1.0F));
 		GL11.glDisable(GL11.GL_ALPHA_TEST);
 
 		Tessellator tessellator = Tessellator.instance;

@@ -154,6 +154,7 @@ public class ModEventHandlerClient {
 	private static long lastKerbolHeartbeatBeat = -1L;
 	private static final double KERBOL_HEARTBEAT_PERIOD_TICKS = 200.0D;
 
+
 	@SubscribeEvent
 	public void onOverlayRender(RenderGameOverlayEvent.Pre event) {
 
@@ -1476,6 +1477,13 @@ public class ModEventHandlerClient {
 	@SubscribeEvent
 	public void onPlayerTick(TickEvent.PlayerTickEvent event) {
 		EntityPlayer player = event.player;
+
+		if(player.worldObj != null && player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+			if(player.capabilities.isFlying || player.capabilities.allowFlying) {
+				player.capabilities.isFlying = false;
+				player.capabilities.allowFlying = false;
+			}
+		}
 
 		int x = MathHelper.floor_double(player.posX);
 		int y = MathHelper.floor_double(player.posY);

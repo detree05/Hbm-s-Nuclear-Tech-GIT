@@ -6290,6 +6290,7 @@ tile.iter.name=Fusion Reactor
 tile.ike_regolith.name=Ike Regolith
 tile.void_regolith.name=Void Regolith
 tile.ike_stone.name=Ike Stone
+tile.void_stone.name=Void Stone
 tile.ladder_aluminium.name=Aluminium Ladder
 tile.ladder_cobalt.name=Cobalt Ladder
 tile.ladder_copper.name=Copper Ladder

@@ -10,6 +10,7 @@ import com.hbm.config.ServerConfig;
 import com.hbm.config.WorldConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.WorldProviderCelestial;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.entity.missile.EntityRideableRocket;
@@ -321,6 +322,10 @@ public class EntityEffectHandler {
 
 			if(world.provider instanceof WorldProviderCelestial || world.provider instanceof WorldProviderOrbit) {
 				if(world.getSavedLightValue(EnumSkyBlock.Sky, ix, iy, iz) - world.skylightSubtracted >= 14) {
+					if(world.provider instanceof WorldProviderKerbol) {
+						// Kerbol should not contribute ambient celestial radiation.
+						rad = Math.max(rad, 0);
+					} else {
 					Target target = CelestialBody.getTarget(world, ix, iz);
 					CBT_Atmosphere atmosphere = !target.inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;
 
@@ -333,6 +338,7 @@ public class EntityEffectHandler {
 					targetRad *= RadiationConfig.celestialRadMultiplier;
 
 					if(targetRad > rad) rad = targetRad;
+					}
 				}
 			}
 

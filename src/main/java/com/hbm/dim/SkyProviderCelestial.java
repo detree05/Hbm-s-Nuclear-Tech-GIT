@@ -50,6 +50,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	private static final ResourceLocation planetTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/planet.png");
 	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
+	private static final ResourceLocation supernovaeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/supernovae.png");
 	private static final ResourceLocation nightTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
 	private static final ResourceLocation lodeStar = new ResourceLocation(RefStrings.MODID, "textures/misc/star_lode.png");
@@ -57,7 +58,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	private static final ResourceLocation impactTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/impact.png");
 	private static final ResourceLocation shockwaveTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/shockwave.png");
-	private static final ResourceLocation shockFlareTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/flare.png");
+	protected static final ResourceLocation shockFlareTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/flare.png");
 
 	private static final ResourceLocation ringTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/rings.png");
 	private static final ResourceLocation destroyedBody = new ResourceLocation(RefStrings.MODID, "textures/misc/space/destroyed.png");
@@ -65,19 +66,17 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation thatmoShield = new ResourceLocation(RefStrings.MODID, "textures/particle/cens.png");
 
 	private static final Shader fleshShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/fle.frag"));
-	private static final Shader cometShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/comet.frag"));
 	private static final ResourceLocation noise = new ResourceLocation(RefStrings.MODID, "shaders/iChannel1.png");
 
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
-
-	private static boolean cometActive = false;
-	private static long cometStartWorldTime = 0L;
-	private static int cometDurationTicks = 0;
-	private static int cometDimension = Integer.MIN_VALUE;
-	private static float cometYaw = 0.0F;
-	private static float cometPitch = -70.0F;
-	private static float cometRoll = 0.0F;
+	
+	private static boolean novaeActive = false;
+	private static long novaeStartWorldTime = 0L;
+	private static int novaeDimension = Integer.MIN_VALUE;
+	private static float novaeYaw = 0.0F;
+	private static float novaePitch = 0.0F;
+	private static float novaeRoll = 0.0F;
 
 	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
 	private static final Map<String, Float> ringFade = new HashMap<>();
@@ -226,6 +225,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		renderStars(partialTicks, world, mc, starBrightness, solarAngle + siderealAngle, body.axialTilt);
 
+		// Render novae before sun/celestials so it appears behind them.
+		renderSpecialEffects(partialTicks, world, mc);
 
 		GL11.glPushMatrix();
 		{
@@ -333,8 +334,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 			GL11.glPopMatrix();
 		}
-
-		renderSpecialEffects(partialTicks, world, mc);
 
 		CBT_COMPROMISED compromised = body.getTrait(CBT_COMPROMISED.class);
 		if(compromised != null) {
@@ -1277,66 +1276,139 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	protected void renderSpecialEffects(float partialTicks, WorldClient world, Minecraft mc) {
-		if(!cometActive) return;
-		if(world.provider == null || world.provider.dimensionId != cometDimension) return;
+		if(!novaeActive) return;
+		if(world.provider == null || world.provider.dimensionId != novaeDimension) return;
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return;
 
-		Tessellator tessellator = Tessellator.instance;
-		float starBrightness = world.getStarBrightness(partialTicks);
-		if(starBrightness <= 0.01F) return;
-
-		float age = (world.getTotalWorldTime() - cometStartWorldTime) + partialTicks;
+		float age = (world.getTotalWorldTime() - novaeStartWorldTime) + partialTicks;
 		if(age < 0.0F) return;
-		if(age > cometDurationTicks) {
-			cometActive = false;
-			return;
+
+		CelestialBody body = CelestialBody.getBody(world);
+		float axialTilt = body != null ? body.axialTilt : 0.0F;
+		float siderealAngle = body != null ? (float)SolarSystem.calculateSiderealAngle(world, partialTicks, body) : 0.0F;
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			double t = world.getTotalWorldTime() + partialTicks;
+			siderealAngle += (float)(Math.sin(t / 6000.0D * Math.PI * 2.0D) * 6.0D);
 		}
 
-		float progress = age / cometDurationTicks;
-		float fadeInTicks = 100.0F;
-		float fadeOutTicks = 100.0F;
-		float fadeIn = smoothstep(0.0F, fadeInTicks, age);
-		float fadeOut = smoothstep(0.0F, fadeOutTicks, (cometDurationTicks - age));
-		float alpha = fadeIn * fadeOut * starBrightness;
+		float spikeGrowTicks = 120.0F;
+		float growProgress = MathHelper.clamp_float(age / spikeGrowTicks, 0.0F, 1.0F);
+		float grow = smoothstep(0.0F, 1.0F, growProgress);
+		float spikeAlpha = 1.0F - grow * 0.25F;
 
-		// Slow travel across the sky, aligned to comet direction
-		float travel = (progress * 2.0F) - 1.0F; // -1..1
-		float travelRange = 120.0F;
-		float dirX = 1.0F;
-		float dirZ = 0.12F;
-		float invLen = 1.0F / MathHelper.sqrt_float(dirX * dirX + dirZ * dirZ);
-		dirX *= invLen;
-		dirZ *= invLen;
+		float minSpikeSize = 0.5F;
+		float maxSpikeSize = 20.0F;
+		double spikeSize = minSpikeSize + (maxSpikeSize - minSpikeSize) * grow;
+		double skyHeight = 120.0D;
+
+		Tessellator tessellator = Tessellator.instance;
 
 		GL11.glPushMatrix();
 		{
 			GL11.glDisable(GL11.GL_CULL_FACE);
 			GL11.glDisable(GL11.GL_ALPHA_TEST);
 			GL11.glEnable(GL11.GL_BLEND);
-			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
 
-			// Position the comet high in the sky and orient it
-			GL11.glRotatef(cometPitch, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(cometYaw, 0.0F, 1.0F, 0.0F);
-			GL11.glRotatef(cometRoll, 0.0F, 0.0F, 1.0F);
+			// Match starfield rotation so the event moves with the night sky.
+			GL11.glRotatef(axialTilt, 1.0F, 0.0F, 0.0F);
+			GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+			GL11.glRotatef(siderealAngle * 360.0F, 1.0F, 0.0F, 0.0F);
+			GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
 
-			GL11.glTranslatef(dirX * travel * travelRange, 0.0F, dirZ * travel * travelRange);
+			// Orient the spike to a random sky direction.
+			GL11.glRotatef(novaePitch, 1.0F, 0.0F, 0.0F);
+			GL11.glRotatef(novaeYaw, 0.0F, 1.0F, 0.0F);
+			GL11.glRotatef(novaeRoll, 0.0F, 0.0F, 1.0F);
 
-			GL11.glColor4f(1.0F, 1.0F, 1.0F, alpha);
+			GL11.glColor4f(1.0F, 1.0F, 1.0F, spikeAlpha);
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
+			mc.renderEngine.bindTexture(supernovaeTexture);
 
-			cometShader.use();
-			cometShader.setUniform1f("iTime", age * 0.02F);
-			cometShader.setUniform1f("uAlpha", alpha);
-
-			double size = 6.0D;
-			double skyHeight = 150.0D;
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-size, skyHeight, -size, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(size, skyHeight, -size, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(size, skyHeight, size, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-size, skyHeight, size, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-spikeSize, skyHeight, -spikeSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(spikeSize, skyHeight, -spikeSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(spikeSize, skyHeight, spikeSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-spikeSize, skyHeight, spikeSize, 0.0D, 1.0D);
 			tessellator.draw();
 
-			cometShader.stop();
+			// Fast, oversized shockwave when the spike appears.
+			float waveDurationTicks = 360.0F;
+			float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
+			if(waveProgress < 1.0F) {
+				float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
+				double waveSize = maxSpikeSize * (1.0D + waveProgress * 6.0D);
+
+				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha);
+				mc.renderEngine.bindTexture(shockwaveTexture);
+				tessellator.startDrawingQuads();
+				tessellator.addVertexWithUV(-waveSize, skyHeight, -waveSize, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(waveSize, skyHeight, -waveSize, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(waveSize, skyHeight, waveSize, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-waveSize, skyHeight, waveSize, 0.0D, 1.0D);
+				tessellator.draw();
+
+				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha * 1.25F);
+				mc.renderEngine.bindTexture(shockFlareTexture);
+				double flareSize = maxSpikeSize * (2.0D + waveProgress * 4.0D);
+				tessellator.startDrawingQuads();
+				tessellator.addVertexWithUV(-flareSize, skyHeight, -flareSize, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(flareSize, skyHeight, -flareSize, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(flareSize, skyHeight, flareSize, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-flareSize, skyHeight, flareSize, 0.0D, 1.0D);
+				tessellator.draw();
+			}
+
+			// Tom-style blast wave cylinder emerging from the center.
+			float tomWaveDuration = 600.0F;
+			if(age <= tomWaveDuration) {
+				float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
+				double tomScale = 4.0D + (tomProgress * tomProgress) * 220.0D;
+
+				int segments = 16;
+				float angle = (float) Math.toRadians(360D / segments);
+				int height = 40;
+				int depth = 40;
+
+				mc.renderEngine.bindTexture(ResourceManager.tomblast);
+				GL11.glMatrixMode(GL11.GL_TEXTURE);
+				GL11.glLoadIdentity();
+				GL11.glTranslatef(0.0F, -(world.getTotalWorldTime() + partialTicks) * 0.01F, 0.0F);
+				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+
+				tessellator.startDrawingQuads();
+				for(int i = 0; i < segments; i++) {
+					for(int j = 0; j < 5; j++) {
+						double mod = 1 - j * 0.025;
+						double h = height + j * 10;
+						double off = 1D / j;
+
+						Vec3 vec = Vec3.createVectorHelper(tomScale, 0, 0);
+						vec.rotateAroundY(angle * i);
+						double x0 = vec.xCoord * mod;
+						double z0 = vec.zCoord * mod;
+
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
+						tessellator.addVertexWithUV(x0, h, z0, 0, 1 + off);
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
+						tessellator.addVertexWithUV(x0, -depth, z0, 0, 0 + off);
+
+						vec.rotateAroundY(angle);
+						x0 = vec.xCoord * mod;
+						z0 = vec.zCoord * mod;
+
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
+						tessellator.addVertexWithUV(x0, -depth, z0, 1, 0 + off);
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
+						tessellator.addVertexWithUV(x0, h, z0, 1, 1 + off);
+					}
+				}
+				tessellator.draw();
+
+				GL11.glMatrixMode(GL11.GL_TEXTURE);
+				GL11.glLoadIdentity();
+				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+			}
 
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
 			GL11.glEnable(GL11.GL_CULL_FACE);
@@ -1344,19 +1416,20 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopMatrix();
 	}
 
+
+
 	private static float smoothstep(float edge0, float edge1, float x) {
 		float t = MathHelper.clamp_float((x - edge0) / (edge1 - edge0), 0.0F, 1.0F);
 		return t * t * (3.0F - 2.0F * t);
 	}
 
-	public static void startComet(long worldTime, int durationTicks, int dimension, float yaw, float pitch, float roll) {
-		cometActive = true;
-		cometStartWorldTime = worldTime;
-		cometDurationTicks = Math.max(1, durationTicks);
-		cometDimension = dimension;
-		cometYaw = yaw;
-		cometPitch = pitch;
-		cometRoll = roll;
+	public static void startNovaeEffect(long worldTime, int dimension, float yaw, float pitch, float roll) {
+		novaeActive = true;
+		novaeStartWorldTime = worldTime;
+		novaeDimension = dimension;
+		novaeYaw = yaw;
+		novaePitch = pitch;
+		novaeRoll = roll;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

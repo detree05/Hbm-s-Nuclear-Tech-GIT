@@ -19,6 +19,7 @@
 	"misc.htrs5stop": {"category": "block", "sounds": [{"name": "misc/htrs5stop", "stream": false}]},
 	"misc.htrs5loop": {"category": "block", "sounds": [{"name": "misc/htrs5loop", "stream": false}]},
 	"misc.fireflash": {"category": "player", "sounds": [{"name": "misc/flashfire", "stream": false}]},
+	"misc.a7": {"category": "player", "sounds": [{"name": "misc/a7", "stream": false}]},
 	"misc.stationhum": {"category": "ambient", "sounds": [{"name": "misc/stationhum", "stream": false}]},
 	"ambient.kerbol_wind": {"category": "ambient", "sounds": [{"name": "ambient/kerbol_wind", "stream": false}]},
 	"misc.spinshot": {"category": "block", "sounds": ["misc/spinshot1", "misc/spinshot2"]},

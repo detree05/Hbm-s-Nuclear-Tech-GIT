@@ -102,7 +102,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 					double spikeSize = 10.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
-					GL11.glColor4f(0.8F, 0.2F, 1.0F, 0.85F);
+					GL11.glColor4f(0.55F, 0.12F, 1.1F, 0.85F);
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, -spikeSize, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(spikeSize, 99.9D, -spikeSize, 1.0D, 0.0D);
@@ -111,7 +111,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.draw();
 
 					mc.renderEngine.bindTexture(NEIDON_TEXTURE);
-					GL11.glColor4f(2.6F, 0.4F, 3.2F, 1.0F);
+					GL11.glColor4f(1.9F, 0.3F, 3.8F, 1.0F);
 					double size = 0.6666667D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);

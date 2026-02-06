@@ -73,6 +73,8 @@ public class PacketDispatcher {
 		wrapper.registerMessage(HeldItemNBTPacket.Handler.class, HeldItemNBTPacket.class, i++, Side.CLIENT);
 		//Sync celestial gravity events
 		wrapper.registerMessage(GravityEventPacket.Handler.class, GravityEventPacket.class, i++, Side.CLIENT);
+		//Novae sky + overlay event
+		wrapper.registerMessage(SupernovaeSkyPacket.Handler.class, SupernovaeSkyPacket.class, i++, Side.CLIENT);
 
 		// Sends info about currently linked transporters to player
 		wrapper.registerMessage(TransporterLinkerPacket.Handler.class, TransporterLinkerPacket.class, i++, Side.CLIENT);

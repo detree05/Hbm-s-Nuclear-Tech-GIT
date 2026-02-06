@@ -10,7 +10,6 @@ import com.hbm.config.WorldConfig;
 import com.hbm.util.Compat;
 import com.hbm.world.WorldUtil;
 import com.hbm.lib.RefStrings;
-import com.hbm.world.gen.terrain.MapGenCrater;
 import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
 
 import cpw.mods.fml.common.Loader;
@@ -34,10 +33,8 @@ import net.minecraftforge.oredict.OreDictionary;
 public class ChunkProviderKerbol implements IChunkProvider {
 	private final World worldObj;
 	private final NoiseGeneratorPerlin terrainNoise;
-	private final MapGenCrater sellafieldCraters;
-
 	private static final int BASE_HEIGHT = 64;
-	private static final int[] FIGURE_BLOCK_IDS = { 1095, 1096, 1098, 1099 };
+	private static final int[] FIGURE_BLOCK_IDS = { 1096, 1098, 1099 };
 	private static final int FIGURE_SPAWN_CHANCE = 30;
 	private static final int FIGURE_SKY_CHANCE = 4;
 	private static final int OCTAHEDRON_RADIUS_MIN = 4;
@@ -51,12 +48,10 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final int TESSERACT_SIZE_MAX = 10;
 	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
 	private static final int LINGERING_DIGAMMA_ID = 1744;
-	private static final int SELLAFIELD_CRATER_MIN = 8;
-	private static final int SELLAFIELD_CRATER_MAX = 16;
 	private static final int SKELETON_HOLDER_CHANCE = 1000;
 	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
 	private static final int FLESH_LEVEL = 50;
-	private static final int FLESH_MASS_BLOCK_ID = 1220;
+	private static final int FLESH_MASS_BLOCK_ID = 1222;
 	private static final int BLOOD_SEA_LEVEL = 62;
 	private static final int BLOOD_CAVITY_SCALE = 4;
 	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
@@ -65,11 +60,6 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	public ChunkProviderKerbol(World world) {
 		this.worldObj = world;
 		this.terrainNoise = new NoiseGeneratorPerlin(new Random(world.getSeed() ^ 0x5deece66dL), 4);
-		this.sellafieldCraters = new MapGenCrater(Math.max(1, WorldConfig.radfreq / 10));
-		this.sellafieldCraters.setSize(SELLAFIELD_CRATER_MIN, SELLAFIELD_CRATER_MAX);
-		this.sellafieldCraters.regolith = ModBlocks.sellafield;
-		this.sellafieldCraters.rock = ModBlocks.sellafield_slaked;
-		this.sellafieldCraters.targetBiome = BiomeGenKerbol.digammaWastelands;
 	}
 
 	@Override public boolean chunkExists(int x, int z) { return true; }
@@ -94,7 +84,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 				Block fleshMass = getFleshMassBlock();
 				Block blood = ModBlocks.blood_block;
 				Block voidRegolith = ModBlocks.void_regolith;
-				Block ashLayer = ModBlocks.ash_digamma;
+				Block voidStone = ModBlocks.void_stone;
 
 				for(int y = 0; y <= height; y++) {
 					int index = (lx << 12) | (lz << 8) | y;
@@ -103,9 +93,9 @@ public class ChunkProviderKerbol implements IChunkProvider {
 					} else {
 						int depth = height - y;
 						if(depth < 4) {
-							blocks[index] = voidRegolith != null ? voidRegolith : (ashLayer != null ? ashLayer : fleshMass);
+							blocks[index] = voidRegolith != null ? voidRegolith : (voidStone != null ? voidStone : fleshMass);
 						} else if(depth < 24) {
-							blocks[index] = ashLayer != null ? ashLayer : fleshMass;
+							blocks[index] = voidStone != null ? voidStone : fleshMass;
 						} else {
 							if(blood != null && isBloodCavity(wx, y, wz)) {
 								blocks[index] = blood;
@@ -134,8 +124,6 @@ public class ChunkProviderKerbol implements IChunkProvider {
 				}
 			}
 		}
-
-		sellafieldCraters.func_151539_a(this, worldObj, x, z, blocks);
 
 		Chunk chunk = new Chunk(worldObj, blocks, meta, x, z);
 
@@ -205,7 +193,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private Block getFleshMassBlock() {
 		Block block = Block.getBlockById(FLESH_MASS_BLOCK_ID);
 		if(block == null || block instanceof MeltedFlesh) {
-			block = ModBlocks.tumor != null ? ModBlocks.tumor : ModBlocks.ash_digamma;
+			block = ModBlocks.tumor != null ? ModBlocks.tumor : ModBlocks.void_stone;
 		}
 		return block;
 	}
@@ -592,9 +580,9 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	}
 
 	private Block pickFigureBlock(int x, int y, int z) {
-		int idx = Math.abs(x + y * 3 + z * 5) & 3;
+		int idx = Math.abs(x + y * 3 + z * 5) % FIGURE_BLOCK_IDS.length;
 		Block block = Block.getBlockById(FIGURE_BLOCK_IDS[idx]);
-		return block == null ? ModBlocks.ash_digamma : block;
+		return block == null ? ModBlocks.void_stone : block;
 	}
 
 	private void setFigureBlock(int x, int y, int z, Block block) {
