@@ -1353,6 +1353,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		Tessellator tessellator = Tessellator.instance;
 
+		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
 		GL11.glPushMatrix();
 		{
 			GL11.glDisable(GL11.GL_CULL_FACE);
@@ -1464,6 +1465,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glEnable(GL11.GL_CULL_FACE);
 		}
 		GL11.glPopMatrix();
+		GL11.glPopAttrib();
 	}
 
 
