@@ -2,11 +2,10 @@ package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.config.SpaceConfig;
-import com.hbm.dim.CelestialBody;
-import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.fluid.trait.FT_Gaseous;
 import com.hbm.main.MainRegistry;
 import com.hbm.tileentity.IDysonConverter;
 import com.hbm.tileentity.TileEntityMachineBase;
@@ -103,20 +102,16 @@ public class TileEntityDysonConverterAnatmogenesis extends TileEntityMachineBase
 			return true;
 		}
 
-		double amount = (double) energy / (double) HE_TO_MB;
-		if(amount <= 0) return true;
+		long volume = energy / HE_TO_MB;
+		if(volume <= 0) return true;
 
-		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
-		if(atmosphere == null) atmosphere = new CBT_Atmosphere();
+		gasProduced += volume;
 
 		if(isEmitting) {
-			atmosphere.add(fluid, amount);
+			FT_Gaseous.release(worldObj, fluid, volume);
 		} else {
-			atmosphere.reduce(amount);
+			FT_Gaseous.capture(worldObj, fluid, volume);
 		}
-
-		CelestialBody.modifyTraits(worldObj, atmosphere);
-		gasProduced += Math.max(1L, (long)(amount * 1000));
 
 		return true;
 

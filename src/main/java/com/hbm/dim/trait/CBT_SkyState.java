@@ -11,7 +11,8 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public enum SkyState {
 		SUN,
 		BLACKHOLE,
-		NOTHING
+		NOTHING,
+		DFC
 	}
 
 	private SkyState state = SkyState.SUN;

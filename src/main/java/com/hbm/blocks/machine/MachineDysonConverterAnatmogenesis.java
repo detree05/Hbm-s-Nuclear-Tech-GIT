@@ -6,6 +6,8 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.config.SpaceConfig;
+import com.hbm.dim.CelestialBody;
+import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.trait.FT_Gaseous;
@@ -13,6 +15,7 @@ import com.hbm.inventory.fluid.trait.FluidTraitSimple.FT_Gaseous_ART;
 import com.hbm.items.machine.IItemFluidIdentifier;
 import com.hbm.tileentity.TileEntityProxyCombo;
 import com.hbm.tileentity.machine.TileEntityDysonConverterAnatmogenesis;
+import com.hbm.util.AstronomyUtil;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.i18n.I18nUtil;
 
@@ -76,8 +79,16 @@ public class MachineDysonConverterAnatmogenesis extends BlockDummyable implement
 			text.add(color + "! ! ! CAN'T CREATE ATMOSPHERE");
 			text.add(color + "IN BLACK HOLE CONDITIONS ! ! !");
 		} else {
-			text.add("Fluid: " + converter.fluid.getLocalizedName());
-			text.add("Mode: " + (converter.isEmitting ? "Emitting" : "Removing"));
+			CBT_Atmosphere atmosphere = CelestialBody.getTrait(world, CBT_Atmosphere.class);
+			double pressure = atmosphere != null ? atmosphere.getPressure(converter.fluid) : 0;
+			if(pressure < 0.0001) pressure = 0;
+			pressure = Math.round(pressure * 1_000.0) / 1_000.0;
+
+			double rateAtmPerHour = ((double) converter.gasProduced * 20 * 60 * 60) / AstronomyUtil.MB_PER_ATM;
+
+			text.add("Current rate: " + rateAtmPerHour + "atm per hour");
+			text.add("Current gas: " + converter.fluid.getLocalizedName() + " - " + pressure);
+			text.add("Current mode: " + (converter.isEmitting ? "EMITTING" : "CAPTURING"));
 		}
 
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);

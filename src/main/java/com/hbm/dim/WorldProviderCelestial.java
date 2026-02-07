@@ -9,6 +9,7 @@ import com.hbm.config.SpaceConfig;
 import com.hbm.dim.SolarSystem.AstroMetric;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.handler.ImpactWorldHandler;
@@ -572,7 +573,11 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
-		if(worldObj.provider.dimensionId != SpaceConfig.kerbolDimension)
+		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+		if(skyState.isBlackhole() || skyState.isNothing())
+			return 0;
+
+		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class))
 			return 0;
 
 		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);

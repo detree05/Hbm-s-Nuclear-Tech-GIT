@@ -1,6 +1,7 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.blocks.ModBlocks;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -76,6 +77,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 			boolean isBlackhole = skyState.isBlackhole();
 			boolean isNothing = skyState.isNothing();
+			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.DFC;
 
 			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
 				skyState.setState(CBT_SkyState.SkyState.NOTHING);
@@ -84,18 +86,10 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 				isNothing = true;
 			}
 
-			if(isNothing) {
-				isOperating = false;
-				isSpinningDown = false;
-				operatingTime = 0;
-				networkPackNT(250);
-				return;
-			}
-
 			for(DirPos pos : getConPos()) trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 			for(DirPos pos : getInvPos()) tryLoad(pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 
-			if(isBlackhole) {
+			if(isBlackhole || isNothing || isDfc) {
 				swarmId = 0;
 				swarmCount = 0;
 			} else {
@@ -104,8 +98,11 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			}
 
 			ItemStack payload = slots[0];
-			boolean hasPayload = payload != null && payload.getItem() == (isBlackhole ? ModItems.pellet_antimatter : ModItems.swarm_member);
-			boolean canLaunch = isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (swarmId > 0);
+			Item payloadItem = payload != null ? payload.getItem() : null;
+			boolean hasPayload = payloadItem != null && payloadItem == getPayloadItem();
+			boolean canLaunch = isNothing
+				? (payloadItem == getPayloadItem())
+				: (isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (swarmId > 0));
 			isOperating = !isSpinningDown && power >= getPowerPerTick() && hasPayload && canLaunch;
 
 			if(isSpinningDown) {
@@ -126,7 +123,12 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 				if(operatingTime > getSpinUpTime()) {
 					int toLaunch = Math.min(payload.stackSize, MEMBERS_PER_LAUNCH);
-					if(isBlackhole) {
+					if(isNothing) {
+						toLaunch = 1;
+						skyState.setState(CBT_SkyState.SkyState.DFC);
+						skyState.setBlackholeClustersSent(0);
+						CelestialBody.getStar(worldObj).modifyTraits(skyState);
+					} else if(isBlackhole) {
 						int remaining = BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent();
 						toLaunch = Math.min(toLaunch, remaining);
 						if(toLaunch > 0) {
@@ -248,7 +250,10 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	}
 
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
-		if(slots[0] != null && slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
+		if(slots[0] != null) {
+			if(slots[0].getItem() == Item.getItemFromBlock(ModBlocks.dfc_core)) return;
+			if(slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
+		}
 
 		TileEntity te = worldObj.getTileEntity(x, y, z);
 		if(!(te instanceof IInventory)) return;
@@ -316,7 +321,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	@Override
 	public int getInventoryStackLimit() {
-		return 4;
+		return isNothingSky() || isDfcSky() ? 1 : 4;
 	}
 
 	@Override
@@ -338,8 +343,18 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 		return worldObj != null && CBT_SkyState.isBlackhole(worldObj);
 	}
 
+	private boolean isNothingSky() {
+		return worldObj != null && CBT_SkyState.isNothing(worldObj);
+	}
+
+	private boolean isDfcSky() {
+		return worldObj != null && CBT_SkyState.get(worldObj).getState() == CBT_SkyState.SkyState.DFC;
+	}
+
 	private Item getPayloadItem() {
-		return isBlackholeSky() ? ModItems.pellet_antimatter : ModItems.swarm_member;
+		if(isBlackholeSky()) return ModItems.pellet_antimatter;
+		if(isNothingSky()) return Item.getItemFromBlock(ModBlocks.dfc_core);
+		return ModItems.swarm_member;
 	}
 
 	AxisAlignedBB bb = null;
