@@ -1,6 +1,7 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.config.SpaceConfig;
 import com.hbm.tileentity.IDysonConverter;
 import com.hbm.tileentity.TileEntityMachineBase;
 
@@ -28,13 +29,17 @@ public class TileEntityDysonConverterTU extends TileEntityMachineBase implements
     public void updateEntity() { }
 
     @Override
-    public boolean provideEnergy(int x, int y, int z, long energy) {
+	public boolean provideEnergy(int x, int y, int z, long energy) {
 		ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset);
 		int rx = xCoord + dir.offsetX * 6;
 		int ry = yCoord + 1;
 		int rz = zCoord + dir.offsetZ * 6;
 
 		if(x != rx || y != ry || z != rz) return false;
+
+		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			return true;
+		}
 
 		if(energy > Integer.MAX_VALUE) {
 			heatEnergy = Integer.MAX_VALUE;

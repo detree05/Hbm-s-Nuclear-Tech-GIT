@@ -3,6 +3,7 @@ package com.hbm.tileentity.machine;
 import java.util.List;
 
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.explosion.vanillant.ExplosionVNT;
 import com.hbm.explosion.vanillant.standard.BlockAllocatorStandard;
@@ -78,6 +79,16 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 		ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset).getOpposite();
 
 		if(!worldObj.isRemote) {
+			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				isReceiving = false;
+				swarmId = 0;
+				swarmCount = 0;
+				swarmConsumers = 0;
+				beamLength = 0;
+				networkPackNT(250);
+				return;
+			}
+
 			swarmId = ISatChip.getFreqS(slots[0]);
 
 			SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);

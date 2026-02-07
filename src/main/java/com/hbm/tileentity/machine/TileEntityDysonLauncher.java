@@ -4,6 +4,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.items.ISatChip;
 import com.hbm.items.ModItems;
 import com.hbm.config.SpaceConfig;
@@ -19,6 +20,7 @@ import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -34,6 +36,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	public static final long MAX_POWER = 20_000_000;
 
 	private static final int MEMBERS_PER_LAUNCH = 4;
+	public static final int BLACKHOLE_CLUSTER_LIMIT = 12;
 
 	// SHAKE IT LIKE IT'S HEAT, OVERDRIVE
 	boolean sunsetOverdrive = false;
@@ -70,13 +73,40 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 				return;
 			}
 
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			boolean isBlackhole = skyState.isBlackhole();
+			boolean isNothing = skyState.isNothing();
+
+			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
+				skyState.setState(CBT_SkyState.SkyState.NOTHING);
+				CelestialBody.getStar(worldObj).modifyTraits(skyState);
+				isBlackhole = false;
+				isNothing = true;
+			}
+
+			if(isNothing) {
+				isOperating = false;
+				isSpinningDown = false;
+				operatingTime = 0;
+				networkPackNT(250);
+				return;
+			}
+
 			for(DirPos pos : getConPos()) trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 			for(DirPos pos : getInvPos()) tryLoad(pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 
-			swarmId = ISatChip.getFreqS(slots[1]);
-			swarmCount = CBT_Dyson.count(worldObj, swarmId);
+			if(isBlackhole) {
+				swarmId = 0;
+				swarmCount = 0;
+			} else {
+				swarmId = ISatChip.getFreqS(slots[1]);
+				swarmCount = CBT_Dyson.count(worldObj, swarmId);
+			}
 
-			isOperating = !isSpinningDown && power >= getPowerPerTick() && slots[0] != null && slots[0].getItem() == ModItems.swarm_member && swarmId > 0;
+			ItemStack payload = slots[0];
+			boolean hasPayload = payload != null && payload.getItem() == (isBlackhole ? ModItems.pellet_antimatter : ModItems.swarm_member);
+			boolean canLaunch = isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (swarmId > 0);
+			isOperating = !isSpinningDown && power >= getPowerPerTick() && hasPayload && canLaunch;
 
 			if(isSpinningDown) {
 				operatingTime++;
@@ -95,39 +125,59 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 				power -= getPowerPerTick();
 
 				if(operatingTime > getSpinUpTime()) {
-					int toLaunch = Math.min(slots[0].stackSize, MEMBERS_PER_LAUNCH);
-					CBT_Dyson.launch(worldObj, swarmId, toLaunch);
+					int toLaunch = Math.min(payload.stackSize, MEMBERS_PER_LAUNCH);
+					if(isBlackhole) {
+						int remaining = BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent();
+						toLaunch = Math.min(toLaunch, remaining);
+						if(toLaunch > 0) {
+							skyState.addBlackholeClusters(toLaunch);
+							CelestialBody.getStar(worldObj).modifyTraits(skyState);
 
-					CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
-					double pressure = atmosphere != null ? atmosphere.getPressure() : 0;
-					double scaledPressure = 1.0 - Math.pow(1.0 - pressure, 3);
+							if(skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
+								skyState.setState(CBT_SkyState.SkyState.NOTHING);
+								CelestialBody.getStar(worldObj).modifyTraits(skyState);
+							}
+						}
+					} else {
+						CBT_Dyson.launch(worldObj, swarmId, toLaunch);
+					}
 
-					float volume = Math.min((float)scaledPressure * 16.0F, 4.0F);
+					if(toLaunch > 0) {
+						CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
+						double pressure = atmosphere != null ? atmosphere.getPressure() : 0;
+						double scaledPressure = 1.0 - Math.pow(1.0 - pressure, 3);
 
-					ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset);
-					ForgeDirection rot = dir.getRotation(ForgeDirection.UP);
+						float volume = Math.min((float)scaledPressure * 16.0F, 4.0F);
+						if(isBlackhole && volume <= 0.0F) volume = 1.0F;
 
-					worldObj.playSoundEffect(xCoord + rot.offsetX * 6, yCoord + 8, zCoord + rot.offsetZ * 6, "hbm:misc.spinshot", volume, 0.9F + worldObj.rand.nextFloat() * 0.3F);
-					worldObj.playSoundEffect(xCoord + rot.offsetX * 6, yCoord + 8, zCoord + rot.offsetZ * 6, "hbm:misc.spinshot", volume, 1F + worldObj.rand.nextFloat() * 0.3F);
+						ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset);
+						ForgeDirection rot = dir.getRotation(ForgeDirection.UP);
 
-					int count = Math.min(20, (int)(pressure * 80));
+						worldObj.playSoundEffect(xCoord + rot.offsetX * 6, yCoord + 8, zCoord + rot.offsetZ * 6, "hbm:misc.spinshot", volume, 0.9F + worldObj.rand.nextFloat() * 0.3F);
+						worldObj.playSoundEffect(xCoord + rot.offsetX * 6, yCoord + 8, zCoord + rot.offsetZ * 6, "hbm:misc.spinshot", volume, 1F + worldObj.rand.nextFloat() * 0.3F);
 
-					double posX = xCoord + rot.offsetX * 9;
-					double posY = yCoord + 12;
-					double posZ = zCoord + rot.offsetZ * 9;
+						int count = Math.min(20, (int)(pressure * 80));
+						if(isBlackhole && count <= 0) count = 5;
 
-					NBTTagCompound data = new NBTTagCompound();
-					data.setInteger("count", count);
-					data.setString("type", "spinlaunch");
-					data.setFloat("scale", 3);
-					data.setDouble("moX", dir.offsetX * 10);
-					data.setDouble("moY", 10);
-					data.setDouble("moZ", dir.offsetZ * 10);
-					data.setInteger("maxAge", 10 + count / 2 + worldObj.rand.nextInt(5));
-					PacketDispatcher.wrapper.sendToAllAround(new AuxParticlePacketNT(data, posX, posY, posZ), new TargetPoint(this.worldObj.provider.dimensionId, xCoord, yCoord, zCoord, 150));
+						double posX = xCoord + rot.offsetX * 9;
+						double posY = yCoord + 12;
+						double posZ = zCoord + rot.offsetZ * 9;
 
-					slots[0].stackSize -= toLaunch;
-					if(slots[0].stackSize <= 0) slots[0] = null;
+						NBTTagCompound data = new NBTTagCompound();
+						data.setInteger("count", count);
+						data.setString("type", "spinlaunch");
+						data.setFloat("scale", 3);
+						data.setDouble("moX", dir.offsetX * 10);
+						data.setDouble("moY", 10);
+						data.setDouble("moZ", dir.offsetZ * 10);
+						data.setInteger("maxAge", 10 + count / 2 + worldObj.rand.nextInt(5));
+						PacketDispatcher.wrapper.sendToAllAround(new AuxParticlePacketNT(data, posX, posY, posZ), new TargetPoint(this.worldObj.provider.dimensionId, xCoord, yCoord, zCoord, 150));
+					}
+
+					if(toLaunch > 0) {
+						slots[0].stackSize -= toLaunch;
+						if(slots[0].stackSize <= 0) slots[0] = null;
+					}
 
 					operatingTime = 0;
 					isSpinningDown = true;
@@ -210,7 +260,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 		for(int i = 0; i < (access != null ? access.length : inv.getSizeInventory()); i++) {
 			int slot = access != null ? access[i] : i;
 			ItemStack stack = inv.getStackInSlot(slot);
-			if(stack != null && stack.getItem() == ModItems.swarm_member && (sided == null || sided.canExtractItem(slot, stack, dir.ordinal()))) {
+			if(stack != null && stack.getItem() == getPayloadItem() && (sided == null || sided.canExtractItem(slot, stack, dir.ordinal()))) {
 				ItemStack removed = inv.decrStackSize(slot, 1);
 				if(slots[0] == null) {
 					slots[0] = removed;
@@ -271,7 +321,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	@Override
 	public boolean isItemValidForSlot(int slot, ItemStack itemStack) {
-		if(slot == 0) return itemStack.getItem() == ModItems.swarm_member;
+		if(slot == 0) return itemStack.getItem() == getPayloadItem();
 		return false;
 	}
 
@@ -283,6 +333,14 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	@Override public long getPower() { return power; }
 	@Override public void setPower(long power) { this.power = power; }
 	@Override public long getMaxPower() { return MAX_POWER; }
+
+	private boolean isBlackholeSky() {
+		return worldObj != null && CBT_SkyState.isBlackhole(worldObj);
+	}
+
+	private Item getPayloadItem() {
+		return isBlackholeSky() ? ModItems.pellet_antimatter : ModItems.swarm_member;
+	}
 
 	AxisAlignedBB bb = null;
 

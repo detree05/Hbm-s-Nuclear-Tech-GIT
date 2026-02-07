@@ -9,6 +9,7 @@ import org.apache.commons.lang3.NotImplementedException;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Destroyed;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_Temperature;
 import com.hbm.dim.trait.CBT_Water;
 import com.hbm.dim.trait.CelestialBodyTrait.CBT_BATTLEFIELD;
@@ -70,7 +71,11 @@ public class SolarSystem {
 			.withTexture(new ResourceLocation(RefStrings.MODID, "textures/misc/space/dmitriy.png"))
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 2)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
-			.withTraits(new CBT_Atmosphere(Fluids.DMITRIYGAS, 5.555D), new CBT_Water(Fluids.BLOOD))
+			.withTraits(
+				new CBT_Atmosphere(Fluids.DMITRIYGAS, 5.555D),
+				new CBT_Water(Fluids.BLOOD),
+				new CBT_SkyState(CBT_SkyState.SkyState.BLACKHOLE)
+			)
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)

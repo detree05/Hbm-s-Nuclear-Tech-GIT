@@ -5,6 +5,8 @@ import java.util.List;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
+import com.hbm.config.SpaceConfig;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.trait.FT_Gaseous;
 import com.hbm.inventory.fluid.trait.FluidTraitSimple.FT_Gaseous_ART;
@@ -62,9 +64,21 @@ public class MachineDysonConverterAnatmogenesis extends BlockDummyable implement
 
 		List<String> text = new ArrayList<String>();
 
-		EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
-		text.add(color + "! ! ! CAN'T CREATE ATMOSPHERE");
-		text.add(color + "IN BLACK HOLE CONDITIONS ! ! !");
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState.isBlackhole()) {
+			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
+			text.add(color + "! ! ! CAN'T CREATE ATMOSPHERE");
+			text.add(color + "IN BLACK HOLE CONDITIONS ! ! !");
+		} else {
+			text.add("Fluid: " + converter.fluid.getLocalizedName());
+			text.add("Mode: " + (converter.isEmitting ? "Emitting" : "Removing"));
+		}
 
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 	}

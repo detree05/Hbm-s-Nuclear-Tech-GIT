@@ -12,6 +12,7 @@ import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CelestialBodyTrait.CBT_COMPROMISED;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Destroyed;
@@ -142,12 +143,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		CelestialBody body = CelestialBody.getBody(world);
 		CelestialBody sun = body.getStar();
+		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
+		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : CBT_SkyState.SkyState.BLACKHOLE;
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 
 		boolean hasAtmosphere = atmosphere != null;
 
 		float pressure = hasAtmosphere ? (float)atmosphere.getPressure() : 0.0F;
 		float visibility = hasAtmosphere ? MathHelper.clamp_float(2.0F - pressure, 0.1F, 1.0F) : 1.0F;
+		boolean dimCelestials = sky == CBT_SkyState.SkyState.NOTHING && world.provider.dimensionId != SpaceConfig.kerbolDimension;
+		if(dimCelestials) {
+			visibility = Math.min(visibility, 0.1F);
+		}
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		Vec3 skyColor = world.getSkyColor(mc.renderViewEntity, partialTicks);
@@ -180,6 +187,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 			planetR = (float)BobMathUtil.clampedLerp(skyR, fogColor.xCoord, fogIntensity);
 			planetG = (float)BobMathUtil.clampedLerp(skyG, fogColor.yCoord, fogIntensity);
 			planetB = (float)BobMathUtil.clampedLerp(skyB, fogColor.zCoord, fogIntensity);
+		}
+
+		if(dimCelestials) {
+			planetR *= 0.1F;
+			planetG *= 0.1F;
+			planetB *= 0.1F;
 		}
 
 		Vec3 planetTint = Vec3.createVectorHelper(planetR, planetG, planetB);
@@ -613,8 +626,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		CBT_Dyson dyson = sun.getTrait(CBT_Dyson.class);
 		int swarmCount = dyson != null ? dyson.size() : 0;
+		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
+		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : CBT_SkyState.SkyState.BLACKHOLE;
 
-		if(sun.shader != null) {
+		if(sky == CBT_SkyState.SkyState.NOTHING) {
+			return;
+		}
+
+		boolean isBlackhole = sky == CBT_SkyState.SkyState.BLACKHOLE;
+
+		if(isBlackhole && sun.shader != null) {
 			// BLACK HOLE SUN
 			// WON'T YOU COME
 			// AND WASH AWAY THE RAIN
@@ -650,7 +671,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glPopMatrix();
 
 			OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
-		} else {
+		} else if(!isBlackhole) {
 			// Some blanking to conceal the stars
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
 			GL11.glColor4f(0.0F, 0.0F, 0.0F, 1.0F);
@@ -705,7 +726,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
-			renderSwarm(partialTicks, world, mc, sunSize * 0.5, swarmCount);
+			if(swarmCount > 0) {
+				renderSwarm(partialTicks, world, mc, sunSize * 0.5, swarmCount);
+			}
 
 			// Clear and disable the depth buffer once again, buffer has to be writable to clear it
 			GL11.glDepthMask(true);

@@ -26,6 +26,7 @@ import com.hbm.config.ServerConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialBodyWorldSavedData;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.CelestialTeleporter;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
@@ -1036,6 +1037,16 @@ public class ModEventHandler {
 					float nextGravity = 0.0F;
 
 					if(event.world.provider instanceof WorldProviderCelestial && !(event.world.provider instanceof WorldProviderKerbol)) {
+						CBT_SkyState skyState = CBT_SkyState.get(event.world);
+						if(!skyState.isBlackhole()) {
+							WorldProviderCelestial provider = (WorldProviderCelestial) event.world.provider;
+							if(provider.getGravityMultiplier() != 1.0F) {
+								provider.setGravityMultiplier(1.0F);
+								shouldBroadcast = true;
+								nextGravity = 1.0F;
+							}
+							provider.setGravityDay(dayIndex);
+						} else {
 						WorldProviderCelestial provider = (WorldProviderCelestial) event.world.provider;
 						long lastDay = provider.getGravityDay();
 
@@ -1051,20 +1062,31 @@ public class ModEventHandler {
 								shouldBroadcast = true;
 							}
 						}
+						}
 					} else if(event.world.provider.dimensionId == 0) {
+						CBT_SkyState skyState = CBT_SkyState.get(event.world);
 						SolarSystemWorldSavedData data = SolarSystemWorldSavedData.get(event.world);
-						long lastDay = data.getKerbinGravityDay();
-
-						if(lastDay < 0) {
-							data.setKerbinGravityDay(dayIndex);
-						} else if(dayIndex > lastDay) {
-							long daysPassed = dayIndex - lastDay;
-							data.setKerbinGravityDay(dayIndex);
-							float currentGravity = data.getKerbinGravityMultiplier();
-							nextGravity = Math.max(0.0F, currentGravity - (PLANET_GRAVITY_DECAY * daysPassed));
-							if(nextGravity < currentGravity) {
-								data.setKerbinGravityMultiplier(nextGravity);
+						if(!skyState.isBlackhole()) {
+							if(data.getKerbinGravityMultiplier() != 1.0F) {
+								data.setKerbinGravityMultiplier(1.0F);
 								shouldBroadcast = true;
+								nextGravity = 1.0F;
+							}
+							data.setKerbinGravityDay(dayIndex);
+						} else {
+							long lastDay = data.getKerbinGravityDay();
+
+							if(lastDay < 0) {
+								data.setKerbinGravityDay(dayIndex);
+							} else if(dayIndex > lastDay) {
+								long daysPassed = dayIndex - lastDay;
+								data.setKerbinGravityDay(dayIndex);
+								float currentGravity = data.getKerbinGravityMultiplier();
+								nextGravity = Math.max(0.0F, currentGravity - (PLANET_GRAVITY_DECAY * daysPassed));
+								if(nextGravity < currentGravity) {
+									data.setKerbinGravityMultiplier(nextGravity);
+									shouldBroadcast = true;
+								}
 							}
 						}
 

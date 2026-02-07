@@ -13,6 +13,7 @@ import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.dim.trait.CBT_Water;
 import com.hbm.dim.trait.CelestialBodyTrait;
@@ -459,6 +460,12 @@ public class CelestialBody {
 	public static void updateSwarms() {
 		// We currently only have the one solar body, so we just update that directly
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = SolarSystem.kerbol.getTraits();
+
+		CBT_SkyState skyState = (CBT_SkyState) currentTraits.get(CBT_SkyState.class);
+		if(skyState == null) {
+			skyState = SolarSystem.kerbol.getDefaultTrait(CBT_SkyState.class);
+		}
+		if(skyState != null && skyState.isBlackhole()) return;
 
 		CBT_Dyson dyson = (CBT_Dyson) currentTraits.get(CBT_Dyson.class);
 		if(dyson == null) return;

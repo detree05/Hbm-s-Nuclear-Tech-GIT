@@ -6,6 +6,7 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
+import com.hbm.config.SpaceConfig;
 import com.hbm.handler.MultiblockHandlerXR;
 import com.hbm.items.ModItems;
 import com.hbm.tileentity.TileEntityProxyCombo;
@@ -17,6 +18,7 @@ import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -37,6 +39,8 @@ public class MachineDysonReceiver extends BlockDummyable implements ILookOverlay
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ) {
 		if(world.isRemote) {
+			return true;
+		} else if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
 			return true;
 		} else if(!player.isSneaking()) {
 			int[] pos = this.findCore(world, x, y, z);
@@ -106,6 +110,13 @@ public class MachineDysonReceiver extends BlockDummyable implements ILookOverlay
 		int[] pos = this.findCore(world, x, y, z);
 
 		if(pos == null) return;
+
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			List<String> text = new ArrayList<String>();
+			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
 
 		TileEntity te = world.getTileEntity(pos[0], pos[1], pos[2]);
 

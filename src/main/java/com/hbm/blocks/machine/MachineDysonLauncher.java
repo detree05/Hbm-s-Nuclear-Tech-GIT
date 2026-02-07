@@ -7,6 +7,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
 import com.hbm.config.SpaceConfig;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.handler.MultiblockHandlerXR;
 import com.hbm.items.ModItems;
 import com.hbm.tileentity.TileEntityProxyCombo;
@@ -211,7 +212,7 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 
 		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
 			List<String> text = new ArrayList<String>();
-			text.add(EnumChatFormatting.RED + randomKerbolWarning(world));
+			text.add(EnumChatFormatting.RED + getKerbolWarning(world));
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 			return;
 		}
@@ -223,8 +224,17 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		TileEntityDysonLauncher launcher = (TileEntityDysonLauncher) te;
 
 		List<String> text = new ArrayList<String>();
+		CBT_SkyState skyState = CBT_SkyState.get(world);
 
-		if(launcher.swarmId > 0) {
+		if(skyState.isNothing()) {
+			text.add(EnumChatFormatting.RED + "Nothing to orbit!");
+		} else if(skyState.isBlackhole()) {
+			int sent = skyState.getBlackholeClustersSent();
+			int remaining = Math.max(0, TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT - sent);
+			text.add("Antimatter Clusters: " + sent + "/" + TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT);
+			text.add("Remaining: " + remaining);
+			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
+		} else if(launcher.swarmId > 0) {
 			text.add("ID: " + launcher.swarmId);
 			text.add("Swarm: " + launcher.swarmCount + " members");
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
@@ -235,11 +245,11 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 	}
 
-	private String randomKerbolWarning(World world) {
+	public static String getKerbolWarning(World world) {
 		return "what" + randomSpaces(world) + "were" + randomSpaces(world) + "you" + randomSpaces(world) + "thinking?";
 	}
 
-	private String randomSpaces(World world) {
+	private static String randomSpaces(World world) {
 		return world.rand.nextBoolean() ? " " : "  ";
 	}
 

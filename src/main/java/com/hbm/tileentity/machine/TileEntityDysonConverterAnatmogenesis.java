@@ -1,6 +1,10 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.config.SpaceConfig;
+import com.hbm.dim.CelestialBody;
+import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.main.MainRegistry;
@@ -89,7 +93,31 @@ public class TileEntityDysonConverterAnatmogenesis extends TileEntityMachineBase
 
 		if(x != rx || y != ry || z != rz) return false;
 
-		// Anatmogenesis disabled: accept energy but do not create or remove atmosphere.
+		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			// Accept energy but do not create or remove atmosphere in Kerbol.
+			return true;
+		}
+
+		if(CBT_SkyState.isBlackhole(worldObj)) {
+			// Accept energy but do not create or remove atmosphere in black hole conditions.
+			return true;
+		}
+
+		double amount = (double) energy / (double) HE_TO_MB;
+		if(amount <= 0) return true;
+
+		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
+		if(atmosphere == null) atmosphere = new CBT_Atmosphere();
+
+		if(isEmitting) {
+			atmosphere.add(fluid, amount);
+		} else {
+			atmosphere.reduce(amount);
+		}
+
+		CelestialBody.modifyTraits(worldObj, atmosphere);
+		gasProduced += Math.max(1L, (long)(amount * 1000));
+
 		return true;
 
 	}

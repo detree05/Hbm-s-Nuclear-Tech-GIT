@@ -1,6 +1,7 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.config.SpaceConfig;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
 import com.hbm.tileentity.IDysonConverter;
@@ -35,6 +36,14 @@ public class TileEntityDysonConverterHE extends TileEntityMachineBase implements
 	@Override
 	public void updateEntity() {
 		if(!worldObj.isRemote) {
+			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				isConverting = false;
+				power = 0;
+				cooldown = 0;
+				networkPackNT(250);
+				return;
+			}
+
 			ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset).getOpposite();
 			ForgeDirection rot = dir.getRotation(ForgeDirection.UP);
 
@@ -73,6 +82,10 @@ public class TileEntityDysonConverterHE extends TileEntityMachineBase implements
 		int rz = zCoord + dir.offsetZ * 4;
 
 		if(x != rx || y != ry || z != rz) return false;
+
+		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			return true;
+		}
 
 		power = energy;
 		cooldown = 0;

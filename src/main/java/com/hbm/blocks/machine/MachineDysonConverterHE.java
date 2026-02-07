@@ -1,15 +1,23 @@
 package com.hbm.blocks.machine;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.hbm.blocks.BlockDummyable;
+import com.hbm.blocks.ILookOverlay;
+import com.hbm.config.SpaceConfig;
 import com.hbm.tileentity.TileEntityProxyCombo;
 import com.hbm.tileentity.machine.TileEntityDysonConverterHE;
+import com.hbm.util.i18n.I18nUtil;
 
 import net.minecraft.block.material.Material;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
+import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
 import net.minecraftforge.common.util.ForgeDirection;
 
-public class MachineDysonConverterHE extends BlockDummyable {
+public class MachineDysonConverterHE extends BlockDummyable implements ILookOverlay {
 
 	public MachineDysonConverterHE(Material mat) {
 		super(mat);
@@ -40,6 +48,15 @@ public class MachineDysonConverterHE extends BlockDummyable {
 		z = z + dir.offsetZ * o;
 
 		this.makeExtra(world, x - dir.offsetX * 4, y, z - dir.offsetZ * 4);
+	}
+
+	@Override
+	public void printHook(Pre event, World world, int x, int y, int z) {
+		if(world.provider.dimensionId != SpaceConfig.kerbolDimension) return;
+
+		List<String> text = new ArrayList<String>();
+		text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 	}
 
 }
