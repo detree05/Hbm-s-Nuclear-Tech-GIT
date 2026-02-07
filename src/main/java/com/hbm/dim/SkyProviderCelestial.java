@@ -741,6 +741,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.draw();
 
 			// Draw a big ol' spiky flare! Less so when there is an atmosphere
+			// Render on top of the sun regardless of depth test mode.
+			GL11.glDisable(GL11.GL_DEPTH_TEST);
 			GL11.glColor4f(sunColor[0], sunColor[1], sunColor[2], 1 - MathHelper.clamp_float(pressure, 0.0F, 1.0F) * 0.75F);
 			mc.renderEngine.bindTexture(flareTexture);
 
@@ -750,6 +752,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.addVertexWithUV(coronaSize, 99.9D, coronaSize, 1.0D, 1.0D);
 			tessellator.addVertexWithUV(-coronaSize, 99.9D, coronaSize, 0.0D, 1.0D);
 			tessellator.draw();
+			GL11.glEnable(GL11.GL_DEPTH_TEST);
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
