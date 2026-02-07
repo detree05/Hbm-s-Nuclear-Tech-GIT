@@ -56,6 +56,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
 	private static final ResourceLocation lodeStar = new ResourceLocation(RefStrings.MODID, "textures/misc/star_lode.png");
 	private static final ResourceLocation stationTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/station.png");
+	private static final ResourceLocation defaultSunTexture = new ResourceLocation("textures/environment/sun.png");
 
 	private static final ResourceLocation impactTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/impact.png");
 	private static final ResourceLocation shockwaveTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/shockwave.png");
@@ -151,9 +152,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		float pressure = hasAtmosphere ? (float)atmosphere.getPressure() : 0.0F;
 		float visibility = hasAtmosphere ? MathHelper.clamp_float(2.0F - pressure, 0.1F, 1.0F) : 1.0F;
-		boolean dimCelestials = sky == CBT_SkyState.SkyState.NOTHING && world.provider.dimensionId != SpaceConfig.kerbolDimension;
+		boolean dimCelestials = sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.DFC;
 		if(dimCelestials) {
-			visibility = Math.min(visibility, 0.1F);
+			visibility = 0.0F;
 		}
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -629,7 +630,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
 		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : CBT_SkyState.SkyState.BLACKHOLE;
 
-		if(sky == CBT_SkyState.SkyState.NOTHING) {
+		if(sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.DFC) {
 			return;
 		}
 
@@ -699,7 +700,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
 			GL11.glColor4f(1.0F, 1.0F, 1.0F, visibility);
 
-			mc.renderEngine.bindTexture(SolarSystem.kerbol.texture);
+			ResourceLocation sunTexture = SolarSystem.kerbol.texture;
+			if(sun != null) {
+				boolean isKerbol = sun == SolarSystem.kerbol || "kerbol".equals(sun.name);
+				if(isKerbol) {
+					sunTexture = defaultSunTexture;
+				} else if(sun.texture != null) {
+					sunTexture = sun.texture;
+				}
+			}
+			mc.renderEngine.bindTexture(sunTexture);
 
 			float[] sunColor = world.provider instanceof WorldProviderCelestial
 				? ((WorldProviderCelestial) world.provider).getSunColor()
