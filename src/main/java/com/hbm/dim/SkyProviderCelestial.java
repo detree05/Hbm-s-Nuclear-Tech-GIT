@@ -457,7 +457,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-			float sunBrightness = world.getSunBrightness(partialTicks);
+			float sunBrightness = (sky == CBT_SkyState.SkyState.BLACKHOLE || sky == CBT_SkyState.SkyState.DFC)
+				? 0.0F
+				: world.getSunBrightness(partialTicks);
 
 			GL11.glColor4f(sunBrightness, sunBrightness, sunBrightness, ((float)pos.yCoord - 200.0F) / 300.0F);
 			mc.renderEngine.bindTexture(body.texture);
@@ -629,6 +631,21 @@ public class SkyProviderCelestial extends IRenderHandler {
 		int swarmCount = dyson != null ? dyson.size() : 0;
 		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
 		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : CBT_SkyState.SkyState.BLACKHOLE;
+
+		if(sky == CBT_SkyState.SkyState.DFC) {
+			GL11.glEnable(GL11.GL_TEXTURE_2D);
+			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+			mc.renderEngine.bindTexture(planetTexture);
+
+			double dfcSize = 1.0D;
+			tessellator.startDrawingQuads();
+			tessellator.addVertexWithUV(-dfcSize, 100.0D, -dfcSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(dfcSize, 100.0D, -dfcSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(dfcSize, 100.0D, dfcSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-dfcSize, 100.0D, dfcSize, 0.0D, 1.0D);
+			tessellator.draw();
+			return;
+		}
 
 		if(sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.DFC) {
 			return;

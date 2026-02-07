@@ -102,7 +102,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			boolean hasPayload = payloadItem != null && payloadItem == getPayloadItem();
 			boolean canLaunch = isNothing
 				? (payloadItem == getPayloadItem())
-				: (isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (swarmId > 0));
+				: (isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (isDfc ? false : (swarmId > 0)));
 			isOperating = !isSpinningDown && power >= getPowerPerTick() && hasPayload && canLaunch;
 
 			if(isSpinningDown) {
@@ -354,6 +354,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	private Item getPayloadItem() {
 		if(isBlackholeSky()) return ModItems.pellet_antimatter;
 		if(isNothingSky()) return Item.getItemFromBlock(ModBlocks.dfc_core);
+		if(isDfcSky()) return null;
 		return ModItems.swarm_member;
 	}
 
