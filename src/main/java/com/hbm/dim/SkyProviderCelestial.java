@@ -743,16 +743,20 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glColorMask(false, false, false, false);
 			GL11.glDepthMask(true);
 
+			// Depth-only mask. Keep it behind the sun (99.9D) so it doesn't
+			// occlude the actual sun quad at 100.0D.
 			tessellator.startDrawingQuads();
-			tessellator.addVertex(-sunSize, 99.9D, -sunSize);
-			tessellator.addVertex(sunSize, 99.9D, -sunSize);
-			tessellator.addVertex(sunSize, 99.9D, sunSize);
-			tessellator.addVertex(-sunSize, 99.9D, sunSize);
+			tessellator.addVertexWithUV(-sunSize * 0.25D, 99.9D, -sunSize * 0.25D, 0.0D, 0.0D);
+			tessellator.addVertexWithUV( sunSize * 0.25D, 99.9D, -sunSize * 0.25D, 1.0D, 0.0D);
+			tessellator.addVertexWithUV( sunSize * 0.25D, 99.9D,  sunSize * 0.25D, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-sunSize * 0.25D, 99.9D,  sunSize * 0.25D, 0.0D, 1.0D);
 			tessellator.draw();
 
 			GL11.glColorMask(true, true, true, true);
 			GL11.glDepthMask(false);
 
+			// Draw the sun without depth testing so the depth-only mask doesn't hide it.
+			GL11.glDisable(GL11.GL_DEPTH_TEST);
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
 			GL11.glColor4f(1.0F, 1.0F, 1.0F, visibility);
 
@@ -778,6 +782,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.addVertexWithUV(sunSize, 100.0D, sunSize, 1.0D, 1.0D);
 			tessellator.addVertexWithUV(-sunSize, 100.0D, sunSize, 0.0D, 1.0D);
 			tessellator.draw();
+
+			GL11.glEnable(GL11.GL_DEPTH_TEST);
 
 			// Draw a big ol' spiky flare! Less so when there is an atmosphere
 			// Render on top of the sun regardless of depth test mode.

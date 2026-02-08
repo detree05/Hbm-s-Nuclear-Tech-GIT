@@ -63,6 +63,15 @@ public class SolarSystem {
 		return minmus != null && "minmus".equals(minmus.name) && minmus.hasTrait(CBT_Destroyed.class);
 	}
 
+	public static boolean isKerbolBlackhole() {
+		if(kerbol == null) return false;
+		CBT_SkyState skyState = kerbol.getTrait(CBT_SkyState.class);
+		if(skyState == null) {
+			skyState = kerbol.getDefaultTrait(CBT_SkyState.class);
+		}
+		return skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE;
+	}
+
 	public static void init() {
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones
 		kerbol = new CelestialBody("kerbol", SpaceConfig.kerbolDimension, Body.KERBOL)
