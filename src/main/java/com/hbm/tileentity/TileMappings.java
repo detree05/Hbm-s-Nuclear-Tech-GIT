@@ -435,6 +435,7 @@ public class TileMappings {
 		put(TileEntityDysonConverterTU.class, "tileentity_dyson_converter_tu");
 		put(TileEntityDysonConverterHE.class, "tileentity_dyson_converter_he");
 		put(TileEntityDysonConverterAnatmogenesis.class, "tileentity_dyson_converter_anatmogenesis");
+		put(TileEntityStarCorePowerInjector.class, "tileentity_star_core_power_injector");
 
 		put(TileEntityOrrery.class, "tileentity_orrery");
 	}

@@ -233,7 +233,8 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 			text.add("DFC Core: " + (hasCore ? "Loaded" : "Missing"));
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
 		} else if(skyState.getState() == CBT_SkyState.SkyState.DFC) {
-			text.add(EnumChatFormatting.RED + "Nothing to orbit yet.");
+			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
+			text.add(color + "Nothing to orbit yet.");
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
 		} else if(skyState.isBlackhole()) {
 			int sent = skyState.getBlackholeClustersSent();

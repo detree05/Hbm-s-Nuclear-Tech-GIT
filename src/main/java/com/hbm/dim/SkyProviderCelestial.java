@@ -1,5 +1,6 @@
 package com.hbm.dim;
 
+import java.awt.Color;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -634,10 +635,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		if(sky == CBT_SkyState.SkyState.DFC) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
-			GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+			long dfcThroughput = skyState != null ? skyState.getDfcThroughput() : 0L;
+			float ratio = MathHelper.clamp_float((float)((double) dfcThroughput / (double) CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC), 0.0F, 1.0F);
+			float hue = ((world.getWorldTime() + partialTicks) * 0.01F + ratio * 0.25F) % 1.0F;
+			int rgb = Color.HSBtoRGB(hue, 1.0F, 1.0F);
+			float r = ((rgb >> 16) & 0xFF) / 255.0F;
+			float g = ((rgb >> 8) & 0xFF) / 255.0F;
+			float b = (rgb & 0xFF) / 255.0F;
+
+			GL11.glColor4f(r, g, b, 1.0F);
 			mc.renderEngine.bindTexture(planetTexture);
 
-			double dfcSize = 1.0D;
+			double dfcSize = 0.2D + 2.5D * ratio;
 			tessellator.startDrawingQuads();
 			tessellator.addVertexWithUV(-dfcSize, 100.0D, -dfcSize, 0.0D, 0.0D);
 			tessellator.addVertexWithUV(dfcSize, 100.0D, -dfcSize, 1.0D, 0.0D);

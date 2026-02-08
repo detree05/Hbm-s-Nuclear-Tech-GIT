@@ -8,6 +8,8 @@ import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
+	public static final long DFC_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
+
 	public enum SkyState {
 		SUN,
 		BLACKHOLE,
@@ -17,6 +19,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	private SkyState state = SkyState.SUN;
 	private int blackholeClustersSent;
+	private long dfcThroughput;
 
 	public CBT_SkyState() { }
 
@@ -57,6 +60,14 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		blackholeClustersSent = Math.max(0, sent);
 	}
 
+	public long getDfcThroughput() {
+		return dfcThroughput;
+	}
+
+	public void setDfcThroughput(long throughput) {
+		dfcThroughput = Math.max(0, throughput);
+	}
+
 	public static CBT_SkyState get(World world) {
 		CelestialBody star = CelestialBody.getStar(world);
 		CBT_SkyState sky = star.getTrait(CBT_SkyState.class);
@@ -89,6 +100,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public void writeToNBT(NBTTagCompound nbt) {
 		nbt.setInteger("state", state.ordinal());
 		nbt.setInteger("clusters", blackholeClustersSent);
+		nbt.setLong("dfcThroughput", dfcThroughput);
 	}
 
 	@Override
@@ -97,12 +109,14 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = nbt.getInteger("clusters");
+		dfcThroughput = nbt.getLong("dfcThroughput");
 	}
 
 	@Override
 	public void writeToBytes(ByteBuf buf) {
 		buf.writeByte(state.ordinal());
 		buf.writeShort(blackholeClustersSent);
+		buf.writeLong(dfcThroughput);
 	}
 
 	@Override
@@ -111,5 +125,6 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = buf.readShort();
+		dfcThroughput = buf.readLong();
 	}
 }
