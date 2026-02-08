@@ -664,16 +664,17 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glColor4f(r, g, b, 1.0F);
 			mc.renderEngine.bindTexture(dfcCoreTexture);
 
-			double dfcSize = 0.2D + 2.5D * ratio;
+			double dfcCoreSize = 0.1D + 1.25D * ratio;
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-dfcSize, 100.0D, -dfcSize, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(dfcSize, 100.0D, -dfcSize, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(dfcSize, 100.0D, dfcSize, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-dfcSize, 100.0D, dfcSize, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-dfcCoreSize, 100.0D, -dfcCoreSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(dfcCoreSize, 100.0D, -dfcCoreSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(dfcCoreSize, 100.0D, dfcCoreSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-dfcCoreSize, 100.0D, dfcCoreSize, 0.0D, 1.0D);
 			tessellator.draw();
 
 			if(ratio > 0.0F) {
-				double spikeSize = dfcSize * (1.5D + 3.0D * ratio);
+				double dfcSpikeBase = 0.2D + 2.5D * ratio;
+				double spikeSize = dfcSpikeBase * (1.5D + 3.0D * ratio);
 				float spikeAlpha = MathHelper.clamp_float(0.15F + 0.85F * ratio, 0.0F, 1.0F);
 				GL11.glColor4f(1.0F, 1.0F, 1.0F, spikeAlpha);
 				mc.renderEngine.bindTexture(dfcSpikeTexture);
@@ -1453,9 +1454,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 				tessellator.addVertexWithUV(-waveSize, skyHeight, waveSize, 0.0D, 1.0D);
 				tessellator.draw();
 
-				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha * 1.25F);
+				float flareProgress = MathHelper.clamp_float(age / (waveDurationTicks * 0.5F), 0.0F, 1.0F);
+				float flareAlpha = 1.0F - smoothstep(0.0F, 1.0F, flareProgress);
+				GL11.glColor4f(1.0F, 1.0F, 1.0F, flareAlpha * 1.25F);
 				mc.renderEngine.bindTexture(shockFlareTexture);
-				double flareSize = maxSpikeSize * (2.0D + waveProgress * 4.0D);
+				double flareSize = maxSpikeSize * (1.25D + waveProgress * 2.5D);
 				tessellator.startDrawingQuads();
 				tessellator.addVertexWithUV(-flareSize, skyHeight, -flareSize, 0.0D, 0.0D);
 				tessellator.addVertexWithUV(flareSize, skyHeight, -flareSize, 1.0D, 0.0D);
