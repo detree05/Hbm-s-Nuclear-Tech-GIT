@@ -36,7 +36,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	public long power;
 	public static final long MAX_POWER = 20_000_000;
 
-	private static final int MEMBERS_PER_LAUNCH = 4;
+	private static final int MEMBERS_PER_LAUNCH = 64;
 	public static final int BLACKHOLE_CLUSTER_LIMIT = 12;
 
 	// SHAKE IT LIKE IT'S HEAT, OVERDRIVE

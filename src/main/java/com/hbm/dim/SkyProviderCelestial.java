@@ -51,7 +51,7 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class SkyProviderCelestial extends IRenderHandler {
 
 	private static final ResourceLocation planetTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/planet.png");
-	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
+	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/dfcspike.png");
 	private static final ResourceLocation supernovaeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/supernovae.png");
 	private static final ResourceLocation nightTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
@@ -75,7 +75,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
-	private static final Shader supernovaeShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/supernovae.frag"));
 	
 	private static boolean novaeActive = false;
 	private static long novaeStartWorldTime = 0L;
@@ -1534,14 +1533,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 			return;
 		}
 
-		float spikeGrowTicks = 120.0F;
-		float growProgress = MathHelper.clamp_float(age / spikeGrowTicks, 0.0F, 1.0F);
-		float grow = smoothstep(0.0F, 1.0F, growProgress);
-
-		double minShaderSize = sunSize * 0.6D;
-		double maxShaderSize = sunSize * 3.2D;
-		double shaderSize = minShaderSize + (maxShaderSize - minShaderSize) * grow;
-
 		Tessellator tessellator = Tessellator.instance;
 
 		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
@@ -1549,36 +1540,17 @@ public class SkyProviderCelestial extends IRenderHandler {
 		{
 			GL11.glDisable(GL11.GL_CULL_FACE);
 			GL11.glDisable(GL11.GL_ALPHA_TEST);
+			GL11.glDisable(GL11.GL_DEPTH_TEST);
 			GL11.glEnable(GL11.GL_BLEND);
 			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-
-			supernovaeShader.use();
-			float time = 1.0F + age / 20.0F;
-
-			mc.renderEngine.bindTexture(noise);
-			GL11.glPushMatrix();
-			{
-				// Fix orbital plane
-				GL11.glRotatef(-90.0F, 0, 1, 0);
-				supernovaeShader.setUniform1f("iTime", time);
-				supernovaeShader.setUniform1i("iChannel1", 0);
-
-				tessellator.startDrawingQuads();
-				tessellator.addVertexWithUV(-shaderSize, 100.0D, -shaderSize, 0.0D, 0.0D);
-				tessellator.addVertexWithUV(shaderSize, 100.0D, -shaderSize, 1.0D, 0.0D);
-				tessellator.addVertexWithUV(shaderSize, 100.0D, shaderSize, 1.0D, 1.0D);
-				tessellator.addVertexWithUV(-shaderSize, 100.0D, shaderSize, 0.0D, 1.0D);
-				tessellator.draw();
-			}
-			GL11.glPopMatrix();
-			supernovaeShader.stop();
 
 			// Fast, oversized shockwave when the ignition appears.
 			float waveDurationTicks = 360.0F;
 			float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
 			if(waveProgress < 1.0F) {
 				float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
-				double waveSize = maxShaderSize * (1.0D + waveProgress * 6.0D);
+				double baseWaveSize = sunSize * 2.0D;
+				double waveSize = baseWaveSize * (1.0D + waveProgress * 6.0D);
 
 				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha);
 				mc.renderEngine.bindTexture(shockwaveTexture);
@@ -1594,7 +1566,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			float tomWaveDuration = 600.0F;
 			if(age <= tomWaveDuration) {
 				float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
-				double tomScale = 4.0D + (tomProgress * tomProgress) * (maxShaderSize * 12.0D);
+				double tomScale = 4.0D + (tomProgress * tomProgress) * (sunSize * 12.0D);
 
 				int segments = 16;
 				float angle = (float) Math.toRadians(360D / segments);
@@ -1642,6 +1614,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 
 			GL11.glEnable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_DEPTH_TEST);
 			GL11.glEnable(GL11.GL_CULL_FACE);
 		}
 		GL11.glPopMatrix();

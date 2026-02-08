@@ -45,9 +45,9 @@ public class DfcIgnitionSkyPacket implements IMessage {
 			Minecraft mc = Minecraft.getMinecraft();
 			if(mc != null) {
 				SkyProviderCelestial.startDfcIgnitionEffect(m.worldTime, m.dimension);
-				ModEventHandlerClient.flashTimestamp = System.currentTimeMillis();
+				ModEventHandlerClient.dfcFlashTimestamp = System.currentTimeMillis();
 				ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
-				mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.dfcignited"), 1.0F));
+				mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.dfcignited"), 4.0F));
 			}
 			return null;
 		}

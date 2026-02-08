@@ -91,6 +91,31 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 	}
 
 	@Override
+	public void invalidate() {
+		if(!worldObj.isRemote) {
+			resetDfcThroughputOnRemoval();
+		}
+		super.invalidate();
+	}
+
+	@Override
+	public void onChunkUnload() {
+		if(!worldObj.isRemote) {
+			resetDfcThroughputOnRemoval();
+		}
+		super.onChunkUnload();
+	}
+
+	private void resetDfcThroughputOnRemoval() {
+		if(worldObj == null) return;
+		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+		if(skyState.getDfcThroughput() != 0) {
+			skyState.setDfcThroughput(0);
+			CelestialBody.getStar(worldObj).modifyTraits(skyState);
+		}
+	}
+
+	@Override
 	public void serialize(ByteBuf buf) {
 		super.serialize(buf);
 		buf.writeLong(throughputLastSecond);

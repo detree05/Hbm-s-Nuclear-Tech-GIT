@@ -147,7 +147,9 @@ import java.util.*;
 public class ModEventHandlerClient {
 
 	public static final int flashDuration = 5_000;
+	public static final int dfcFlashDuration = 9_000;
 	public static long flashTimestamp;
+	public static long dfcFlashTimestamp;
 	public static final int shakeDuration = 1_500;
 	public static long shakeTimestamp;
 	private static Float lastKerbolGravity;
@@ -163,7 +165,10 @@ public class ModEventHandlerClient {
 		// removed custom tints; only nuke flash remains
 
 		/// NUKE FLASH ///
-		if(event.type == ElementType.CROSSHAIRS && (flashTimestamp + flashDuration - Clock.get_ms()) > 0 && ClientConfig.NUKE_HUD_FLASH.get()) {
+		long now = Clock.get_ms();
+		long remainingBase = flashTimestamp + flashDuration - now;
+		long remainingDfc = dfcFlashTimestamp + dfcFlashDuration - now;
+		if(event.type == ElementType.CROSSHAIRS && (remainingBase > 0 || remainingDfc > 0) && ClientConfig.NUKE_HUD_FLASH.get()) {
 			int width = event.resolution.getScaledWidth();
 			int height = event.resolution.getScaledHeight();
 			Tessellator tess = Tessellator.instance;
@@ -173,7 +178,9 @@ public class ModEventHandlerClient {
 			GL11.glAlphaFunc(GL11.GL_GEQUAL, 0.0F);
 			GL11.glDepthMask(false);
 			tess.startDrawingQuads();
-			float brightness = (flashTimestamp + flashDuration - Clock.get_ms()) / (float) flashDuration;
+			float baseBrightness = remainingBase > 0 ? (remainingBase / (float) flashDuration) : 0.0F;
+			float dfcBrightness = remainingDfc > 0 ? (remainingDfc / (float) dfcFlashDuration) : 0.0F;
+			float brightness = Math.max(baseBrightness, dfcBrightness);
 			tess.setColorRGBA_F(1F, 1F, 1F, brightness * 1F);
 			tess.addVertex(width, 0, 0);
 			tess.addVertex(0, 0, 0);
