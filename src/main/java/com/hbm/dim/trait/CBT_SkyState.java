@@ -8,7 +8,7 @@ import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
-	public static final long DFC_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
+	public static final long DFC_THRESHOLD_HE_PER_SEC = 10_000_000_000_000L;
 
 	public enum SkyState {
 		SUN,

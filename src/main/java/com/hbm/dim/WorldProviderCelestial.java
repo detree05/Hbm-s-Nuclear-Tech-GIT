@@ -179,12 +179,19 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		boolean changed = false;
 		final int redBoost = 0;
 		final float greenBlueScale = 0.95F;
+		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
 			int[] colors = unpackColor(lightmap[i]);
 			int r = colors[0];
 			int g = colors[1];
 			int b = colors[2];
+
+			if(skyDim < 1.0F) {
+				r = (int)(r * skyDim);
+				g = (int)(g * skyDim);
+				b = (int)(b * skyDim);
+			}
 
 			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
 			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
@@ -197,6 +204,32 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		}
 
 		return changed;
+	}
+
+	private float getSkyLightDimmer() {
+		if(worldObj == null || worldObj.provider == null) {
+			return 1.0F;
+		}
+		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			return 0.45F;
+		}
+		try {
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			if(skyState.isBlackhole() || skyState.isNothing()) {
+				return skyState.isNothing() ? 0.45F : 0.0F;
+			}
+			if(skyState.getState() == CBT_SkyState.SkyState.DFC) {
+				float ratio = MathHelper.clamp_float(
+					(float)((double)skyState.getDfcThroughput() / (double)CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC),
+					0.0F,
+					1.0F
+				);
+				return 0.45F + (1.0F - 0.45F) * ratio;
+			}
+			return 1.0F;
+		} catch(Exception ignored) {
+			return 1.0F;
+		}
 	}
 
 	protected final int packColor(final int[] colors) {
@@ -572,9 +605,17 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 	@Override
 	@SideOnly(Side.CLIENT)
+	public float getSunBrightnessFactor(float par1) {
+		float factor = super.getSunBrightnessFactor(par1);
+		float dim = getSkyLightDimmer();
+		return dim <= 0.0F ? 0.0F : factor * dim;
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-		if(skyState.isBlackhole() || skyState.isNothing())
+		if(skyState.isBlackhole() || skyState.isNothing() || skyState.getState() == CBT_SkyState.SkyState.DFC)
 			return 0;
 
 		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class))

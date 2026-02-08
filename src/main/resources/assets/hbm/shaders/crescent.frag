@@ -45,6 +45,7 @@ void main() {
 	// Apply night lights and mask out cities
 	gl_FragColor = texture2D(lights, movingUV);
 	gl_FragColor = gl_FragColor * texture2D(cityMask, movingUV) * (0.8 - brightness);
+	gl_FragColor *= gl_Color;
 
 	for (int i = 0; i < blackouts; i++) {
 		float bx = hash(i * 100.0 + 1.0);
@@ -55,5 +56,5 @@ void main() {
 		}
 	}
 
-	gl_FragColor.a = 1.0 - brightness;
+	gl_FragColor.a = (1.0 - brightness) * gl_Color.a;
 }
