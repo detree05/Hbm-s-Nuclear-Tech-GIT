@@ -734,9 +734,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 		} else if(!isBlackhole) {
-			// Some blanking to conceal the stars
+			// Depth-only blanking to conceal stars behind the sun.
 			GL11.glDisable(GL11.GL_TEXTURE_2D);
-			GL11.glColor4f(0.0F, 0.0F, 0.0F, 1.0F);
+			GL11.glColorMask(false, false, false, false);
+			GL11.glDepthMask(true);
 
 			tessellator.startDrawingQuads();
 			tessellator.addVertex(-sunSize, 99.9D, -sunSize);
@@ -745,17 +746,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.addVertex(-sunSize, 99.9D, sunSize);
 			tessellator.draw();
 
-			// Draw the sun to the depth buffer to block swarm members that are behind
-			GL11.glDepthMask(true);
-			GL11.glColor4f(0.0F, 0.0F, 0.0F, 0.0F);
-
-			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-sunSize * 0.25D, 100.1D, -sunSize * 0.25D, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(sunSize * 0.25D, 100.1D, -sunSize * 0.25D, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(sunSize * 0.25D, 100.1D, sunSize * 0.25D, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-sunSize * 0.25D, 100.1D, sunSize * 0.25D, 0.0D, 1.0D);
-			tessellator.draw();
-
+			GL11.glColorMask(true, true, true, true);
 			GL11.glDepthMask(false);
 
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
