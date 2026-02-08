@@ -142,6 +142,10 @@ public class RocketStruct {
 				issues.add(EnumChatFormatting.RED + "Its gone...");
 				return issues;
 			}
+			if(to.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+				issues.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+				return issues;
+			}
 			if(from.getEnum() == SolarSystem.Body.KERBOL && to.getEnum() != SolarSystem.Body.KERBOL) {
 				issues.add(EnumChatFormatting.RED + "NO WAY HOME");
 			} else {

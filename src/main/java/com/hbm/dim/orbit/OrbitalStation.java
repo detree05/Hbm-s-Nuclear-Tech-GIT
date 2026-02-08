@@ -179,6 +179,12 @@ public class OrbitalStation {
 
 		lastAttemptedTarget = to;
 
+		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+			errorsAt = new ArrayList<ThreeInts>();
+			errorTimer = 100;
+			return false;
+		}
+
 		if(to != null && to.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
 			errorsAt = new ArrayList<ThreeInts>();
 			for(IPropulsion engine : engines) {

@@ -199,6 +199,8 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 		SolarSystem.Body target = ItemVOTVdrive.getDestination(slots[0]).body;
 		if(target == SolarSystem.Body.ORBIT && rocket.capsule.part != ModItems.rp_capsule_20 && rocket.capsule.part != ModItems.rp_station_core_20)
 		return false;
+		if(target == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole())
+			return false;
 
 		Target from = CelestialBody.getTarget(worldObj, xCoord, zCoord);
 		Target to = ItemVOTVdrive.getTarget(slots[0], worldObj);

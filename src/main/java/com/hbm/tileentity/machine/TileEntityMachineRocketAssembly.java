@@ -90,6 +90,12 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 
 			if(toTarget.body != null
 					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& !SolarSystem.isKerbolBlackhole()) {
+				rocket.addIssue(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+			}
+
+			if(toTarget.body != null
+					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
 					&& !toTarget.inOrbit
 					&& rocket.capsule != null
 					&& rocket.capsule.part == ModItems.rp_capsule_20) {
@@ -248,6 +254,7 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 	}
 
 	public void construct() {
+		if(isKerbolBlocked()) return;
 		if(!rocket.validate()) return;
 
 		slots[slots.length - RocketStruct.MAX_STAGES * 2 - 1] = ItemCustomRocket.build(rocket);
@@ -255,6 +262,15 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 		for(int i = 0; i < slots.length - RocketStruct.MAX_STAGES * 2 - 1; i++) {
 			slots[i] = null;
 		}
+	}
+
+	private boolean isKerbolBlocked() {
+		if(worldObj == null) return false;
+		ItemStack toStack = slots[slots.length - (RocketStruct.MAX_STAGES - currentStage) * 2 + 1];
+		Target toTarget = ItemVOTVdrive.getTarget(toStack, worldObj);
+		return toTarget.body != null
+			&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+			&& !SolarSystem.isKerbolBlackhole();
 	}
 
 	public boolean canDeconstruct() {

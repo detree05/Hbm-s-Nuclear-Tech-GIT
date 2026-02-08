@@ -26,6 +26,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
@@ -84,6 +85,11 @@ public class BlockOrbitalStationComputer extends BlockDummyable implements ILook
 				if(destination.body == SolarSystem.Body.ORBIT)
 					return false;
 
+				if(destination.body == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+					player.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "Are you out of your mind?"));
+					return true;
+				}
+
 				if(computer.travelTo(destination.body.getBody(), heldStack.copy())) {
 					heldStack.stackSize = 0;
 					world.playSoundEffect(x, y, z, "hbm:item.upgradePlug", 1.0F, 1.0F);
@@ -129,7 +135,9 @@ public class BlockOrbitalStationComputer extends BlockDummyable implements ILook
 		double progress = station.getUnscaledProgress(0);
 		List<String> text = new ArrayList<>();
 
-		if(!station.hasEngines) {
+		if(OrbitalStation.isKerbolAttempt(computer) && !SolarSystem.isKerbolBlackhole()) {
+			text.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+		} else if(!station.hasEngines) {
 			text.add(EnumChatFormatting.RED + "No engines available");
 		} else if(station.errorsAt.size() > 0) {
 			for(ThreeInts errorAt : station.errorsAt) {

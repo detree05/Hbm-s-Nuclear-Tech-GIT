@@ -430,6 +430,10 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 			issues.add(EnumChatFormatting.RED + "Its gone...");
 			return;
 		}
+		if(to.body != null && to.body.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+			issues.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+			return;
+		}
 
 		if(to.inOrbit && !to.isValid && rocket.capsule.part != ModItems.rp_station_core_20) {
 			issues.add(EnumChatFormatting.RED + "Station not yet launched");
