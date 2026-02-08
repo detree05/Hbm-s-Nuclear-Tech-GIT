@@ -2,6 +2,8 @@ package com.hbm.tileentity.machine;
 
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.DfcIgnitionSkyPacket;
 import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
@@ -46,6 +48,10 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 					if(throughputLastSecond >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
 						skyState.setState(CBT_SkyState.SkyState.SUN);
 						skyState.setDfcThroughput(0);
+						PacketDispatcher.wrapper.sendToDimension(
+							new DfcIgnitionSkyPacket(worldObj.getTotalWorldTime(), worldObj.provider.dimensionId),
+							worldObj.provider.dimensionId
+						);
 					} else {
 						skyState.setDfcThroughput(throughputLastSecond);
 					}

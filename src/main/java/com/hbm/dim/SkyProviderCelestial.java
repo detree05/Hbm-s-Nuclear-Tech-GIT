@@ -75,6 +75,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
+	private static final Shader supernovaeShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/supernovae.frag"));
 	
 	private static boolean novaeActive = false;
 	private static long novaeStartWorldTime = 0L;
@@ -82,6 +83,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static float novaeYaw = 0.0F;
 	private static float novaePitch = 0.0F;
 	private static float novaeRoll = 0.0F;
+	private static boolean dfcIgnitionActive = false;
+	private static long dfcIgnitionStartWorldTime = 0L;
+	private static int dfcIgnitionDimension = Integer.MIN_VALUE;
+	private static final float DFC_IGNITION_DURATION_TICKS = 600.0F;
 
 	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
 	private static final Map<String, Float> ringFade = new HashMap<>();
@@ -788,6 +793,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.addVertexWithUV(-coronaSize, 99.9D, coronaSize, 0.0D, 1.0D);
 			tessellator.draw();
 			GL11.glEnable(GL11.GL_DEPTH_TEST);
+
+			renderDfcIgnitionEffect(partialTicks, world, mc, sunSize);
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
@@ -1516,6 +1523,131 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopAttrib();
 	}
 
+	protected void renderDfcIgnitionEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
+		if(!dfcIgnitionActive) return;
+		if(world.provider == null || world.provider.dimensionId != dfcIgnitionDimension) return;
+
+		float age = (world.getTotalWorldTime() - dfcIgnitionStartWorldTime) + partialTicks;
+		if(age < 0.0F) return;
+		if(age > DFC_IGNITION_DURATION_TICKS) {
+			dfcIgnitionActive = false;
+			return;
+		}
+
+		float spikeGrowTicks = 120.0F;
+		float growProgress = MathHelper.clamp_float(age / spikeGrowTicks, 0.0F, 1.0F);
+		float grow = smoothstep(0.0F, 1.0F, growProgress);
+
+		double minShaderSize = sunSize * 0.6D;
+		double maxShaderSize = sunSize * 3.2D;
+		double shaderSize = minShaderSize + (maxShaderSize - minShaderSize) * grow;
+
+		Tessellator tessellator = Tessellator.instance;
+
+		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
+		GL11.glPushMatrix();
+		{
+			GL11.glDisable(GL11.GL_CULL_FACE);
+			GL11.glDisable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+
+			supernovaeShader.use();
+			float time = 1.0F + age / 20.0F;
+
+			mc.renderEngine.bindTexture(noise);
+			GL11.glPushMatrix();
+			{
+				// Fix orbital plane
+				GL11.glRotatef(-90.0F, 0, 1, 0);
+				supernovaeShader.setUniform1f("iTime", time);
+				supernovaeShader.setUniform1i("iChannel1", 0);
+
+				tessellator.startDrawingQuads();
+				tessellator.addVertexWithUV(-shaderSize, 100.0D, -shaderSize, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(shaderSize, 100.0D, -shaderSize, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(shaderSize, 100.0D, shaderSize, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-shaderSize, 100.0D, shaderSize, 0.0D, 1.0D);
+				tessellator.draw();
+			}
+			GL11.glPopMatrix();
+			supernovaeShader.stop();
+
+			// Fast, oversized shockwave when the ignition appears.
+			float waveDurationTicks = 360.0F;
+			float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
+			if(waveProgress < 1.0F) {
+				float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
+				double waveSize = maxShaderSize * (1.0D + waveProgress * 6.0D);
+
+				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha);
+				mc.renderEngine.bindTexture(shockwaveTexture);
+				tessellator.startDrawingQuads();
+				tessellator.addVertexWithUV(-waveSize, 100.0D, -waveSize, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(waveSize, 100.0D, -waveSize, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(waveSize, 100.0D, waveSize, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-waveSize, 100.0D, waveSize, 0.0D, 1.0D);
+				tessellator.draw();
+			}
+
+			// Tom-style blast wave cylinder emerging from the center.
+			float tomWaveDuration = 600.0F;
+			if(age <= tomWaveDuration) {
+				float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
+				double tomScale = 4.0D + (tomProgress * tomProgress) * (maxShaderSize * 12.0D);
+
+				int segments = 16;
+				float angle = (float) Math.toRadians(360D / segments);
+				int height = 40;
+				int depth = 40;
+
+				mc.renderEngine.bindTexture(ResourceManager.tomblast);
+				GL11.glMatrixMode(GL11.GL_TEXTURE);
+				GL11.glLoadIdentity();
+				GL11.glTranslatef(0.0F, -(world.getTotalWorldTime() + partialTicks) * 0.01F, 0.0F);
+				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+
+				tessellator.startDrawingQuads();
+				for(int i = 0; i < segments; i++) {
+					for(int j = 0; j < 5; j++) {
+						double mod = 1 - j * 0.025;
+						double h = height + j * 10;
+						double off = 1D / j;
+
+						Vec3 vec = Vec3.createVectorHelper(tomScale, 0, 0);
+						vec.rotateAroundY(angle * i);
+						double x0 = vec.xCoord * mod;
+						double z0 = vec.zCoord * mod;
+
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
+						tessellator.addVertexWithUV(x0, h, z0, 0, 1 + off);
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
+						tessellator.addVertexWithUV(x0, -depth, z0, 0, 0 + off);
+
+						vec.rotateAroundY(angle);
+						x0 = vec.xCoord * mod;
+						z0 = vec.zCoord * mod;
+
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
+						tessellator.addVertexWithUV(x0, -depth, z0, 1, 0 + off);
+						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
+						tessellator.addVertexWithUV(x0, h, z0, 1, 1 + off);
+					}
+				}
+				tessellator.draw();
+
+				GL11.glMatrixMode(GL11.GL_TEXTURE);
+				GL11.glLoadIdentity();
+				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+			}
+
+			GL11.glEnable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_CULL_FACE);
+		}
+		GL11.glPopMatrix();
+		GL11.glPopAttrib();
+	}
+
 
 
 	private static float smoothstep(float edge0, float edge1, float x) {
@@ -1530,6 +1662,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 		novaeYaw = yaw;
 		novaePitch = pitch;
 		novaeRoll = roll;
+	}
+
+	public static void startDfcIgnitionEffect(long worldTime, int dimension) {
+		dfcIgnitionActive = true;
+		dfcIgnitionStartWorldTime = worldTime;
+		dfcIgnitionDimension = dimension;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

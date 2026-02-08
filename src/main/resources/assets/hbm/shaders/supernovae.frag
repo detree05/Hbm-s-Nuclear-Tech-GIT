@@ -101,10 +101,10 @@ vec3 computeColor( float density, float radius )
 	return result;
 }
 
-bool RaySphereIntersect(vec3 org, vec3 dir, out float near, out float far)
+bool RaySphereIntersect(vec3 org, vec3 dir, float radius, out float near, out float far)
 {
 	float b = dot(dir, org);
-	float c = dot(org, org) - 8.;
+	float c = dot(org, org) - radius*radius;
 	float delta = b*b - c;
 	if( delta < 0.0)
 		return false;
@@ -162,8 +162,10 @@ void main()
 	vec4 sum = vec4(0.0);
 
 	float min_dist=0.0, max_dist=0.0;
+	float igt = 2.0*sqrt(1.0 + mod((iTime - 1.)*0.1,-1.));
+	float boundRadius = 4.0 * igt;
 
-	if(RaySphereIntersect(ro, rd, min_dist, max_dist))
+	if(RaySphereIntersect(ro, rd, boundRadius, min_dist, max_dist))
 	{
 
 	t = min_dist*step(t,min_dist);
