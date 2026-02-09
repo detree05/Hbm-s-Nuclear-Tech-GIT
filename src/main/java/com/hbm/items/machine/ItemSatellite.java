@@ -39,11 +39,7 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 	public void addInformation(ItemStack itemstack, EntityPlayer player, List list, boolean bool) {
 		super.addInformation(itemstack, player, list, bool);
 
-		if(this != ModItems.sat_dfc_relay) {
-			list.add(I18nUtil.resolveKey("item.sat.desc.frequency") + ": " + getFreq(itemstack));
-		} else {
-			list.add(I18nUtil.resolveKey("item.sat.desc.frequency") + ": " + I18nUtil.resolveKey("item.sat.desc.no_frequency"));
-		}
+		list.add(I18nUtil.resolveKey("item.sat.desc.frequency") + ": " + getFreq(itemstack));
 
 		if(this == ModItems.sat_foeq)
 			list.add(I18nUtil.resolveKey("item.sat.desc.foeq"));

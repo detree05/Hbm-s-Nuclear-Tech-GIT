@@ -86,6 +86,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static long dfcIgnitionStartWorldTime = 0L;
 	private static int dfcIgnitionDimension = Integer.MIN_VALUE;
 	private static final float DFC_IGNITION_DURATION_TICKS = 600.0F;
+	private static boolean dfcDecayFlareActive = false;
+	private static long dfcDecayFlareStartWorldTime = 0L;
+	private static int dfcDecayFlareDimension = Integer.MIN_VALUE;
+	private static final float DFC_DECAY_FLARE_DURATION_TICKS = 200.0F;
 
 	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
 	private static final Map<String, Float> ringFade = new HashMap<>();
@@ -702,6 +706,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				tessellator.draw();
 				GL11.glEnable(GL11.GL_DEPTH_TEST);
 			}
+			renderDfcDecayFlareEffect(partialTicks, world, mc, sunSize);
 			return;
 		}
 
@@ -822,6 +827,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glEnable(GL11.GL_DEPTH_TEST);
 
 			renderDfcIgnitionEffect(partialTicks, world, mc, renderSunSize);
+			renderDfcDecayFlareEffect(partialTicks, world, mc, renderSunSize);
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
@@ -1649,6 +1655,50 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopAttrib();
 	}
 
+	protected void renderDfcDecayFlareEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
+		if(!dfcDecayFlareActive) return;
+		if(world.provider == null || world.provider.dimensionId != dfcDecayFlareDimension) return;
+
+		float age = (world.getTotalWorldTime() - dfcDecayFlareStartWorldTime) + partialTicks;
+		if(age < 0.0F) return;
+		if(age > DFC_DECAY_FLARE_DURATION_TICKS) {
+			dfcDecayFlareActive = false;
+			return;
+		}
+
+		float progress = MathHelper.clamp_float(age / DFC_DECAY_FLARE_DURATION_TICKS, 0.0F, 1.0F);
+		float alpha = 1.0F - smoothstep(0.0F, 1.0F, progress);
+		double size = sunSize * (0.15D + 0.35D * progress);
+
+		Tessellator tessellator = Tessellator.instance;
+
+		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
+		GL11.glPushMatrix();
+		{
+			GL11.glDisable(GL11.GL_CULL_FACE);
+			GL11.glDisable(GL11.GL_ALPHA_TEST);
+			GL11.glDisable(GL11.GL_DEPTH_TEST);
+			GL11.glEnable(GL11.GL_BLEND);
+			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+
+			GL11.glColor4f(1.0F, 0.5F, 0.5F, alpha);
+			mc.renderEngine.bindTexture(shockFlareTexture);
+
+			tessellator.startDrawingQuads();
+			tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(size, 100.0D, size, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D, 1.0D);
+			tessellator.draw();
+
+			GL11.glEnable(GL11.GL_ALPHA_TEST);
+			GL11.glEnable(GL11.GL_DEPTH_TEST);
+			GL11.glEnable(GL11.GL_CULL_FACE);
+		}
+		GL11.glPopMatrix();
+		GL11.glPopAttrib();
+	}
+
 
 
 	private static float smoothstep(float edge0, float edge1, float x) {
@@ -1669,6 +1719,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 		dfcIgnitionActive = true;
 		dfcIgnitionStartWorldTime = worldTime;
 		dfcIgnitionDimension = dimension;
+	}
+
+	public static void startDfcDecayFlareEffect(long worldTime, int dimension) {
+		dfcDecayFlareActive = true;
+		dfcDecayFlareStartWorldTime = worldTime;
+		dfcDecayFlareDimension = dimension;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

@@ -89,6 +89,7 @@ import com.hbm.items.weapon.sedna.factory.XFactory12ga;
 import com.hbm.lib.ModDamageSource;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.DfcDecaySkyPacket;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
 import com.hbm.packet.toclient.GravityEventPacket;
 import com.hbm.packet.toclient.SupernovaeSkyPacket;
@@ -885,6 +886,10 @@ public class ModEventHandler {
 					sunSkyState.setSunLastSustainTick(0);
 					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
 					CBT_Dyson.clearAll(event.world);
+					PacketDispatcher.wrapper.sendToDimension(
+						new DfcDecaySkyPacket(event.world.getTotalWorldTime(), event.world.provider.dimensionId),
+						event.world.provider.dimensionId
+					);
 				}
 			}
 
