@@ -186,6 +186,14 @@ public class CelestialBody {
 		return this;
 	}
 
+	public CelestialBody clearRings() {
+		this.hasRings = false;
+		this.ringTilt = 0.0F;
+		this.ringSize = 2.0F;
+		this.ringColor = new float[] { 0.5F, 0.5F, 0.5F };
+		return this;
+	}
+
 	public CelestialBody withGas(FluidType gas) {
 		this.gas = gas;
 		return this;

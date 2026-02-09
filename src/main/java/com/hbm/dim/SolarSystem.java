@@ -48,13 +48,27 @@ public class SolarSystem {
 	public static void applyMinmusShatterState() {
 		CelestialBody minmus = CelestialBody.getBody("minmus");
 		if(minmus == null || !"minmus".equals(minmus.name)) return;
-		if(!minmus.hasTrait(CBT_Destroyed.class)) return;
 
 		CelestialBody mun = CelestialBody.getBody("mun");
 		if(mun == null || !"mun".equals(mun.name)) return;
 
-		if(!mun.hasRings || mun.ringTilt != MUN_SHATTER_RING_TILT || mun.ringSize != MUN_SHATTER_RING_SIZE) {
-			mun.withRings(MUN_SHATTER_RING_TILT, MUN_SHATTER_RING_SIZE, MUN_SHATTER_RING_R, MUN_SHATTER_RING_G, MUN_SHATTER_RING_B);
+		boolean destroyed = minmus.hasTrait(CBT_Destroyed.class);
+		if(destroyed) {
+			if(!mun.hasRings || mun.ringTilt != MUN_SHATTER_RING_TILT || mun.ringSize != MUN_SHATTER_RING_SIZE) {
+				mun.withRings(MUN_SHATTER_RING_TILT, MUN_SHATTER_RING_SIZE, MUN_SHATTER_RING_R, MUN_SHATTER_RING_G, MUN_SHATTER_RING_B);
+			}
+			return;
+		}
+
+		if(mun.hasRings
+				&& mun.ringTilt == MUN_SHATTER_RING_TILT
+				&& mun.ringSize == MUN_SHATTER_RING_SIZE
+				&& mun.ringColor != null
+				&& mun.ringColor.length >= 3
+				&& mun.ringColor[0] == MUN_SHATTER_RING_R
+				&& mun.ringColor[1] == MUN_SHATTER_RING_G
+				&& mun.ringColor[2] == MUN_SHATTER_RING_B) {
+			mun.clearRings();
 		}
 	}
 
