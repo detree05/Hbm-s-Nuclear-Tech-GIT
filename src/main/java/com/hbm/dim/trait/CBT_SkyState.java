@@ -4,11 +4,14 @@ import com.hbm.dim.CelestialBody;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
 	public static final long DFC_THRESHOLD_HE_PER_SEC = 10_000_000_000_000L;
+	// Temporary: tweakable decay time in ticks (20 ticks = 1 second)
+	public static int SUN_DECAY_TICKS = 20 * 60;
 
 	public enum SkyState {
 		SUN,
@@ -20,6 +23,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	private SkyState state = SkyState.SUN;
 	private int blackholeClustersSent;
 	private long dfcThroughput;
+	private long sunLastSustainTick;
 
 	public CBT_SkyState() { }
 
@@ -68,6 +72,22 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		dfcThroughput = Math.max(0, throughput);
 	}
 
+	public long getSunLastSustainTick() {
+		return sunLastSustainTick;
+	}
+
+	public void setSunLastSustainTick(long tick) {
+		sunLastSustainTick = Math.max(0, tick);
+	}
+
+	public float getSunDecayProgress(World world, float partialTicks) {
+		if(world == null || state != SkyState.SUN) return 0.0F;
+		if(SUN_DECAY_TICKS <= 0) return 1.0F;
+		if(sunLastSustainTick <= 0) return 0.0F;
+		float elapsed = (world.getTotalWorldTime() - sunLastSustainTick) + partialTicks;
+		return MathHelper.clamp_float(elapsed / (float) SUN_DECAY_TICKS, 0.0F, 1.0F);
+	}
+
 	public static CBT_SkyState get(World world) {
 		CelestialBody star = CelestialBody.getStar(world);
 		CBT_SkyState sky = star.getTrait(CBT_SkyState.class);
@@ -101,6 +121,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		nbt.setInteger("state", state.ordinal());
 		nbt.setInteger("clusters", blackholeClustersSent);
 		nbt.setLong("dfcThroughput", dfcThroughput);
+		nbt.setLong("sunLastSustain", sunLastSustainTick);
 	}
 
 	@Override
@@ -110,6 +131,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = nbt.getInteger("clusters");
 		dfcThroughput = nbt.getLong("dfcThroughput");
+		sunLastSustainTick = nbt.getLong("sunLastSustain");
 	}
 
 	@Override
@@ -117,6 +139,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		buf.writeByte(state.ordinal());
 		buf.writeShort(blackholeClustersSent);
 		buf.writeLong(dfcThroughput);
+		buf.writeLong(sunLastSustainTick);
 	}
 
 	@Override
@@ -126,5 +149,6 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = buf.readShort();
 		dfcThroughput = buf.readLong();
+		sunLastSustainTick = buf.readLong();
 	}
 }

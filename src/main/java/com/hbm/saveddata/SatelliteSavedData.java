@@ -42,6 +42,16 @@ public class SatelliteSavedData extends WorldSavedData {
 		return sats.get(freq);
 	}
 
+	public boolean hasSatellite(Class<? extends Satellite> type) {
+		if(type == null) return false;
+		for(Satellite sat : sats.values()) {
+			if(type.isInstance(sat)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	@Override
 	public void readFromNBT(NBTTagCompound nbt) {
 		int satCount = nbt.getInteger("satCount");

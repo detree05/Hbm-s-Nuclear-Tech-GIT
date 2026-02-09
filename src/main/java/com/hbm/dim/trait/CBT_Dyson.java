@@ -73,6 +73,14 @@ public class CBT_Dyson extends CelestialBodyTrait {
 		return swarm.consumers;
 	}
 
+	public static void clearAll(World world) {
+		CelestialBody star = CelestialBody.getStar(world);
+		CBT_Dyson dyson = star.getTrait(CBT_Dyson.class);
+		if(dyson == null) return;
+		dyson.swarms.clear();
+		star.modifyTraits(dyson);
+	}
+
 	public int size() {
 		int size = 0;
 		for(Swarm swarm : swarms.values()) {

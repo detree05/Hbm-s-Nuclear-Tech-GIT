@@ -4896,6 +4896,7 @@ item.sat_chip.name=Satellite ID-Chip
 item.sat_coord.name=Satellite Designator
 item.sat_designator.name=Satellite Laser Designator
 item.sat_dyson_relay.name=Satellite Dyson Relay
+item.sat_dfc_relay.name=Satellite DFC Relay
 item.sat_relay.name=Satellite Radar Relay
 item.sat_foeq.name=PEAF - Mk.I FOEQ Duna Probe with experimental Nuclear Propulsion
 item.sat_gerald.name=Gerald The Construction Android
@@ -4914,6 +4915,7 @@ item.sat_resonator.name=Xenium Resonator Satellite
 item.sat_scanner.name=Satellite with Depth-Resource Scanning Module
 
 item.sat.desc.frequency=Satellite frequency
+item.sat.desc.no_frequency=No frequency required
 item.sat.desc.foeq=Gives you an achievement. That's it.
 item.sat.desc.gerald.single_use=Single use.
 item.sat.desc.gerald.orbital_module=Requires orbital module.
@@ -4927,6 +4929,7 @@ item.sat.desc.resonator=Allows for teleportation with no cooldown.
 item.sat.desc.scanner=Creates a topdown map of underground ores.
 item.sat.desc.war=Single shot railcannon designed to be used on other planets
 item.sat.desc.dyson_relay=Allows a Dyson Receiver to function at night
+item.sat.desc.dfc_relay=Allows the Star Core Energy Injector to operate at night.
 item.sat.desc.launch_by_hand=Can be launched by hand from an orbital station
 item.sat.desc.deploy_orbit=Interact to deploy into orbit
 

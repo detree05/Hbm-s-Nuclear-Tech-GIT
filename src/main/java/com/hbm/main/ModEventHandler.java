@@ -38,6 +38,7 @@ import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_Lights;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.entity.missile.EntityRideableRocket;
@@ -869,6 +870,24 @@ public class ModEventHandler {
 	public void worldTick(WorldTickEvent event) {
 
 		if(event.world != null && !event.world.isRemote) {
+			CBT_SkyState sunSkyState = CBT_SkyState.get(event.world);
+			if(sunSkyState != null && sunSkyState.getState() == CBT_SkyState.SkyState.SUN) {
+				long now = event.world.getTotalWorldTime();
+				if(sunSkyState.getSunLastSustainTick() <= 0) {
+					sunSkyState.setSunLastSustainTick(now);
+					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
+				}
+
+				long elapsed = now - sunSkyState.getSunLastSustainTick();
+				if(elapsed >= CBT_SkyState.SUN_DECAY_TICKS) {
+					sunSkyState.setState(CBT_SkyState.SkyState.DFC);
+					sunSkyState.setDfcThroughput(0);
+					sunSkyState.setSunLastSustainTick(0);
+					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
+					CBT_Dyson.clearAll(event.world);
+				}
+			}
+
 			if(event.world.provider.dimensionId == 0) {
 				SolarSystem.applyMinmusShatterState();
 			}

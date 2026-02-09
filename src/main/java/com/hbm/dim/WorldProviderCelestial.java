@@ -226,6 +226,11 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 				);
 				return 0.45F + (1.0F - 0.45F) * ratio;
 			}
+			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
+				float decay = skyState.getSunDecayProgress(worldObj, 0.0F);
+				float ratio = 1.0F - MathHelper.clamp_float(decay, 0.0F, 1.0F);
+				return 0.45F + (1.0F - 0.45F) * ratio;
+			}
 			return 1.0F;
 		} catch(Exception ignored) {
 			return 1.0F;

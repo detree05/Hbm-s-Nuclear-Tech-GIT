@@ -176,6 +176,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 				1.0F
 			);
 			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
+		} else if(sky == CBT_SkyState.SkyState.SUN && skyState != null) {
+			float decay = skyState.getSunDecayProgress(world, partialTicks);
+			float ratio = 1.0F - MathHelper.clamp_float(decay, 0.0F, 1.0F);
+			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
 		}
 		visibility *= skyDim;
 
@@ -653,6 +657,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 		int swarmCount = dyson != null ? dyson.size() : 0;
 		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
 		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
+		float sunDecayProgress = (sky == CBT_SkyState.SkyState.SUN && skyState != null)
+			? skyState.getSunDecayProgress(world, partialTicks)
+			: 0.0F;
+		float sunScale = 1.0F - 0.65F * sunDecayProgress;
+		double renderSunSize = sunSize * sunScale;
+		double renderCoronaSize = coronaSize * sunScale;
 
 		if(sky == CBT_SkyState.SkyState.DFC) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
@@ -746,10 +756,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 			// Depth-only mask. Keep it behind the sun (99.9D) so it doesn't
 			// occlude the actual sun quad at 100.0D.
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-sunSize * 0.25D, 99.9D, -sunSize * 0.25D, 0.0D, 0.0D);
-			tessellator.addVertexWithUV( sunSize * 0.25D, 99.9D, -sunSize * 0.25D, 1.0D, 0.0D);
-			tessellator.addVertexWithUV( sunSize * 0.25D, 99.9D,  sunSize * 0.25D, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-sunSize * 0.25D, 99.9D,  sunSize * 0.25D, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderSunSize * 0.25D, 99.9D, -renderSunSize * 0.25D, 0.0D, 0.0D);
+			tessellator.addVertexWithUV( renderSunSize * 0.25D, 99.9D, -renderSunSize * 0.25D, 1.0D, 0.0D);
+			tessellator.addVertexWithUV( renderSunSize * 0.25D, 99.9D,  renderSunSize * 0.25D, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderSunSize * 0.25D, 99.9D,  renderSunSize * 0.25D, 0.0D, 1.0D);
 			tessellator.draw();
 
 			GL11.glColorMask(true, true, true, true);
@@ -775,12 +785,24 @@ public class SkyProviderCelestial extends IRenderHandler {
 				? ((WorldProviderCelestial) world.provider).getSunColor()
 				: new float[] { 1.0F, 1.0F, 1.0F };
 
+			if(sunDecayProgress > 0.0F) {
+				float t = MathHelper.clamp_float(sunDecayProgress, 0.0F, 1.0F);
+				float targetR = 1.0F;
+				float targetG = 0.2F;
+				float targetB = 0.2F;
+				sunColor = new float[] {
+					sunColor[0] + (targetR - sunColor[0]) * t,
+					sunColor[1] + (targetG - sunColor[1]) * t,
+					sunColor[2] + (targetB - sunColor[2]) * t
+				};
+			}
+
 			GL11.glColor4f(sunColor[0], sunColor[1], sunColor[2], visibility);
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-sunSize, 100.0D, -sunSize, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(sunSize, 100.0D, -sunSize, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(sunSize, 100.0D, sunSize, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-sunSize, 100.0D, sunSize, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderSunSize, 100.0D, -renderSunSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(renderSunSize, 100.0D, -renderSunSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(renderSunSize, 100.0D, renderSunSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderSunSize, 100.0D, renderSunSize, 0.0D, 1.0D);
 			tessellator.draw();
 
 			GL11.glEnable(GL11.GL_DEPTH_TEST);
@@ -792,19 +814,19 @@ public class SkyProviderCelestial extends IRenderHandler {
 			mc.renderEngine.bindTexture(flareTexture);
 
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-coronaSize, 99.9D, -coronaSize, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(coronaSize, 99.9D, -coronaSize, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(coronaSize, 99.9D, coronaSize, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-coronaSize, 99.9D, coronaSize, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderCoronaSize, 99.9D, -renderCoronaSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(renderCoronaSize, 99.9D, -renderCoronaSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(renderCoronaSize, 99.9D, renderCoronaSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-renderCoronaSize, 99.9D, renderCoronaSize, 0.0D, 1.0D);
 			tessellator.draw();
 			GL11.glEnable(GL11.GL_DEPTH_TEST);
 
-			renderDfcIgnitionEffect(partialTicks, world, mc, sunSize);
+			renderDfcIgnitionEffect(partialTicks, world, mc, renderSunSize);
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
 			if(swarmCount > 0) {
-				renderSwarm(partialTicks, world, mc, sunSize * 0.5, swarmCount);
+				renderSwarm(partialTicks, world, mc, renderSunSize * 0.5, swarmCount);
 			}
 
 			// Clear and disable the depth buffer once again, buffer has to be writable to clear it

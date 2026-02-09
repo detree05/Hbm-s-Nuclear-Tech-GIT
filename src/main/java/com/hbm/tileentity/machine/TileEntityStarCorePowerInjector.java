@@ -4,6 +4,8 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.DfcIgnitionSkyPacket;
+import com.hbm.saveddata.SatelliteSavedData;
+import com.hbm.saveddata.satellites.SatelliteDfcRelay;
 import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
@@ -44,10 +46,12 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 				throughputThisSecond = 0;
 
 				CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-				if(skyState.getState() == CBT_SkyState.SkyState.DFC) {
+				CBT_SkyState.SkyState state = skyState.getState();
+				if(state == CBT_SkyState.SkyState.DFC) {
 					if(throughputLastSecond >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
 						skyState.setState(CBT_SkyState.SkyState.SUN);
 						skyState.setDfcThroughput(0);
+						skyState.setSunLastSustainTick(worldObj.getTotalWorldTime());
 						PacketDispatcher.wrapper.sendToDimension(
 							new DfcIgnitionSkyPacket(worldObj.getTotalWorldTime(), worldObj.provider.dimensionId),
 							worldObj.provider.dimensionId
@@ -56,6 +60,18 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 						skyState.setDfcThroughput(throughputLastSecond);
 					}
 					CelestialBody.getStar(worldObj).modifyTraits(skyState);
+				} else if(state == CBT_SkyState.SkyState.SUN) {
+					if(throughputLastSecond >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
+						long now = worldObj.getTotalWorldTime();
+						if(skyState.getSunLastSustainTick() != now) {
+							skyState.setSunLastSustainTick(now);
+							CelestialBody.getStar(worldObj).modifyTraits(skyState);
+						}
+					}
+					if(skyState.getDfcThroughput() != 0) {
+						skyState.setDfcThroughput(0);
+						CelestialBody.getStar(worldObj).modifyTraits(skyState);
+					}
 				} else {
 					if(skyState.getDfcThroughput() != 0) {
 						skyState.setDfcThroughput(0);
@@ -75,7 +91,11 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 	public long transferPower(long power) {
 		if(worldObj == null) return power;
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-		if(skyState.getState() != CBT_SkyState.SkyState.DFC) {
+		CBT_SkyState.SkyState state = skyState.getState();
+		if(state != CBT_SkyState.SkyState.DFC && state != CBT_SkyState.SkyState.SUN) {
+			return power;
+		}
+		if(!canOperate()) {
 			return power;
 		}
 		long overshoot = IEnergyReceiverMK2.super.transferPower(power);
@@ -88,6 +108,13 @@ public class TileEntityStarCorePowerInjector extends TileEntityMachineBase imple
 
 	public long getThroughputPerSecond() {
 		return throughputLastSecond;
+	}
+
+	private boolean canOperate() {
+		if(worldObj == null) return false;
+		if(worldObj.isDaytime()) return true;
+		SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);
+		return data != null && data.hasSatellite(SatelliteDfcRelay.class);
 	}
 
 	@Override
