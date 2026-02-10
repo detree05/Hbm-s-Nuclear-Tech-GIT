@@ -312,7 +312,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			float blendAmount = hasAtmosphere ? MathHelper.clamp_float(1 - world.getSunBrightnessFactor(partialTicks), 0.25F, 1F) : 1F;
 
-			renderCelestials(partialTicks, world, mc, celestialProvider.metrics, solarAngle, null, planetTint, visibility, blendAmount, null, SolarSystem.MAX_APPARENT_SIZE_SURFACE);
+			renderCelestials(partialTicks, world, mc, celestialProvider.metrics, solarAngle, null, planetTint, visibility, blendAmount, null, SolarSystem.MAX_APPARENT_SIZE_SURFACE, skyState);
 
 			GL11.glEnable(GL11.GL_BLEND);
 
@@ -962,7 +962,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 	}
 
-	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize) {
+	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize, CBT_SkyState skyState) {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
 		float blendDarken = 0.1F;
@@ -972,6 +972,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		double transitionMinSize = 0.1D;
 		double transitionMaxSize = 0.5D;
+
+		double maxDistance = 0.0D;
+		for(AstroMetric metric : metrics) {
+			if(metric.distance > maxDistance) {
+				maxDistance = metric.distance;
+			}
+		}
+		if(maxDistance <= 0.0D) {
+			maxDistance = 1.0D;
+		}
 
 		for(AstroMetric metric : metrics) {
 
@@ -983,6 +993,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			double uvOffset = orbitingThis ? 1 - ((((double)world.getWorldTime() + partialTicks) / 1024) % 1) : 0;
 			float axialTilt = orbitingThis ? 0 : metric.body.axialTilt;
+
+			int injectorCount = 0;
+			if(skyState != null && metric.body != null && metric.body.canLand) {
+				injectorCount = skyState.getInjectorCount(metric.body.dimensionId);
+			}
+			if(injectorCount > 0 && bodyVisibility > 0.05F) {
+				float distanceFactor = (float)MathHelper.clamp_double(metric.distance / maxDistance, 0.0D, 1.0D);
+				float lineWidth = MathHelper.clamp_float(2.5F - 1.75F * distanceFactor, 0.6F, 3.0F);
+				renderInjectorLines(tessellator, metric, axialTilt, injectorCount, bodyVisibility, lineWidth);
+			}
 
 			GL11.glPushMatrix();
 			{
@@ -1310,6 +1330,105 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 			GL11.glPopMatrix();
 		}
+	}
+
+	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth) {
+		if(count <= 0) return;
+
+		final double skyHeight = 100.0D;
+		final double angleRad = Math.toRadians(metric.angle);
+		final double inclinationRad = Math.toRadians(metric.inclination);
+		final double tiltRad = Math.toRadians(axialTilt + 90.0F);
+
+		double y1 = Math.cos(angleRad);
+		double z1 = Math.sin(angleRad);
+		double x1 = 0.0D;
+
+		double x2 = -y1 * Math.sin(inclinationRad);
+		double y2 = y1 * Math.cos(inclinationRad);
+		double z2 = z1;
+
+		double cosT = Math.cos(tiltRad);
+		double sinT = Math.sin(tiltRad);
+		double x3 = x2 * cosT + z2 * sinT;
+		double y3 = y2;
+		double z3 = -x2 * sinT + z2 * cosT;
+
+		double bodyX = x3 * skyHeight;
+		double bodyY = y3 * skyHeight;
+		double bodyZ = z3 * skyHeight;
+
+		double sunX = 0.0D;
+		double sunY = skyHeight;
+		double sunZ = 0.0D;
+
+		double dirX = sunX - bodyX;
+		double dirY = sunY - bodyY;
+		double dirZ = sunZ - bodyZ;
+		double dirLen = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+		if(dirLen < 1.0E-4D) return;
+
+		dirX /= dirLen;
+		dirY /= dirLen;
+		dirZ /= dirLen;
+
+		double upX = 0.0D;
+		double upY = 1.0D;
+		double upZ = 0.0D;
+
+		double rightX = dirY * upZ - dirZ * upY;
+		double rightY = dirZ * upX - dirX * upZ;
+		double rightZ = dirX * upY - dirY * upX;
+		double rightLen = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+		if(rightLen < 1.0E-4D) {
+			upX = 1.0D;
+			upY = 0.0D;
+			upZ = 0.0D;
+			rightX = dirY * upZ - dirZ * upY;
+			rightY = dirZ * upX - dirX * upZ;
+			rightZ = dirX * upY - dirY * upX;
+			rightLen = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
+			if(rightLen < 1.0E-4D) return;
+		}
+		rightX /= rightLen;
+		rightY /= rightLen;
+		rightZ /= rightLen;
+
+		double forwardX = rightY * dirZ - rightZ * dirY;
+		double forwardY = rightZ * dirX - rightX * dirZ;
+		double forwardZ = rightX * dirY - rightY * dirX;
+
+		GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_LINE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glDisable(GL11.GL_CULL_FACE);
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glLineWidth(lineWidth);
+		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
+
+		float alpha = MathHelper.clamp_float(visibility * 0.6F, 0.0F, 1.0F);
+		tessellator.startDrawing(GL11.GL_LINES);
+		tessellator.setColorRGBA_F(1.0F, 0.15F, 0.15F, alpha);
+		for(int i = 0; i < count; i++) {
+			int seedBase = metric.body != null ? metric.body.dimensionId : 0;
+			int hash = seedBase * 73471 + i * 912367;
+			hash ^= (hash << 13);
+			hash ^= (hash >>> 17);
+			hash ^= (hash << 5);
+
+			double theta = ((hash & 0xFFFF) / 65535.0D) * Math.PI * 2.0D;
+			double radius = 0.15D + (((hash >> 16) & 0xFF) / 255.0D) * 0.35D;
+
+			double offsetX = rightX * Math.cos(theta) * radius + forwardX * Math.sin(theta) * radius;
+			double offsetY = rightY * Math.cos(theta) * radius + forwardY * Math.sin(theta) * radius;
+			double offsetZ = rightZ * Math.cos(theta) * radius + forwardZ * Math.sin(theta) * radius;
+
+			tessellator.addVertex(bodyX + offsetX, bodyY + offsetY, bodyZ + offsetZ);
+			tessellator.addVertex(sunX, sunY, sunZ);
+		}
+		tessellator.draw();
+
+		GL11.glPopAttrib();
 	}
 
 	protected void renderRings(float partialTicks, WorldClient world, Minecraft mc, float ringTilt, float[] ringColor, float ringSize, float visibility) {

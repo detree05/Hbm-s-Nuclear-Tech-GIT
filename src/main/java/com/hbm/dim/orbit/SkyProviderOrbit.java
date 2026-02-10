@@ -9,6 +9,7 @@ import com.hbm.dim.SkyProviderCelestial;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystem.AstroMetric;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.lib.Library;
 import com.hbm.util.BobMathUtil;
 
@@ -82,7 +83,8 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 			CelestialBody orbiting = station.orbiting;
 			if(station.state != StationState.ORBIT && progress > 0.5) orbiting = station.target;
 
-			renderCelestials(partialTicks, world, mc, provider.metrics, solarAngle, null, Vec3.createVectorHelper(0, 0, 0), 1, 1, orbiting, SolarSystem.MAX_APPARENT_SIZE_ORBIT);
+			CBT_SkyState skyState = station.orbiting != null ? station.orbiting.getStar().getTrait(CBT_SkyState.class) : null;
+			renderCelestials(partialTicks, world, mc, provider.metrics, solarAngle, null, Vec3.createVectorHelper(0, 0, 0), 1, 1, orbiting, SolarSystem.MAX_APPARENT_SIZE_ORBIT, skyState);
 
 		}
 		GL11.glPopMatrix();

@@ -7,10 +7,13 @@ import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.CelestialBody;
+import com.hbm.config.SpaceConfig;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 
 import net.minecraft.world.World;
+import net.minecraft.world.WorldProviderEnd;
+import net.minecraft.world.WorldProviderHell;
 
 public class StarcoreThroughputTracker {
 
@@ -21,11 +24,17 @@ public class StarcoreThroughputTracker {
 		private long lastFiveTickTotal;
 		private java.util.Set<Long> injectorsThisFiveTicks;
 		private int injectorsLastFiveTicks;
+		private java.util.Set<Long> injectorsAll;
+		private int injectorsAllCount;
 		private java.util.Set<Long> injectorsThisSecond;
 		private int injectorsLastSecond;
 		private long totalThisSecond;
 		private long lastSecondTotal;
 		private long lastProcessedTick;
+		private Map<Integer, java.util.Set<Long>> injectorsThisSecondByDim;
+		private Map<Integer, Integer> injectorsByDimension;
+		private boolean injectorsByDimensionDirty;
+		private long lastInjectorSyncTick;
 	}
 
 	private static final Map<String, Accumulator> perStar = new HashMap<>();
@@ -37,6 +46,9 @@ public class StarcoreThroughputTracker {
 			acc = new Accumulator();
 			acc.injectorsThisFiveTicks = new java.util.HashSet<>();
 			acc.injectorsThisSecond = new java.util.HashSet<>();
+			acc.injectorsAll = new java.util.HashSet<>();
+			acc.injectorsThisSecondByDim = new HashMap<>();
+			acc.injectorsByDimension = new HashMap<>();
 			perStar.put(starName, acc);
 		}
 		return acc;
@@ -64,6 +76,35 @@ public class StarcoreThroughputTracker {
 		long packed = packInjectorPos(dim, x, y, z);
 		acc.injectorsThisFiveTicks.add(packed);
 		acc.injectorsThisSecond.add(packed);
+		if(shouldCountForSkyLines(world)) {
+			long packedNoDim = packInjectorPosNoDim(x, y, z);
+			java.util.Set<Long> set = acc.injectorsThisSecondByDim.get(dim);
+			if(set == null) {
+				set = new java.util.HashSet<>();
+				acc.injectorsThisSecondByDim.put(dim, set);
+			}
+			set.add(packedNoDim);
+		}
+	}
+
+	public static void registerInjector(World world, int x, int y, int z) {
+		if(world == null || world.isRemote) return;
+		Accumulator acc = get(world);
+		int dim = world.provider != null ? world.provider.dimensionId : 0;
+		long packed = packInjectorPos(dim, x, y, z);
+		if(acc.injectorsAll.add(packed)) {
+			acc.injectorsAllCount = acc.injectorsAll.size();
+		}
+	}
+
+	public static void unregisterInjector(World world, int x, int y, int z) {
+		if(world == null || world.isRemote) return;
+		Accumulator acc = get(world);
+		int dim = world.provider != null ? world.provider.dimensionId : 0;
+		long packed = packInjectorPos(dim, x, y, z);
+		if(acc.injectorsAll.remove(packed)) {
+			acc.injectorsAllCount = acc.injectorsAll.size();
+		}
 	}
 
 	public static void tick(World world) {
@@ -88,6 +129,23 @@ public class StarcoreThroughputTracker {
 			acc.totalThisSecond = 0;
 			acc.injectorsLastSecond = acc.injectorsThisSecond.size();
 			acc.injectorsThisSecond.clear();
+			if(acc.injectorsThisSecondByDim.isEmpty()) {
+				if(!acc.injectorsByDimension.isEmpty()) {
+					acc.injectorsByDimension = new HashMap<>();
+					acc.injectorsByDimensionDirty = true;
+				}
+			} else {
+				HashMap<Integer, Integer> next = new HashMap<>();
+				for(Map.Entry<Integer, java.util.Set<Long>> entry : acc.injectorsThisSecondByDim.entrySet()) {
+					int count = entry.getValue() != null ? entry.getValue().size() : 0;
+					if(count > 0) {
+						next.put(entry.getKey(), count);
+					}
+				}
+				acc.injectorsByDimension = next;
+				acc.injectorsByDimensionDirty = true;
+				acc.injectorsThisSecondByDim.clear();
+			}
 		}
 		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
 		long avgTotal = acc.lastSecondTotal > 0 ? acc.lastSecondTotal / 20L : total;
@@ -168,6 +226,7 @@ public class StarcoreThroughputTracker {
 			}
 			acc.lastSecondTotal = 0;
 		}
+		syncInjectorCounts(world, acc, now);
 	}
 
 	public static long getLastSecondTotal(World world) {
@@ -195,6 +254,11 @@ public class StarcoreThroughputTracker {
 		return get(world).injectorsLastSecond;
 	}
 
+	public static int getRegisteredInjectorCount(World world) {
+		if(world == null) return 0;
+		return get(world).injectorsAllCount;
+	}
+
 	private static long packInjectorPos(int dim, int x, int y, int z) {
 		long lx = ((long) x & 0x3FFFFFFL) << 38;
 		long lz = ((long) z & 0x3FFFFFFL) << 12;
@@ -202,5 +266,31 @@ public class StarcoreThroughputTracker {
 		long pos = lx | lz | ly;
 		long d = ((long) dim & 0xFFFFFL) << 44;
 		return pos ^ d;
+	}
+
+	private static long packInjectorPosNoDim(int x, int y, int z) {
+		long lx = ((long) x & 0x3FFFFFFL) << 38;
+		long lz = ((long) z & 0x3FFFFFFL) << 12;
+		long ly = (long) y & 0xFFFL;
+		return lx | lz | ly;
+	}
+
+	private static boolean shouldCountForSkyLines(World world) {
+		if(world == null || world.provider == null) return false;
+		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) return false;
+		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return false;
+		return world.provider.dimensionId != SpaceConfig.orbitDimension;
+	}
+
+	private static void syncInjectorCounts(World world, Accumulator acc, long now) {
+		if(!acc.injectorsByDimensionDirty) return;
+		if(now - acc.lastInjectorSyncTick < 20L) return;
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState.setInjectorCounts(acc.injectorsByDimension)) {
+			CelestialBody.getStar(world).modifyTraits(skyState);
+		}
+		acc.injectorsByDimensionDirty = false;
+		acc.lastInjectorSyncTick = now;
 	}
 }

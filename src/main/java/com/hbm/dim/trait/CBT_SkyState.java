@@ -1,5 +1,9 @@
 package com.hbm.dim.trait;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
 import com.hbm.dim.CelestialBody;
 
 import io.netty.buffer.ByteBuf;
@@ -26,6 +30,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	private long starcoreThroughput;
 	private long sunCharge;
 	private long sunLastSustainTick;
+	private Map<Integer, Integer> injectorCounts = new HashMap<>();
 
 	public CBT_SkyState() { }
 
@@ -90,6 +95,27 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		sunCharge = Math.max(0, charge);
 	}
 
+	public int getInjectorCount(int dimensionId) {
+		Integer count = injectorCounts.get(dimensionId);
+		return count != null ? count.intValue() : 0;
+	}
+
+	public boolean setInjectorCounts(Map<Integer, Integer> counts) {
+		HashMap<Integer, Integer> next = new HashMap<>();
+		if(counts != null) {
+			for(Map.Entry<Integer, Integer> entry : counts.entrySet()) {
+				if(entry.getValue() != null && entry.getValue().intValue() > 0) {
+					next.put(entry.getKey(), entry.getValue());
+				}
+			}
+		}
+		if(next.equals(injectorCounts)) {
+			return false;
+		}
+		injectorCounts = next;
+		return true;
+	}
+
 	public static CBT_SkyState get(World world) {
 		CelestialBody star = CelestialBody.getStar(world);
 		CBT_SkyState sky = star.getTrait(CBT_SkyState.class);
@@ -125,6 +151,15 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		nbt.setLong("starcoreThroughput", starcoreThroughput);
 		nbt.setLong("sunCharge", sunCharge);
 		nbt.setLong("sunLastSustain", sunLastSustainTick);
+		if(!injectorCounts.isEmpty()) {
+			NBTTagCompound injectors = new NBTTagCompound();
+			for(Map.Entry<Integer, Integer> entry : injectorCounts.entrySet()) {
+				if(entry.getValue() != null && entry.getValue().intValue() > 0) {
+					injectors.setInteger(String.valueOf(entry.getKey()), entry.getValue().intValue());
+				}
+			}
+			nbt.setTag("injectorCounts", injectors);
+		}
 	}
 
 	@Override
@@ -136,6 +171,23 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		starcoreThroughput = nbt.getLong("starcoreThroughput");
 		sunCharge = nbt.getLong("sunCharge");
 		sunLastSustainTick = nbt.getLong("sunLastSustain");
+		injectorCounts.clear();
+		if(nbt.hasKey("injectorCounts")) {
+			NBTTagCompound injectors = nbt.getCompoundTag("injectorCounts");
+			@SuppressWarnings("unchecked")
+			Set<String> keys = injectors.func_150296_c();
+			for(String key : keys) {
+				try {
+					int dim = Integer.parseInt(key);
+					int count = injectors.getInteger(key);
+					if(count > 0) {
+						injectorCounts.put(dim, count);
+					}
+				} catch(NumberFormatException ex) {
+					// ignore malformed keys
+				}
+			}
+		}
 	}
 
 	@Override
@@ -145,6 +197,11 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		buf.writeLong(starcoreThroughput);
 		buf.writeLong(sunCharge);
 		buf.writeLong(sunLastSustainTick);
+		buf.writeInt(injectorCounts.size());
+		for(Map.Entry<Integer, Integer> entry : injectorCounts.entrySet()) {
+			buf.writeInt(entry.getKey().intValue());
+			buf.writeInt(entry.getValue().intValue());
+		}
 	}
 
 	@Override
@@ -156,5 +213,14 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		starcoreThroughput = buf.readLong();
 		sunCharge = buf.readLong();
 		sunLastSustainTick = buf.readLong();
+		injectorCounts.clear();
+		int size = buf.readInt();
+		for(int i = 0; i < size; i++) {
+			int dim = buf.readInt();
+			int count = buf.readInt();
+			if(count > 0) {
+				injectorCounts.put(dim, count);
+			}
+		}
 	}
 }

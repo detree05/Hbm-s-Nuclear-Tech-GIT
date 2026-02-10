@@ -8,6 +8,7 @@ import com.hbm.blocks.ITooltipProvider;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.config.SpaceConfig;
 import com.hbm.items.ModItems;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityStarCoreEnergyInjector;
@@ -74,6 +75,7 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		ItemStack heldStack = player.getHeldItem();
 
 		if(heldStack != null && heldStack.getItem() == ModItems.sat_chip) {
+			if(world.provider != null && world.provider.dimensionId == SpaceConfig.orbitDimension) return false;
 			if(world.provider instanceof WorldProviderKerbol) return false;
 			if(injector.slots[0] != null) return false;
 
@@ -97,12 +99,21 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		TileEntity te = world.getTileEntity(x, y, z);
 		if(!(te instanceof TileEntityStarCoreEnergyInjector)) return;
 
-		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) {
+		TileEntityStarCoreEnergyInjector injector = (TileEntityStarCoreEnergyInjector) te;
+		List<String> text = new ArrayList<>();
+
+		if(world.provider != null && world.provider.dimensionId == SpaceConfig.orbitDimension) {
+			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.RED : EnumChatFormatting.YELLOW;
+			text.add(color + "! ! ! Unstable angle ! ! !");
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x404000, text);
 			return;
 		}
 
-		TileEntityStarCoreEnergyInjector injector = (TileEntityStarCoreEnergyInjector) te;
-		List<String> text = new ArrayList<>();
+		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) {
+			text.add(EnumChatFormatting.RED + "did you really consider this would work.");
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
 
 		if(world.provider instanceof WorldProviderKerbol) {
 			text.add(EnumChatFormatting.RED + "never.");
@@ -120,7 +131,7 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.BLACKHOLE || state == CBT_SkyState.SkyState.NOTHING) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
-			text.add(color + "Nothing to shoot beam at... yet.");
+			text.add(color + "Nothing to shoot laser at... yet.");
 		} else {
 			long injectorPerSecond = injector.getThroughputPerFiveTicks() * 4L;
 			long totalPerSecond = StarcoreThroughputTracker.getLastFiveTickTotal(world) * 4L;

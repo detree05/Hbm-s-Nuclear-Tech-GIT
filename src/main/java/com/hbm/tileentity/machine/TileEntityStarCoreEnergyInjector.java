@@ -3,7 +3,9 @@ package com.hbm.tileentity.machine;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.config.SpaceConfig;
 import com.hbm.items.ISatChip;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
@@ -28,6 +30,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	private long throughputThisFiveTicks;
 	private long throughputLastFiveTicks;
 	private int chipFreq;
+	private boolean registered;
 
 	public TileEntityStarCoreEnergyInjector() {
 		super(1);
@@ -81,14 +84,15 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(!canOperate()) {
 			return power;
 		}
-		long perTickCap = getPerTickCap(state, skyState);
+		long globalPerTickCap = getPerTickCap(state, skyState);
+		long perInjectorCap = globalPerTickCap;
 		if(state == CBT_SkyState.SkyState.SUN && isSunChargeNearFull(skyState)) {
-			int injectors = Math.max(1, StarcoreThroughputTracker.getLastSecondInjectorCount(worldObj));
-			perTickCap = Math.max(1L, perTickCap / injectors);
+			int injectors = Math.max(1, StarcoreThroughputTracker.getRegisteredInjectorCount(worldObj));
+			perInjectorCap = Math.max(1L, globalPerTickCap / injectors);
 		}
 		long allowance = Math.min(
-			CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick,
-			StarcoreThroughputTracker.getRemainingCapacity(worldObj, perTickCap)
+			Math.min(CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick, perInjectorCap),
+			StarcoreThroughputTracker.getRemainingCapacity(worldObj, globalPerTickCap)
 		);
 		if(allowance <= 0) {
 			return power;
@@ -122,6 +126,9 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 
 	private boolean canOperate() {
 		if(worldObj == null) return false;
+		if(worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.orbitDimension) {
+			return false;
+		}
 		if(worldObj.provider instanceof WorldProviderHell
 			|| worldObj.provider instanceof WorldProviderEnd
 			|| worldObj.provider instanceof WorldProviderKerbol) {
@@ -138,6 +145,12 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 
 	private boolean isWorldDaytime() {
 		if(worldObj == null) return false;
+		if(worldObj.provider instanceof WorldProviderCelestial) {
+			if(((WorldProviderCelestial) worldObj.provider).isEclipse()) return false;
+		}
+		if(worldObj.provider != null) {
+			return worldObj.provider.isDaytime();
+		}
 		long time = worldObj.getWorldTime() % 24000L;
 		return time < 12000L;
 	}
@@ -167,6 +180,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	@Override
 	public void invalidate() {
 		if(!worldObj.isRemote) {
+			unregisterInjector();
 			resetStarcoreThroughputOnRemoval();
 		}
 		super.invalidate();
@@ -175,9 +189,18 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	@Override
 	public void onChunkUnload() {
 		if(!worldObj.isRemote) {
+			unregisterInjector();
 			resetStarcoreThroughputOnRemoval();
 		}
 		super.onChunkUnload();
+	}
+
+	@Override
+	public void validate() {
+		super.validate();
+		if(!worldObj.isRemote) {
+			registerInjector();
+		}
 	}
 
 	private void resetStarcoreThroughputOnRemoval() {
@@ -187,6 +210,19 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 			skyState.setStarcoreThroughput(0);
 			CelestialBody.getStar(worldObj).modifyTraits(skyState);
 		}
+	}
+
+	private void registerInjector() {
+		if(worldObj == null || registered) return;
+		if(worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.orbitDimension) return;
+		StarcoreThroughputTracker.registerInjector(worldObj, xCoord, yCoord, zCoord);
+		registered = true;
+	}
+
+	private void unregisterInjector() {
+		if(worldObj == null || !registered) return;
+		StarcoreThroughputTracker.unregisterInjector(worldObj, xCoord, yCoord, zCoord);
+		registered = false;
 	}
 
 	@Override
