@@ -197,9 +197,7 @@ public class RenderHTRS5 extends TileEntitySpecialRenderer implements IItemRende
 
 					GL11.glScaled(0.25, 0.25, 0.25);
 
-					if(type == ItemRenderType.EQUIPPED || type == ItemRenderType.EQUIPPED_FIRST_PERSON) {
-						GL11.glRotated(90, 0, 1, 0);
-					} else if(type != ItemRenderType.EQUIPPED) {
+					if(type != ItemRenderType.EQUIPPED) {
 						GL11.glRotated(90, 0, 1, 0);
 					}
 

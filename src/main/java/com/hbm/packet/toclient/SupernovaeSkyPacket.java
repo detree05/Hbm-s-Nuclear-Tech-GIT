@@ -20,16 +20,24 @@ public class SupernovaeSkyPacket implements IMessage {
 	private float yaw;
 	private float pitch;
 	private float roll;
+	private float r;
+	private float g;
+	private float b;
+	private float sizeScale;
 	private boolean playEffects;
 
 	public SupernovaeSkyPacket() { }
 
-	public SupernovaeSkyPacket(long worldTime, int dimension, float yaw, float pitch, float roll, boolean playEffects) {
+	public SupernovaeSkyPacket(long worldTime, int dimension, float yaw, float pitch, float roll, float r, float g, float b, float sizeScale, boolean playEffects) {
 		this.worldTime = worldTime;
 		this.dimension = dimension;
 		this.yaw = yaw;
 		this.pitch = pitch;
 		this.roll = roll;
+		this.r = r;
+		this.g = g;
+		this.b = b;
+		this.sizeScale = sizeScale;
 		this.playEffects = playEffects;
 	}
 
@@ -40,6 +48,10 @@ public class SupernovaeSkyPacket implements IMessage {
 		yaw = buf.readFloat();
 		pitch = buf.readFloat();
 		roll = buf.readFloat();
+		r = buf.readFloat();
+		g = buf.readFloat();
+		b = buf.readFloat();
+		sizeScale = buf.readFloat();
 		playEffects = buf.readBoolean();
 	}
 
@@ -50,6 +62,10 @@ public class SupernovaeSkyPacket implements IMessage {
 		buf.writeFloat(yaw);
 		buf.writeFloat(pitch);
 		buf.writeFloat(roll);
+		buf.writeFloat(r);
+		buf.writeFloat(g);
+		buf.writeFloat(b);
+		buf.writeFloat(sizeScale);
 		buf.writeBoolean(playEffects);
 	}
 
@@ -60,7 +76,7 @@ public class SupernovaeSkyPacket implements IMessage {
 		public IMessage onMessage(SupernovaeSkyPacket m, MessageContext ctx) {
 			Minecraft mc = Minecraft.getMinecraft();
 			if(mc != null) {
-				SkyProviderCelestial.startNovaeEffect(m.worldTime, m.dimension, m.yaw, m.pitch, m.roll);
+				SkyProviderCelestial.startNovaeEffect(m.worldTime, m.dimension, m.yaw, m.pitch, m.roll, m.r, m.g, m.b, m.sizeScale);
 				if(m.playEffects) {
 					ModEventHandlerClient.flashTimestamp = System.currentTimeMillis();
 					ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();

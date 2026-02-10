@@ -277,11 +277,13 @@ public class ModEventHandler {
 			}
 
 			NovaeSavedData novae = NovaeSavedData.forWorld(event.player.worldObj);
-			if(novae.active && event.player instanceof EntityPlayerMP) {
-				PacketDispatcher.wrapper.sendTo(
-					new SupernovaeSkyPacket(novae.startWorldTime, event.player.worldObj.provider.dimensionId, novae.yaw, novae.pitch, novae.roll, false),
-					(EntityPlayerMP) event.player
-				);
+			if(!novae.getEntries().isEmpty() && event.player instanceof EntityPlayerMP) {
+				for(NovaeSavedData.NovaeEntry entry : novae.getEntries()) {
+					PacketDispatcher.wrapper.sendTo(
+						new SupernovaeSkyPacket(entry.startWorldTime, event.player.worldObj.provider.dimensionId, entry.yaw, entry.pitch, entry.roll, entry.r, entry.g, entry.b, entry.sizeScale, false),
+						(EntityPlayerMP) event.player
+					);
+				}
 			}
 		}
 	}
@@ -340,11 +342,13 @@ public class ModEventHandler {
 
 		if(!player.worldObj.isRemote && player instanceof EntityPlayerMP) {
 			NovaeSavedData novae = NovaeSavedData.forWorld(player.worldObj);
-			if(novae.active) {
-				PacketDispatcher.wrapper.sendTo(
-					new SupernovaeSkyPacket(novae.startWorldTime, player.worldObj.provider.dimensionId, novae.yaw, novae.pitch, novae.roll, false),
-					(EntityPlayerMP) player
-				);
+			if(!novae.getEntries().isEmpty()) {
+				for(NovaeSavedData.NovaeEntry entry : novae.getEntries()) {
+					PacketDispatcher.wrapper.sendTo(
+						new SupernovaeSkyPacket(entry.startWorldTime, player.worldObj.provider.dimensionId, entry.yaw, entry.pitch, entry.roll, entry.r, entry.g, entry.b, entry.sizeScale, false),
+						(EntityPlayerMP) player
+					);
+				}
 			}
 		}
 	}
@@ -883,8 +887,9 @@ public class ModEventHandler {
 
 				long elapsed = now - sunSkyState.getSunLastSustainTick();
 				if(elapsed >= CBT_SkyState.SUN_DECAY_TICKS) {
-					sunSkyState.setState(CBT_SkyState.SkyState.STARCORE);
+					sunSkyState.setState(CBT_SkyState.SkyState.NOTHING);
 					sunSkyState.setStarcoreThroughput(0);
+					sunSkyState.setSunCharge(0);
 					sunSkyState.setSunLastSustainTick(0);
 					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
 					CBT_Dyson.clearAll(event.world);

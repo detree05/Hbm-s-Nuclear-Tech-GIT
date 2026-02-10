@@ -1,7 +1,6 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
-import com.hbm.blocks.ModBlocks;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -127,6 +126,9 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 						toLaunch = 1;
 						skyState.setState(CBT_SkyState.SkyState.STARCORE);
 						skyState.setBlackholeClustersSent(0);
+						skyState.setStarcoreThroughput(0);
+						skyState.setSunCharge(0);
+						skyState.setSunLastSustainTick(0);
 						CelestialBody.getStar(worldObj).modifyTraits(skyState);
 					} else if(isBlackhole) {
 						int remaining = BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent();
@@ -251,7 +253,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
 		if(slots[0] != null) {
-			if(slots[0].getItem() == Item.getItemFromBlock(ModBlocks.dfc_core)) return;
+			if(slots[0].getItem() == ModItems.singularity_spark) return;
 			if(slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
 		}
 
@@ -353,7 +355,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	private Item getPayloadItem() {
 		if(isBlackholeSky()) return ModItems.pellet_antimatter;
-		if(isNothingSky()) return Item.getItemFromBlock(ModBlocks.dfc_core);
+		if(isNothingSky()) return ModItems.singularity_spark;
 		if(isDfcSky()) return null;
 		return ModItems.swarm_member;
 	}

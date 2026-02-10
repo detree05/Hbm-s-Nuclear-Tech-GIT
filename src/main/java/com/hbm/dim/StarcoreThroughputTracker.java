@@ -46,23 +46,42 @@ public class StarcoreThroughputTracker {
 		long total = acc.totalThisSecond;
 		acc.lastSecondTotal = total;
 		acc.totalThisSecond = 0;
+		long effective = Math.min(total, CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC);
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.STARCORE) {
-			if(total >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
+			if(effective >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
 				skyState.setState(CBT_SkyState.SkyState.SUN);
 				skyState.setStarcoreThroughput(0);
+				skyState.setSunCharge(0);
 				skyState.setSunLastSustainTick(now);
 				StarcoreSkyEffects.sendIgnition(world);
 			} else {
-				skyState.setStarcoreThroughput(total);
+				if(skyState.getStarcoreThroughput() != effective) {
+					skyState.setStarcoreThroughput(effective);
+				}
 			}
 			CelestialBody.getStar(world).modifyTraits(skyState);
 		} else if(state == CBT_SkyState.SkyState.SUN) {
-			if(total >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
+			if(effective >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
 				if(skyState.getSunLastSustainTick() != now) {
 					skyState.setSunLastSustainTick(now);
+					CelestialBody.getStar(world).modifyTraits(skyState);
+				}
+				long current = skyState.getSunCharge();
+				long next = Math.min(CBT_SkyState.SUN_MAX_HE, current + CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC);
+				if(next != current) {
+					skyState.setSunCharge(next);
+					CelestialBody.getStar(world).modifyTraits(skyState);
+				}
+			}
+			long current = skyState.getSunCharge();
+			long decay = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC - effective;
+			if(decay > 0) {
+				long next = Math.max(0L, current - decay);
+				if(next != current) {
+					skyState.setSunCharge(next);
 					CelestialBody.getStar(world).modifyTraits(skyState);
 				}
 			}
@@ -73,6 +92,10 @@ public class StarcoreThroughputTracker {
 		} else {
 			if(skyState.getStarcoreThroughput() != 0) {
 				skyState.setStarcoreThroughput(0);
+				CelestialBody.getStar(world).modifyTraits(skyState);
+			}
+			if(skyState.getSunCharge() != 0) {
+				skyState.setSunCharge(0);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 			}
 			acc.lastSecondTotal = 0;

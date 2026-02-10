@@ -13,6 +13,7 @@ import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -1395,6 +1396,7 @@ public class ModEventHandlerClient {
 
 	private static AudioWrapper shipHum;
 	private static AudioWrapper kerbolWind;
+	private static AudioWrapper sunDecayHum;
 
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -1456,6 +1458,44 @@ public class ModEventHandlerClient {
 			} else if(kerbolWind != null) {
 				kerbolWind.stopSound();
 				kerbolWind = null;
+			}
+
+			if(player != null && world.provider != null) {
+				int dim = world.provider.dimensionId;
+				if(dim != -1 && dim != 1 && dim != SpaceConfig.kerbolDimension) {
+					CBT_SkyState skyState = CBT_SkyState.get(world);
+					if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.SUN) {
+						float chargeRatio = MathHelper.clamp_float(
+							(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
+							0.0F,
+							1.0F
+						);
+						float decay = 1.0F - chargeRatio;
+						float startAt = 4.0F / 5.0F;
+						float volume = MathHelper.clamp_float((decay - startAt) / (1.0F - startAt), 0.0F, 1.0F);
+						if(volume > 0.0F) {
+							if(sunDecayHum == null || !sunDecayHum.isPlaying()) {
+								sunDecayHum = MainRegistry.proxy.getLoopedSound("hbm:misc.stationhum", player, volume, 5.0F, 1.0F, 10);
+								sunDecayHum.startSound();
+							}
+
+							sunDecayHum.updateVolume(volume);
+							sunDecayHum.keepAlive();
+						} else if(sunDecayHum != null) {
+							sunDecayHum.stopSound();
+							sunDecayHum = null;
+						}
+					} else if(sunDecayHum != null) {
+						sunDecayHum.stopSound();
+						sunDecayHum = null;
+					}
+				} else if(sunDecayHum != null) {
+					sunDecayHum.stopSound();
+					sunDecayHum = null;
+				}
+			} else if(sunDecayHum != null) {
+				sunDecayHum.stopSound();
+				sunDecayHum = null;
 			}
 
 		}

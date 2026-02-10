@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.lwjgl.opengl.GL11;
 
@@ -76,24 +77,40 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected static final Shader planetShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/crescent.frag"));
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
 	
-	private static boolean novaeActive = false;
-	private static long novaeStartWorldTime = 0L;
-	private static int novaeDimension = Integer.MIN_VALUE;
-	private static float novaeYaw = 0.0F;
-	private static float novaePitch = 0.0F;
-	private static float novaeRoll = 0.0F;
+	private static final List<NovaeEffect> novaeEffects = new CopyOnWriteArrayList<>();
 	private static boolean starcoreIgnitionActive = false;
 	private static long starcoreIgnitionStartWorldTime = 0L;
 	private static int starcoreIgnitionDimension = Integer.MIN_VALUE;
-	private static final float STARCORE_IGNITION_DURATION_TICKS = 600.0F;
 	private static boolean starcoreDecayFlareActive = false;
 	private static long starcoreDecayFlareStartWorldTime = 0L;
 	private static int starcoreDecayFlareDimension = Integer.MIN_VALUE;
-	private static final float STARCORE_DECAY_FLARE_DURATION_TICKS = 200.0F;
-
-	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
+	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
+
+	private static final class NovaeEffect {
+		private final long startWorldTime;
+		private final int dimension;
+		private final float yaw;
+		private final float pitch;
+		private final float roll;
+		private final float r;
+		private final float g;
+		private final float b;
+		private final float sizeScale;
+
+		private NovaeEffect(long startWorldTime, int dimension, float yaw, float pitch, float roll, float r, float g, float b, float sizeScale) {
+			this.startWorldTime = startWorldTime;
+			this.dimension = dimension;
+			this.yaw = yaw;
+			this.pitch = pitch;
+			this.roll = roll;
+			this.r = r;
+			this.g = g;
+			this.b = b;
+			this.sizeScale = sizeScale;
+		}
+	}
 
 	private static final ResourceLocation[] citylights = new ResourceLocation[] {
 		new ResourceLocation(RefStrings.MODID, "textures/misc/space/citylights_0.png"),
@@ -181,8 +198,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 			);
 			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
 		} else if(sky == CBT_SkyState.SkyState.SUN && skyState != null) {
-			float decay = skyState.getSunDecayProgress(world, partialTicks);
-			float ratio = 1.0F - MathHelper.clamp_float(decay, 0.0F, 1.0F);
+			float ratio = MathHelper.clamp_float(
+				(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
+				0.0F,
+				1.0F
+			);
 			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
 		}
 		visibility *= skyDim;
@@ -661,10 +681,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 		int swarmCount = dyson != null ? dyson.size() : 0;
 		CBT_SkyState skyState = sun.getTrait(CBT_SkyState.class);
 		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
-		float sunDecayProgress = (sky == CBT_SkyState.SkyState.SUN && skyState != null)
-			? skyState.getSunDecayProgress(world, partialTicks)
-			: 0.0F;
-		float sunScale = 1.0F - 0.65F * sunDecayProgress;
+		float sunChargeRatio = (sky == CBT_SkyState.SkyState.SUN && skyState != null)
+			? MathHelper.clamp_float((float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE), 0.0F, 1.0F)
+			: 1.0F;
+		float sunScale = 0.35F + 0.65F * sunChargeRatio;
 		double renderSunSize = sunSize * sunScale;
 		double renderCoronaSize = coronaSize * sunScale;
 
@@ -1322,9 +1342,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		float fade = ringFade.containsKey(key) ? ringFade.get(key) : 0.0F;
 		if(body.hasRings) {
-			fade = Math.min(1.0F, fade + dt * RING_FADE_PER_TICK);
+			fade = Math.min(1.0F, fade + dt * (1.0F / (5.0F * 24000.0F)));
 		} else {
-			fade = Math.max(0.0F, fade - dt * RING_FADE_PER_TICK);
+			fade = Math.max(0.0F, fade - dt * (1.0F / (5.0F * 24000.0F)));
 		}
 
 		ringFade.put(key, fade);
@@ -1412,12 +1432,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	protected void renderSpecialEffects(float partialTicks, WorldClient world, Minecraft mc) {
-		if(!novaeActive) return;
-		if(world.provider == null || world.provider.dimensionId != novaeDimension) return;
+		if(novaeEffects.isEmpty()) return;
+		if(world.provider == null) return;
 		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return;
-
-		float age = (world.getTotalWorldTime() - novaeStartWorldTime) + partialTicks;
-		if(age < 0.0F) return;
 
 		CelestialBody body = CelestialBody.getBody(world);
 		float axialTilt = body != null ? body.axialTilt : 0.0F;
@@ -1427,133 +1444,144 @@ public class SkyProviderCelestial extends IRenderHandler {
 			siderealAngle += (float)(Math.sin(t / 6000.0D * Math.PI * 2.0D) * 6.0D);
 		}
 
-		float spikeGrowTicks = 120.0F;
-		float growProgress = MathHelper.clamp_float(age / spikeGrowTicks, 0.0F, 1.0F);
-		float grow = smoothstep(0.0F, 1.0F, growProgress);
-		float spikeAlpha = 1.0F - grow * 0.25F;
-
-		float minSpikeSize = 0.5F;
-		float maxSpikeSize = 20.0F;
-		double spikeSize = minSpikeSize + (maxSpikeSize - minSpikeSize) * grow;
-		double skyHeight = 120.0D;
-
 		Tessellator tessellator = Tessellator.instance;
-
-		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
-		GL11.glPushMatrix();
-		{
-			GL11.glDisable(GL11.GL_CULL_FACE);
-			GL11.glDisable(GL11.GL_ALPHA_TEST);
-			GL11.glEnable(GL11.GL_BLEND);
-			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
-
-			// Match starfield rotation so the event moves with the night sky.
-			GL11.glRotatef(axialTilt, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-			GL11.glRotatef(siderealAngle * 360.0F, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
-
-			// Orient the spike to a random sky direction.
-			GL11.glRotatef(novaePitch, 1.0F, 0.0F, 0.0F);
-			GL11.glRotatef(novaeYaw, 0.0F, 1.0F, 0.0F);
-			GL11.glRotatef(novaeRoll, 0.0F, 0.0F, 1.0F);
-
-			GL11.glColor4f(1.0F, 1.0F, 1.0F, spikeAlpha);
-			GL11.glEnable(GL11.GL_TEXTURE_2D);
-			mc.renderEngine.bindTexture(supernovaeTexture);
-
-			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-spikeSize, skyHeight, -spikeSize, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(spikeSize, skyHeight, -spikeSize, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(spikeSize, skyHeight, spikeSize, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-spikeSize, skyHeight, spikeSize, 0.0D, 1.0D);
-			tessellator.draw();
-
-			// Fast, oversized shockwave when the spike appears.
-			float waveDurationTicks = 360.0F;
-			float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
-			if(waveProgress < 1.0F) {
-				float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
-				double waveSize = maxSpikeSize * (1.0D + waveProgress * 6.0D);
-
-				GL11.glColor4f(1.0F, 1.0F, 1.0F, waveAlpha);
-				mc.renderEngine.bindTexture(shockwaveTexture);
-				tessellator.startDrawingQuads();
-				tessellator.addVertexWithUV(-waveSize, skyHeight, -waveSize, 0.0D, 0.0D);
-				tessellator.addVertexWithUV(waveSize, skyHeight, -waveSize, 1.0D, 0.0D);
-				tessellator.addVertexWithUV(waveSize, skyHeight, waveSize, 1.0D, 1.0D);
-				tessellator.addVertexWithUV(-waveSize, skyHeight, waveSize, 0.0D, 1.0D);
-				tessellator.draw();
-
-				float flareProgress = MathHelper.clamp_float(age / (waveDurationTicks * 0.5F), 0.0F, 1.0F);
-				float flareAlpha = 1.0F - smoothstep(0.0F, 1.0F, flareProgress);
-				GL11.glColor4f(1.0F, 1.0F, 1.0F, flareAlpha * 1.25F);
-				mc.renderEngine.bindTexture(shockFlareTexture);
-				double flareSize = maxSpikeSize * (1.25D + waveProgress * 2.5D);
-				tessellator.startDrawingQuads();
-				tessellator.addVertexWithUV(-flareSize, skyHeight, -flareSize, 0.0D, 0.0D);
-				tessellator.addVertexWithUV(flareSize, skyHeight, -flareSize, 1.0D, 0.0D);
-				tessellator.addVertexWithUV(flareSize, skyHeight, flareSize, 1.0D, 1.0D);
-				tessellator.addVertexWithUV(-flareSize, skyHeight, flareSize, 0.0D, 1.0D);
-				tessellator.draw();
+		for(int i = 0; i < novaeEffects.size(); i++) {
+			NovaeEffect effect = novaeEffects.get(i);
+			if(effect.dimension != world.provider.dimensionId) {
+				continue;
 			}
 
-			// Tom-style blast wave cylinder emerging from the center.
-			float tomWaveDuration = 600.0F;
-			if(age <= tomWaveDuration) {
-				float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
-				double tomScale = 4.0D + (tomProgress * tomProgress) * 220.0D;
+			float age = (world.getTotalWorldTime() - effect.startWorldTime) + partialTicks;
+			if(age < 0.0F) {
+				continue;
+			}
 
-				int segments = 16;
-				float angle = (float) Math.toRadians(360D / segments);
-				int height = 40;
-				int depth = 40;
+			float spikeGrowTicks = 120.0F;
+			float growProgress = MathHelper.clamp_float(age / spikeGrowTicks, 0.0F, 1.0F);
+			float grow = smoothstep(0.0F, 1.0F, growProgress);
+			float spikeAlpha = 1.0F - grow * 0.25F;
 
-				mc.renderEngine.bindTexture(ResourceManager.tomblast);
-				GL11.glMatrixMode(GL11.GL_TEXTURE);
-				GL11.glLoadIdentity();
-				GL11.glTranslatef(0.0F, -(world.getTotalWorldTime() + partialTicks) * 0.01F, 0.0F);
-				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+			float minSpikeSize = 0.5F;
+			float maxSpikeSize = 20.0F;
+			double spikeSize = (minSpikeSize + (maxSpikeSize - minSpikeSize) * grow) * effect.sizeScale;
+			double skyHeight = 120.0D;
+
+			GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
+			GL11.glPushMatrix();
+			{
+				GL11.glDisable(GL11.GL_CULL_FACE);
+				GL11.glDisable(GL11.GL_ALPHA_TEST);
+				GL11.glEnable(GL11.GL_BLEND);
+				GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
+
+				// Match starfield rotation so the event moves with the night sky.
+				GL11.glRotatef(axialTilt, 1.0F, 0.0F, 0.0F);
+				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
+				GL11.glRotatef(siderealAngle * 360.0F, 1.0F, 0.0F, 0.0F);
+				GL11.glRotatef(-90.0F, 1.0F, 0.0F, 0.0F);
+
+				// Orient the spike to a random sky direction.
+				GL11.glRotatef(effect.pitch, 1.0F, 0.0F, 0.0F);
+				GL11.glRotatef(effect.yaw, 0.0F, 1.0F, 0.0F);
+				GL11.glRotatef(effect.roll, 0.0F, 0.0F, 1.0F);
+
+				GL11.glColor4f(effect.r, effect.g, effect.b, spikeAlpha);
+				GL11.glEnable(GL11.GL_TEXTURE_2D);
+				mc.renderEngine.bindTexture(supernovaeTexture);
 
 				tessellator.startDrawingQuads();
-				for(int i = 0; i < segments; i++) {
-					for(int j = 0; j < 5; j++) {
-						double mod = 1 - j * 0.025;
-						double h = height + j * 10;
-						double off = 1D / j;
+				tessellator.addVertexWithUV(-spikeSize, skyHeight, -spikeSize, 0.0D, 0.0D);
+				tessellator.addVertexWithUV(spikeSize, skyHeight, -spikeSize, 1.0D, 0.0D);
+				tessellator.addVertexWithUV(spikeSize, skyHeight, spikeSize, 1.0D, 1.0D);
+				tessellator.addVertexWithUV(-spikeSize, skyHeight, spikeSize, 0.0D, 1.0D);
+				tessellator.draw();
 
-						Vec3 vec = Vec3.createVectorHelper(tomScale, 0, 0);
-						vec.rotateAroundY(angle * i);
-						double x0 = vec.xCoord * mod;
-						double z0 = vec.zCoord * mod;
+				// Fast, oversized shockwave when the spike appears.
+				float waveDurationTicks = 360.0F;
+				float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
+				if(waveProgress < 1.0F) {
+					float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
+					double waveSize = maxSpikeSize * effect.sizeScale * (1.0D + waveProgress * 6.0D);
 
-						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
-						tessellator.addVertexWithUV(x0, h, z0, 0, 1 + off);
-						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
-						tessellator.addVertexWithUV(x0, -depth, z0, 0, 0 + off);
+					GL11.glColor4f(effect.r, effect.g, effect.b, waveAlpha);
+					mc.renderEngine.bindTexture(shockwaveTexture);
+					tessellator.startDrawingQuads();
+					tessellator.addVertexWithUV(-waveSize, skyHeight, -waveSize, 0.0D, 0.0D);
+					tessellator.addVertexWithUV(waveSize, skyHeight, -waveSize, 1.0D, 0.0D);
+					tessellator.addVertexWithUV(waveSize, skyHeight, waveSize, 1.0D, 1.0D);
+					tessellator.addVertexWithUV(-waveSize, skyHeight, waveSize, 0.0D, 1.0D);
+					tessellator.draw();
 
-						vec.rotateAroundY(angle);
-						x0 = vec.xCoord * mod;
-						z0 = vec.zCoord * mod;
-
-						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 1.0F);
-						tessellator.addVertexWithUV(x0, -depth, z0, 1, 0 + off);
-						tessellator.setColorRGBA_F(1.0F, 1.0F, 1.0F, 0.0F);
-						tessellator.addVertexWithUV(x0, h, z0, 1, 1 + off);
-					}
+					float flareProgress = MathHelper.clamp_float(age / (waveDurationTicks * 0.5F), 0.0F, 1.0F);
+					float flareAlpha = 1.0F - smoothstep(0.0F, 1.0F, flareProgress);
+					GL11.glColor4f(effect.r, effect.g, effect.b, flareAlpha * 1.25F);
+					mc.renderEngine.bindTexture(shockFlareTexture);
+					double flareSize = maxSpikeSize * effect.sizeScale * (1.25D + waveProgress * 2.5D);
+					tessellator.startDrawingQuads();
+					tessellator.addVertexWithUV(-flareSize, skyHeight, -flareSize, 0.0D, 0.0D);
+					tessellator.addVertexWithUV(flareSize, skyHeight, -flareSize, 1.0D, 0.0D);
+					tessellator.addVertexWithUV(flareSize, skyHeight, flareSize, 1.0D, 1.0D);
+					tessellator.addVertexWithUV(-flareSize, skyHeight, flareSize, 0.0D, 1.0D);
+					tessellator.draw();
 				}
-				tessellator.draw();
 
-				GL11.glMatrixMode(GL11.GL_TEXTURE);
-				GL11.glLoadIdentity();
-				GL11.glMatrixMode(GL11.GL_MODELVIEW);
+				// Tom-style blast wave cylinder emerging from the center.
+				float tomWaveDuration = 600.0F;
+				if(age <= tomWaveDuration) {
+					float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
+					double tomScale = 4.0D + (tomProgress * tomProgress) * 220.0D * effect.sizeScale;
+
+					int segments = 16;
+					float angle = (float) Math.toRadians(360D / segments);
+					int height = 40;
+					int depth = 40;
+
+					mc.renderEngine.bindTexture(ResourceManager.tomblast);
+					GL11.glMatrixMode(GL11.GL_TEXTURE);
+					GL11.glLoadIdentity();
+					GL11.glTranslatef(0.0F, -(world.getTotalWorldTime() + partialTicks) * 0.01F, 0.0F);
+					GL11.glMatrixMode(GL11.GL_MODELVIEW);
+
+					tessellator.startDrawingQuads();
+					for(int j = 0; j < segments; j++) {
+						for(int k = 0; k < 5; k++) {
+							double mod = 1 - k * 0.025;
+							double h = height + k * 10;
+							double off = 1D / k;
+
+							Vec3 vec = Vec3.createVectorHelper(tomScale, 0, 0);
+							vec.rotateAroundY(angle * j);
+							double x0 = vec.xCoord * mod;
+							double z0 = vec.zCoord * mod;
+
+							tessellator.setColorRGBA_F(effect.r, effect.g, effect.b, 0.0F);
+							tessellator.addVertexWithUV(x0, h, z0, 0, 1 + off);
+							tessellator.setColorRGBA_F(effect.r, effect.g, effect.b, 1.0F);
+							tessellator.addVertexWithUV(x0, -depth, z0, 0, 0 + off);
+
+							vec.rotateAroundY(angle);
+							x0 = vec.xCoord * mod;
+							z0 = vec.zCoord * mod;
+
+							tessellator.setColorRGBA_F(effect.r, effect.g, effect.b, 1.0F);
+							tessellator.addVertexWithUV(x0, -depth, z0, 1, 0 + off);
+							tessellator.setColorRGBA_F(effect.r, effect.g, effect.b, 0.0F);
+							tessellator.addVertexWithUV(x0, h, z0, 1, 1 + off);
+						}
+					}
+					tessellator.draw();
+
+					GL11.glMatrixMode(GL11.GL_TEXTURE);
+					GL11.glLoadIdentity();
+					GL11.glMatrixMode(GL11.GL_MODELVIEW);
+				}
+
+				GL11.glEnable(GL11.GL_ALPHA_TEST);
+				GL11.glEnable(GL11.GL_CULL_FACE);
 			}
-
-			GL11.glEnable(GL11.GL_ALPHA_TEST);
-			GL11.glEnable(GL11.GL_CULL_FACE);
+			GL11.glPopMatrix();
+			GL11.glPopAttrib();
 		}
-		GL11.glPopMatrix();
-		GL11.glPopAttrib();
 	}
 
 	protected void renderStarcoreIgnitionEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
@@ -1562,7 +1590,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		float age = (world.getTotalWorldTime() - starcoreIgnitionStartWorldTime) + partialTicks;
 		if(age < 0.0F) return;
-		if(age > STARCORE_IGNITION_DURATION_TICKS) {
+		if(age > 600.0F) {
 			starcoreIgnitionActive = false;
 			return;
 		}
@@ -1661,12 +1689,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		float age = (world.getTotalWorldTime() - starcoreDecayFlareStartWorldTime) + partialTicks;
 		if(age < 0.0F) return;
-		if(age > STARCORE_DECAY_FLARE_DURATION_TICKS) {
+		if(age > 200.0F) {
 			starcoreDecayFlareActive = false;
 			return;
 		}
 
-		float progress = MathHelper.clamp_float(age / STARCORE_DECAY_FLARE_DURATION_TICKS, 0.0F, 1.0F);
+		float progress = MathHelper.clamp_float(age / 200.0F, 0.0F, 1.0F);
 		float alpha = 1.0F - smoothstep(0.0F, 1.0F, progress);
 		double size = sunSize * (0.15D + 0.35D * progress);
 
@@ -1706,13 +1734,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 		return t * t * (3.0F - 2.0F * t);
 	}
 
-	public static void startNovaeEffect(long worldTime, int dimension, float yaw, float pitch, float roll) {
-		novaeActive = true;
-		novaeStartWorldTime = worldTime;
-		novaeDimension = dimension;
-		novaeYaw = yaw;
-		novaePitch = pitch;
-		novaeRoll = roll;
+	public static void startNovaeEffect(long worldTime, int dimension, float yaw, float pitch, float roll, float r, float g, float b, float sizeScale) {
+		novaeEffects.add(new NovaeEffect(worldTime, dimension, yaw, pitch, roll, r, g, b, sizeScale));
 	}
 
 	public static void startStarcoreIgnitionEffect(long worldTime, int dimension) {

@@ -53,19 +53,18 @@ public class CommandNovae extends CommandBase {
 			float yaw = rand.nextFloat() * 360.0F;
 			float pitch = -75.0F + rand.nextFloat() * 150.0F;
 			float roll = rand.nextFloat() * 360.0F;
+			float r = 0.6F + rand.nextFloat() * 0.4F;
+			float g = 0.6F + rand.nextFloat() * 0.4F;
+			float b = 0.6F + rand.nextFloat() * 0.4F;
+			float sizeScale = 0.3F + rand.nextFloat() * 0.4F;
 
 			long worldTime = world.getTotalWorldTime();
 
 			NovaeSavedData data = NovaeSavedData.forWorld(world);
-			data.active = true;
-			data.startWorldTime = worldTime;
-			data.yaw = yaw;
-			data.pitch = pitch;
-			data.roll = roll;
-			data.markDirty();
+			data.addEntry(worldTime, yaw, pitch, roll, r, g, b, sizeScale);
 
 			PacketDispatcher.wrapper.sendToDimension(
-				new SupernovaeSkyPacket(worldTime, dimensionId, yaw, pitch, roll, true),
+				new SupernovaeSkyPacket(worldTime, dimensionId, yaw, pitch, roll, r, g, b, sizeScale, true),
 				dimensionId
 			);
 		}

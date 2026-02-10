@@ -6,7 +6,6 @@ import java.util.List;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
-import com.hbm.blocks.ModBlocks;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.handler.MultiblockHandlerXR;
@@ -18,7 +17,6 @@ import com.hbm.util.i18n.I18nUtil;
 
 import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
@@ -229,8 +227,8 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 
 		if(skyState.isNothing()) {
-			boolean hasCore = launcher.slots[0] != null && launcher.slots[0].getItem() == Item.getItemFromBlock(ModBlocks.dfc_core);
-			text.add("DFC Core: " + (hasCore ? "Loaded" : "Missing"));
+			boolean hasCore = launcher.slots[0] != null && launcher.slots[0].getItem() == ModItems.singularity_spark;
+			text.add("Spark Singularity: " + (hasCore ? "Loaded" : "Missing"));
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
 		} else if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
