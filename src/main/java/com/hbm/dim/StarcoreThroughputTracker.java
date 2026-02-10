@@ -4,12 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 import com.hbm.dim.trait.CBT_SkyState;
-import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.DfcIgnitionSkyPacket;
+import com.hbm.dim.StarcoreSkyEffects;
 
 import net.minecraft.world.World;
 
-public class DfcThroughputTracker {
+public class StarcoreThroughputTracker {
 
 	private static class Accumulator {
 		private long totalThisSecond;
@@ -50,33 +49,30 @@ public class DfcThroughputTracker {
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		CBT_SkyState.SkyState state = skyState.getState();
-		if(state == CBT_SkyState.SkyState.DFC) {
-			if(total >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
+		if(state == CBT_SkyState.SkyState.STARCORE) {
+			if(total >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
 				skyState.setState(CBT_SkyState.SkyState.SUN);
-				skyState.setDfcThroughput(0);
+				skyState.setStarcoreThroughput(0);
 				skyState.setSunLastSustainTick(now);
-				PacketDispatcher.wrapper.sendToDimension(
-					new DfcIgnitionSkyPacket(world.getTotalWorldTime(), world.provider.dimensionId),
-					world.provider.dimensionId
-				);
+				StarcoreSkyEffects.sendIgnition(world);
 			} else {
-				skyState.setDfcThroughput(total);
+				skyState.setStarcoreThroughput(total);
 			}
 			CelestialBody.getStar(world).modifyTraits(skyState);
 		} else if(state == CBT_SkyState.SkyState.SUN) {
-			if(total >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
+			if(total >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC) {
 				if(skyState.getSunLastSustainTick() != now) {
 					skyState.setSunLastSustainTick(now);
 					CelestialBody.getStar(world).modifyTraits(skyState);
 				}
 			}
-			if(skyState.getDfcThroughput() != 0) {
-				skyState.setDfcThroughput(0);
+			if(skyState.getStarcoreThroughput() != 0) {
+				skyState.setStarcoreThroughput(0);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 			}
 		} else {
-			if(skyState.getDfcThroughput() != 0) {
-				skyState.setDfcThroughput(0);
+			if(skyState.getStarcoreThroughput() != 0) {
+				skyState.setStarcoreThroughput(0);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 			}
 			acc.lastSecondTotal = 0;

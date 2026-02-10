@@ -1593,7 +1593,7 @@ public class ModItems {
 	public static Item sat_lunar_miner;
 	public static Item sat_gerald;
 	public static Item sat_dyson_relay;
-	public static Item sat_dfc_relay;
+	public static Item sat_starcore_relay;
 	public static Item sat_chip;
 	public static Item sat_war;
 
@@ -3974,7 +3974,7 @@ public class ModItems {
 		sat_lunar_miner = new ItemSatellite(64_000).setUnlocalizedName("sat_lunar_miner").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_lunar_miner");
 		sat_gerald = new ItemSatellite(128_000).setUnlocalizedName("sat_gerald").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_gerald");
 		sat_dyson_relay = new ItemSatellite(32_000).setUnlocalizedName("sat_dyson_relay").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_dyson_relay");
-		sat_dfc_relay = new ItemSatellite(32_000).setUnlocalizedName("sat_dfc_relay").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_dfc_relay");
+		sat_starcore_relay = new ItemSatellite(32_000).setUnlocalizedName("sat_starcore_relay").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_starcore_relay");
 		sat_chip = new ItemSatChip().setUnlocalizedName("sat_chip").setMaxStackSize(1).setCreativeTab(MainRegistry.missileTab).setTextureName(RefStrings.MODID + ":sat_chip");
 		sat_war = new ItemSatellite(128_000).setUnlocalizedName("sat_war").setMaxStackSize(1).setCreativeTab(null).setTextureName(RefStrings.MODID + ":sat_gerald");
 
@@ -6920,7 +6920,7 @@ public class ModItems {
 		GameRegistry.registerItem(sat_lunar_miner, sat_lunar_miner.getUnlocalizedName());
 		GameRegistry.registerItem(sat_gerald, sat_gerald.getUnlocalizedName());
 		GameRegistry.registerItem(sat_dyson_relay, sat_dyson_relay.getUnlocalizedName());
-		GameRegistry.registerItem(sat_dfc_relay, sat_dfc_relay.getUnlocalizedName());
+		GameRegistry.registerItem(sat_starcore_relay, sat_starcore_relay.getUnlocalizedName());
 		GameRegistry.registerItem(sat_chip, sat_chip.getUnlocalizedName());
 		GameRegistry.registerItem(sat_interface, sat_interface.getUnlocalizedName());
 		GameRegistry.registerItem(sat_coord, sat_coord.getUnlocalizedName());

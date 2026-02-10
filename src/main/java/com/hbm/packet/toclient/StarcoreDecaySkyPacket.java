@@ -13,14 +13,14 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.util.ResourceLocation;
 
-public class DfcDecaySkyPacket implements IMessage {
+public class StarcoreDecaySkyPacket implements IMessage {
 
 	private long worldTime;
 	private int dimension;
 
-	public DfcDecaySkyPacket() { }
+	public StarcoreDecaySkyPacket() { }
 
-	public DfcDecaySkyPacket(long worldTime, int dimension) {
+	public StarcoreDecaySkyPacket(long worldTime, int dimension) {
 		this.worldTime = worldTime;
 		this.dimension = dimension;
 	}
@@ -37,17 +37,17 @@ public class DfcDecaySkyPacket implements IMessage {
 		buf.writeInt(dimension);
 	}
 
-	public static class Handler implements IMessageHandler<DfcDecaySkyPacket, IMessage> {
+	public static class Handler implements IMessageHandler<StarcoreDecaySkyPacket, IMessage> {
 
 		@Override
 		@SideOnly(Side.CLIENT)
-		public IMessage onMessage(DfcDecaySkyPacket m, MessageContext ctx) {
+		public IMessage onMessage(StarcoreDecaySkyPacket m, MessageContext ctx) {
 			Minecraft mc = Minecraft.getMinecraft();
 			if(mc != null) {
-				SkyProviderCelestial.startDfcDecayFlareEffect(m.worldTime, m.dimension);
-				ModEventHandlerClient.dfcFlashTimestamp = System.currentTimeMillis();
+				SkyProviderCelestial.startStarcoreDecayFlareEffect(m.worldTime, m.dimension);
+				ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
 				ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
-				mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.dfcignited"), 0.4F));
+				mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.starcore_ignited"), 0.4F));
 			}
 			return null;
 		}

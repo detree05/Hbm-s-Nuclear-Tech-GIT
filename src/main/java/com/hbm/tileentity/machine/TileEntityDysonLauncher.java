@@ -77,7 +77,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 			boolean isBlackhole = skyState.isBlackhole();
 			boolean isNothing = skyState.isNothing();
-			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.DFC;
+			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.STARCORE;
 
 			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
 				skyState.setState(CBT_SkyState.SkyState.NOTHING);
@@ -125,7 +125,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 					int toLaunch = Math.min(payload.stackSize, MEMBERS_PER_LAUNCH);
 					if(isNothing) {
 						toLaunch = 1;
-						skyState.setState(CBT_SkyState.SkyState.DFC);
+						skyState.setState(CBT_SkyState.SkyState.STARCORE);
 						skyState.setBlackholeClustersSent(0);
 						CelestialBody.getStar(worldObj).modifyTraits(skyState);
 					} else if(isBlackhole) {
@@ -348,7 +348,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	}
 
 	private boolean isDfcSky() {
-		return worldObj != null && CBT_SkyState.get(worldObj).getState() == CBT_SkyState.SkyState.DFC;
+		return worldObj != null && CBT_SkyState.get(worldObj).getState() == CBT_SkyState.SkyState.STARCORE;
 	}
 
 	private Item getPayloadItem() {

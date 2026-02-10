@@ -55,7 +55,7 @@ public class TileEntityCore extends TileEntityMachineBase implements IGUIProvide
 
 	@Override
 	public String getName() {
-		return "container.dfcCore";
+		return "container.starcoreCore";
 	}
 
 	@Override

@@ -1,12 +1,12 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.dim.CelestialBody;
-import com.hbm.dim.DfcThroughputTracker;
+import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.items.ISatChip;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
-import com.hbm.saveddata.satellites.SatelliteDfcRelay;
+import com.hbm.saveddata.satellites.StarcoreRelayUtil;
 import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
@@ -47,7 +47,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 			if(tickSecond) {
 				throughputLastSecond = throughputThisSecond;
 				throughputThisSecond = 0;
-				DfcThroughputTracker.add(worldObj, throughputLastSecond);
+				StarcoreThroughputTracker.add(worldObj, throughputLastSecond);
 			}
 
 			power = 0;
@@ -60,13 +60,13 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(worldObj == null) return power;
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 		CBT_SkyState.SkyState state = skyState.getState();
-		if(state != CBT_SkyState.SkyState.DFC && state != CBT_SkyState.SkyState.SUN) {
+		if(state != CBT_SkyState.SkyState.STARCORE && state != CBT_SkyState.SkyState.SUN) {
 			return power;
 		}
 		if(!canOperate()) {
 			return power;
 		}
-		long allowance = CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC - (throughputThisSecond + receivedThisTick);
+		long allowance = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC - (throughputThisSecond + receivedThisTick);
 		if(allowance <= 0) {
 			return power;
 		}
@@ -96,7 +96,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);
 		if(data == null) return false;
 		Satellite sat = data.getSatFromFreq(freq);
-		return sat instanceof SatelliteDfcRelay;
+		return StarcoreRelayUtil.isStarcoreRelay(sat);
 	}
 
 	private boolean isWorldDaytime() {
@@ -108,7 +108,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	@Override
 	public void invalidate() {
 		if(!worldObj.isRemote) {
-			resetDfcThroughputOnRemoval();
+			resetStarcoreThroughputOnRemoval();
 		}
 		super.invalidate();
 	}
@@ -116,16 +116,16 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	@Override
 	public void onChunkUnload() {
 		if(!worldObj.isRemote) {
-			resetDfcThroughputOnRemoval();
+			resetStarcoreThroughputOnRemoval();
 		}
 		super.onChunkUnload();
 	}
 
-	private void resetDfcThroughputOnRemoval() {
+	private void resetStarcoreThroughputOnRemoval() {
 		if(worldObj == null) return;
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-		if(skyState.getDfcThroughput() != 0) {
-			skyState.setDfcThroughput(0);
+		if(skyState.getStarcoreThroughput() != 0) {
+			skyState.setStarcoreThroughput(0);
 			CelestialBody.getStar(worldObj).modifyTraits(skyState);
 		}
 	}

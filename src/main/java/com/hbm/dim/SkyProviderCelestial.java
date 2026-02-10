@@ -51,15 +51,15 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class SkyProviderCelestial extends IRenderHandler {
 
 	private static final ResourceLocation planetTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/planet.png");
-	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/dfcspike.png");
+	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore_spike.png");
 	private static final ResourceLocation supernovaeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/supernovae.png");
 	private static final ResourceLocation nightTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
 	private static final ResourceLocation lodeStar = new ResourceLocation(RefStrings.MODID, "textures/misc/star_lode.png");
 	private static final ResourceLocation stationTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/station.png");
 	private static final ResourceLocation defaultSunTexture = new ResourceLocation("textures/environment/sun.png");
-	private static final ResourceLocation dfcSpikeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/dfcspike.png");
-	private static final ResourceLocation dfcCoreTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/dfc.png");
+	private static final ResourceLocation starcoreSpikeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore_spike.png");
+	private static final ResourceLocation starcoreCoreTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore.png");
 
 	private static final ResourceLocation impactTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/impact.png");
 	private static final ResourceLocation shockwaveTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/shockwave.png");
@@ -82,14 +82,14 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static float novaeYaw = 0.0F;
 	private static float novaePitch = 0.0F;
 	private static float novaeRoll = 0.0F;
-	private static boolean dfcIgnitionActive = false;
-	private static long dfcIgnitionStartWorldTime = 0L;
-	private static int dfcIgnitionDimension = Integer.MIN_VALUE;
-	private static final float DFC_IGNITION_DURATION_TICKS = 600.0F;
-	private static boolean dfcDecayFlareActive = false;
-	private static long dfcDecayFlareStartWorldTime = 0L;
-	private static int dfcDecayFlareDimension = Integer.MIN_VALUE;
-	private static final float DFC_DECAY_FLARE_DURATION_TICKS = 200.0F;
+	private static boolean starcoreIgnitionActive = false;
+	private static long starcoreIgnitionStartWorldTime = 0L;
+	private static int starcoreIgnitionDimension = Integer.MIN_VALUE;
+	private static final float STARCORE_IGNITION_DURATION_TICKS = 600.0F;
+	private static boolean starcoreDecayFlareActive = false;
+	private static long starcoreDecayFlareStartWorldTime = 0L;
+	private static int starcoreDecayFlareDimension = Integer.MIN_VALUE;
+	private static final float STARCORE_DECAY_FLARE_DURATION_TICKS = 200.0F;
 
 	private static final float RING_FADE_PER_TICK = 1.0F / (5.0F * 24000.0F);
 	private static final Map<String, Float> ringFade = new HashMap<>();
@@ -134,7 +134,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	private static int lastBrightestPixel = 0;
 	private static CBT_SkyState.SkyState lastSkyState = CBT_SkyState.SkyState.SUN;
-	private static long lastDfcThroughput = 0L;
+	private static long lastStarcoreThroughput = 0L;
 
 	@Override
 	public void render(float partialTicks, WorldClient world, Minecraft mc) {
@@ -161,7 +161,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
 		if(skyState != null) {
 			lastSkyState = sky;
-			lastDfcThroughput = skyState.getDfcThroughput();
+			lastStarcoreThroughput = skyState.getStarcoreThroughput();
 		}
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 
@@ -172,10 +172,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float skyDim = 1.0F;
 		if(sky == CBT_SkyState.SkyState.NOTHING) {
 			skyDim = 0.45F;
-		} else if(sky == CBT_SkyState.SkyState.DFC) {
-			long dfcThroughput = skyState != null ? skyState.getDfcThroughput() : lastDfcThroughput;
+		} else if(sky == CBT_SkyState.SkyState.STARCORE) {
+			long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
 			float ratio = MathHelper.clamp_float(
-				(float)((double)dfcThroughput / (double)CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC),
+				(float)((double)starcoreThroughput / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC),
 				0.0F,
 				1.0F
 			);
@@ -487,7 +487,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
 
-			float sunBrightness = (sky == CBT_SkyState.SkyState.BLACKHOLE || sky == CBT_SkyState.SkyState.DFC)
+			float sunBrightness = (sky == CBT_SkyState.SkyState.BLACKHOLE || sky == CBT_SkyState.SkyState.STARCORE)
 				? 0.0F
 				: world.getSunBrightness(partialTicks);
 
@@ -668,10 +668,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 		double renderSunSize = sunSize * sunScale;
 		double renderCoronaSize = coronaSize * sunScale;
 
-		if(sky == CBT_SkyState.SkyState.DFC) {
+		if(sky == CBT_SkyState.SkyState.STARCORE) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
-			long dfcThroughput = skyState != null ? skyState.getDfcThroughput() : lastDfcThroughput;
-			float ratio = MathHelper.clamp_float((float)((double) dfcThroughput / (double) CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC), 0.0F, 1.0F);
+			long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
+			float ratio = MathHelper.clamp_float((float)((double) starcoreThroughput / (double) CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC), 0.0F, 1.0F);
 			float hueSpeed = 0.01F + 0.04F * ratio;
 			float hue = ((world.getWorldTime() + partialTicks) * hueSpeed + ratio * 0.25F) % 1.0F;
 			int rgb = Color.HSBtoRGB(hue, 1.0F, 1.0F);
@@ -680,22 +680,22 @@ public class SkyProviderCelestial extends IRenderHandler {
 			float b = (rgb & 0xFF) / 255.0F;
 
 			GL11.glColor4f(r, g, b, 1.0F);
-			mc.renderEngine.bindTexture(dfcCoreTexture);
+			mc.renderEngine.bindTexture(starcoreCoreTexture);
 
-			double dfcCoreSize = 0.1D + 1.25D * ratio;
+			double starcoreCoreSize = 0.1D + 1.25D * ratio;
 			tessellator.startDrawingQuads();
-			tessellator.addVertexWithUV(-dfcCoreSize, 100.0D, -dfcCoreSize, 0.0D, 0.0D);
-			tessellator.addVertexWithUV(dfcCoreSize, 100.0D, -dfcCoreSize, 1.0D, 0.0D);
-			tessellator.addVertexWithUV(dfcCoreSize, 100.0D, dfcCoreSize, 1.0D, 1.0D);
-			tessellator.addVertexWithUV(-dfcCoreSize, 100.0D, dfcCoreSize, 0.0D, 1.0D);
+			tessellator.addVertexWithUV(-starcoreCoreSize, 100.0D, -starcoreCoreSize, 0.0D, 0.0D);
+			tessellator.addVertexWithUV(starcoreCoreSize, 100.0D, -starcoreCoreSize, 1.0D, 0.0D);
+			tessellator.addVertexWithUV(starcoreCoreSize, 100.0D, starcoreCoreSize, 1.0D, 1.0D);
+			tessellator.addVertexWithUV(-starcoreCoreSize, 100.0D, starcoreCoreSize, 0.0D, 1.0D);
 			tessellator.draw();
 
 			if(ratio > 0.0F) {
-				double dfcSpikeBase = 0.2D + 2.5D * ratio;
-				double spikeSize = dfcSpikeBase * (1.5D + 3.0D * ratio);
+				double starcoreSpikeBase = 0.2D + 2.5D * ratio;
+				double spikeSize = starcoreSpikeBase * (1.5D + 3.0D * ratio);
 				float spikeAlpha = MathHelper.clamp_float(0.15F + 0.85F * ratio, 0.0F, 1.0F);
 				GL11.glColor4f(1.0F, 1.0F, 1.0F, spikeAlpha);
-				mc.renderEngine.bindTexture(dfcSpikeTexture);
+				mc.renderEngine.bindTexture(starcoreSpikeTexture);
 
 				GL11.glDisable(GL11.GL_DEPTH_TEST);
 				tessellator.startDrawingQuads();
@@ -706,11 +706,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 				tessellator.draw();
 				GL11.glEnable(GL11.GL_DEPTH_TEST);
 			}
-			renderDfcDecayFlareEffect(partialTicks, world, mc, sunSize);
+			renderStarcoreDecayFlareEffect(partialTicks, world, mc, sunSize);
 			return;
 		}
 
-		if(sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.DFC) {
+		if(sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE) {
 			return;
 		}
 
@@ -826,8 +826,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 			tessellator.draw();
 			GL11.glEnable(GL11.GL_DEPTH_TEST);
 
-			renderDfcIgnitionEffect(partialTicks, world, mc, renderSunSize);
-			renderDfcDecayFlareEffect(partialTicks, world, mc, renderSunSize);
+			renderStarcoreIgnitionEffect(partialTicks, world, mc, renderSunSize);
+			renderStarcoreDecayFlareEffect(partialTicks, world, mc, renderSunSize);
 
 			// Draw the swarm members with depth occlusion
 			// We do this last so we can render transparency against the sun
@@ -1556,14 +1556,14 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopAttrib();
 	}
 
-	protected void renderDfcIgnitionEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
-		if(!dfcIgnitionActive) return;
-		if(world.provider == null || world.provider.dimensionId != dfcIgnitionDimension) return;
+	protected void renderStarcoreIgnitionEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
+		if(!starcoreIgnitionActive) return;
+		if(world.provider == null || world.provider.dimensionId != starcoreIgnitionDimension) return;
 
-		float age = (world.getTotalWorldTime() - dfcIgnitionStartWorldTime) + partialTicks;
+		float age = (world.getTotalWorldTime() - starcoreIgnitionStartWorldTime) + partialTicks;
 		if(age < 0.0F) return;
-		if(age > DFC_IGNITION_DURATION_TICKS) {
-			dfcIgnitionActive = false;
+		if(age > STARCORE_IGNITION_DURATION_TICKS) {
+			starcoreIgnitionActive = false;
 			return;
 		}
 
@@ -1655,18 +1655,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopAttrib();
 	}
 
-	protected void renderDfcDecayFlareEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
-		if(!dfcDecayFlareActive) return;
-		if(world.provider == null || world.provider.dimensionId != dfcDecayFlareDimension) return;
+	protected void renderStarcoreDecayFlareEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
+		if(!starcoreDecayFlareActive) return;
+		if(world.provider == null || world.provider.dimensionId != starcoreDecayFlareDimension) return;
 
-		float age = (world.getTotalWorldTime() - dfcDecayFlareStartWorldTime) + partialTicks;
+		float age = (world.getTotalWorldTime() - starcoreDecayFlareStartWorldTime) + partialTicks;
 		if(age < 0.0F) return;
-		if(age > DFC_DECAY_FLARE_DURATION_TICKS) {
-			dfcDecayFlareActive = false;
+		if(age > STARCORE_DECAY_FLARE_DURATION_TICKS) {
+			starcoreDecayFlareActive = false;
 			return;
 		}
 
-		float progress = MathHelper.clamp_float(age / DFC_DECAY_FLARE_DURATION_TICKS, 0.0F, 1.0F);
+		float progress = MathHelper.clamp_float(age / STARCORE_DECAY_FLARE_DURATION_TICKS, 0.0F, 1.0F);
 		float alpha = 1.0F - smoothstep(0.0F, 1.0F, progress);
 		double size = sunSize * (0.15D + 0.35D * progress);
 
@@ -1715,16 +1715,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 		novaeRoll = roll;
 	}
 
-	public static void startDfcIgnitionEffect(long worldTime, int dimension) {
-		dfcIgnitionActive = true;
-		dfcIgnitionStartWorldTime = worldTime;
-		dfcIgnitionDimension = dimension;
+	public static void startStarcoreIgnitionEffect(long worldTime, int dimension) {
+		starcoreIgnitionActive = true;
+		starcoreIgnitionStartWorldTime = worldTime;
+		starcoreIgnitionDimension = dimension;
 	}
 
-	public static void startDfcDecayFlareEffect(long worldTime, int dimension) {
-		dfcDecayFlareActive = true;
-		dfcDecayFlareStartWorldTime = worldTime;
-		dfcDecayFlareDimension = dimension;
+	public static void startStarcoreDecayFlareEffect(long worldTime, int dimension) {
+		starcoreDecayFlareActive = true;
+		starcoreDecayFlareStartWorldTime = worldTime;
+		starcoreDecayFlareDimension = dimension;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

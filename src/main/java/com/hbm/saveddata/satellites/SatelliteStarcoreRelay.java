@@ -1,6 +1,6 @@
 package com.hbm.saveddata.satellites;
 
-public class SatelliteDfcRelay extends Satellite {
+public class SatelliteStarcoreRelay extends Satellite {
 
 	@Override
 	protected float[] getColor() {

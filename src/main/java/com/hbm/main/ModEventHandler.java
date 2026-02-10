@@ -33,7 +33,7 @@ import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
-import com.hbm.dim.DfcThroughputTracker;
+import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.WorldProviderEarth;
 import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -90,7 +90,7 @@ import com.hbm.items.weapon.sedna.factory.XFactory12ga;
 import com.hbm.lib.ModDamageSource;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.DfcDecaySkyPacket;
+import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
 import com.hbm.packet.toclient.GravityEventPacket;
 import com.hbm.packet.toclient.SupernovaeSkyPacket;
@@ -872,7 +872,7 @@ public class ModEventHandler {
 	public void worldTick(WorldTickEvent event) {
 
 		if(event.world != null && !event.world.isRemote) {
-			DfcThroughputTracker.tick(event.world);
+			StarcoreThroughputTracker.tick(event.world);
 			CBT_SkyState sunSkyState = CBT_SkyState.get(event.world);
 			if(sunSkyState != null && sunSkyState.getState() == CBT_SkyState.SkyState.SUN) {
 				long now = event.world.getTotalWorldTime();
@@ -883,13 +883,13 @@ public class ModEventHandler {
 
 				long elapsed = now - sunSkyState.getSunLastSustainTick();
 				if(elapsed >= CBT_SkyState.SUN_DECAY_TICKS) {
-					sunSkyState.setState(CBT_SkyState.SkyState.DFC);
-					sunSkyState.setDfcThroughput(0);
+					sunSkyState.setState(CBT_SkyState.SkyState.STARCORE);
+					sunSkyState.setStarcoreThroughput(0);
 					sunSkyState.setSunLastSustainTick(0);
 					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
 					CBT_Dyson.clearAll(event.world);
 					PacketDispatcher.wrapper.sendToDimension(
-						new DfcDecaySkyPacket(event.world.getTotalWorldTime(), event.world.provider.dimensionId),
+						new StarcoreDecaySkyPacket(event.world.getTotalWorldTime(), event.world.provider.dimensionId),
 						event.world.provider.dimensionId
 					);
 				}

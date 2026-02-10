@@ -218,9 +218,9 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			if(skyState.isBlackhole() || skyState.isNothing()) {
 				return skyState.isNothing() ? 0.45F : 0.0F;
 			}
-			if(skyState.getState() == CBT_SkyState.SkyState.DFC) {
+			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
-					(float)((double)skyState.getDfcThroughput() / (double)CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC),
+					(float)((double)skyState.getStarcoreThroughput() / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC),
 					0.0F,
 					1.0F
 				);
@@ -620,7 +620,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-		if(skyState.isBlackhole() || skyState.isNothing() || skyState.getState() == CBT_SkyState.SkyState.DFC)
+		if(skyState.isBlackhole() || skyState.isNothing() || skyState.getState() == CBT_SkyState.SkyState.STARCORE)
 			return 0;
 
 		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class))

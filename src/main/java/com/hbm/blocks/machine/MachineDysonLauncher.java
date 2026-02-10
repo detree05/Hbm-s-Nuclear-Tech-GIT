@@ -232,7 +232,7 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 			boolean hasCore = launcher.slots[0] != null && launcher.slots[0].getItem() == Item.getItemFromBlock(ModBlocks.dfc_core);
 			text.add("DFC Core: " + (hasCore ? "Loaded" : "Missing"));
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
-		} else if(skyState.getState() == CBT_SkyState.SkyState.DFC) {
+		} else if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
 			text.add(color + "Nothing to orbit.");
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");

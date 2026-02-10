@@ -9,19 +9,19 @@ import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
-	public static final long DFC_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
+	public static final long STARCORE_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
 	public static int SUN_DECAY_TICKS = 5 * 24000;
 
 	public enum SkyState {
 		SUN,
 		BLACKHOLE,
 		NOTHING,
-		DFC
+		STARCORE
 	}
 
 	private SkyState state = SkyState.SUN;
 	private int blackholeClustersSent;
-	private long dfcThroughput;
+	private long starcoreThroughput;
 	private long sunLastSustainTick;
 
 	public CBT_SkyState() { }
@@ -63,12 +63,12 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		blackholeClustersSent = Math.max(0, sent);
 	}
 
-	public long getDfcThroughput() {
-		return dfcThroughput;
+	public long getStarcoreThroughput() {
+		return starcoreThroughput;
 	}
 
-	public void setDfcThroughput(long throughput) {
-		dfcThroughput = Math.max(0, throughput);
+	public void setStarcoreThroughput(long throughput) {
+		starcoreThroughput = Math.max(0, throughput);
 	}
 
 	public long getSunLastSustainTick() {
@@ -119,7 +119,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public void writeToNBT(NBTTagCompound nbt) {
 		nbt.setInteger("state", state.ordinal());
 		nbt.setInteger("clusters", blackholeClustersSent);
-		nbt.setLong("dfcThroughput", dfcThroughput);
+		nbt.setLong("starcoreThroughput", starcoreThroughput);
 		nbt.setLong("sunLastSustain", sunLastSustainTick);
 	}
 
@@ -129,7 +129,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = nbt.getInteger("clusters");
-		dfcThroughput = nbt.getLong("dfcThroughput");
+		starcoreThroughput = nbt.getLong("starcoreThroughput");
 		sunLastSustainTick = nbt.getLong("sunLastSustain");
 	}
 
@@ -137,7 +137,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public void writeToBytes(ByteBuf buf) {
 		buf.writeByte(state.ordinal());
 		buf.writeShort(blackholeClustersSent);
-		buf.writeLong(dfcThroughput);
+		buf.writeLong(starcoreThroughput);
 		buf.writeLong(sunLastSustainTick);
 	}
 
@@ -147,7 +147,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = buf.readShort();
-		dfcThroughput = buf.readLong();
+		starcoreThroughput = buf.readLong();
 		sunLastSustainTick = buf.readLong();
 	}
 }

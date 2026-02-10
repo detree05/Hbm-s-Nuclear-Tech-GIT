@@ -1210,7 +1210,7 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 						new ComparableStack(ModItems.thruster_small, 1),
 						new OreDictStack(BSCCO.wireDense(), 64),
 						new ComparableStack(ModBlocks.machine_transformer_dnt, 1)));
-		this.register(new GenericRecipe("ass.satdfcrelay").setup(400, 100).outputItems(new ItemStack(ModItems.sat_dfc_relay, 1))
+		this.register(new GenericRecipe("ass.satstarcorerelay").setup(400, 100).outputItems(new ItemStack(ModItems.sat_starcore_relay, 1))
 				.inputItems(
 						new OreDictStack(BIGMT.plate(), 24),
 						new ComparableStack(ModItems.motor_bismuth, 2),
