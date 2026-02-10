@@ -3,6 +3,7 @@ package com.hbm.tileentity.machine;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.items.ISatChip;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
@@ -11,6 +12,8 @@ import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.world.WorldProviderEnd;
+import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.common.util.ForgeDirection;
 
 public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase implements IEnergyReceiverMK2 {
@@ -47,9 +50,8 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 			receivedThisTick = 0;
 			throughputLastTick = sentThisTick;
 			if(sentThisTick > 0) {
-				StarcoreThroughputTracker.add(worldObj, sentThisTick);
+				StarcoreThroughputTracker.registerInjectorTick(worldObj, xCoord, yCoord, zCoord);
 			}
-			StarcoreThroughputTracker.registerInjectorTick(worldObj, xCoord, yCoord, zCoord);
 			throughputThisFiveTicks += sentThisTick;
 			chipFreq = ISatChip.getFreqS(slots[0]);
 
@@ -79,7 +81,15 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(!canOperate()) {
 			return power;
 		}
-		long allowance = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick;
+		long perTickCap = getPerTickCap(state, skyState);
+		if(state == CBT_SkyState.SkyState.SUN && isSunChargeNearFull(skyState)) {
+			int injectors = Math.max(1, StarcoreThroughputTracker.getLastSecondInjectorCount(worldObj));
+			perTickCap = Math.max(1L, perTickCap / injectors);
+		}
+		long allowance = Math.min(
+			CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick,
+			StarcoreThroughputTracker.getRemainingCapacity(worldObj, perTickCap)
+		);
 		if(allowance <= 0) {
 			return power;
 		}
@@ -89,6 +99,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		long accepted = capped - overshoot;
 		if(accepted > 0) {
 			receivedThisTick += accepted;
+			StarcoreThroughputTracker.add(worldObj, accepted);
 		}
 		return (power - capped) + overshoot;
 	}
@@ -111,6 +122,11 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 
 	private boolean canOperate() {
 		if(worldObj == null) return false;
+		if(worldObj.provider instanceof WorldProviderHell
+			|| worldObj.provider instanceof WorldProviderEnd
+			|| worldObj.provider instanceof WorldProviderKerbol) {
+			return false;
+		}
 		int freq = chipFreq > 0 ? chipFreq : ISatChip.getFreqS(slots[0]);
 		if(freq <= 0) return false;
 		if(isWorldDaytime()) return true;
@@ -124,6 +140,28 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(worldObj == null) return false;
 		long time = worldObj.getWorldTime() % 24000L;
 		return time < 12000L;
+	}
+
+	private static long getPerTickCap(CBT_SkyState.SkyState state, CBT_SkyState skyState) {
+		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
+		if(state != CBT_SkyState.SkyState.SUN) {
+			return threshold;
+		}
+		long current = skyState.getSunCharge();
+		if(current >= CBT_SkyState.SUN_MAX_HE) {
+			return threshold;
+		}
+		long remaining = CBT_SkyState.SUN_MAX_HE - current;
+		if(remaining > Long.MAX_VALUE - threshold) {
+			return Long.MAX_VALUE;
+		}
+		return threshold + remaining;
+	}
+
+	private static boolean isSunChargeNearFull(CBT_SkyState skyState) {
+		long current = skyState.getSunCharge();
+		long ninetyNinePct = (CBT_SkyState.SUN_MAX_HE / 100L) * 99L;
+		return current >= ninetyNinePct;
 	}
 
 	@Override

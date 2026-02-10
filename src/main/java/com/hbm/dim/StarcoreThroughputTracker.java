@@ -6,6 +6,7 @@ import java.util.Map;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.CelestialBody;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 
@@ -20,22 +21,23 @@ public class StarcoreThroughputTracker {
 		private long lastFiveTickTotal;
 		private java.util.Set<Long> injectorsThisFiveTicks;
 		private int injectorsLastFiveTicks;
+		private java.util.Set<Long> injectorsThisSecond;
+		private int injectorsLastSecond;
 		private long totalThisSecond;
 		private long lastSecondTotal;
 		private long lastProcessedTick;
-		private long energyBank;
 	}
 
-	private static final Map<Integer, Accumulator> perDimension = new HashMap<>();
-	private static final long STARCORE_BUFFER_TICKS = 20L;
+	private static final Map<String, Accumulator> perStar = new HashMap<>();
 
 	private static Accumulator get(World world) {
-		int dim = world.provider != null ? world.provider.dimensionId : 0;
-		Accumulator acc = perDimension.get(dim);
+		String starName = CelestialBody.getStar(world).name;
+		Accumulator acc = perStar.get(starName);
 		if(acc == null) {
 			acc = new Accumulator();
 			acc.injectorsThisFiveTicks = new java.util.HashSet<>();
-			perDimension.put(dim, acc);
+			acc.injectorsThisSecond = new java.util.HashSet<>();
+			perStar.put(starName, acc);
 		}
 		return acc;
 	}
@@ -48,10 +50,20 @@ public class StarcoreThroughputTracker {
 		acc.totalThisFiveTicks += amount;
 	}
 
+	public static long getRemainingCapacity(World world, long perTickCap) {
+		if(world == null || world.isRemote || perTickCap <= 0) return 0;
+		Accumulator acc = get(world);
+		long remaining = perTickCap - acc.totalThisTick;
+		return Math.max(0L, remaining);
+	}
+
 	public static void registerInjectorTick(World world, int x, int y, int z) {
 		if(world == null || world.isRemote) return;
 		Accumulator acc = get(world);
-		acc.injectorsThisFiveTicks.add(packInjectorPos(x, y, z));
+		int dim = world.provider != null ? world.provider.dimensionId : 0;
+		long packed = packInjectorPos(dim, x, y, z);
+		acc.injectorsThisFiveTicks.add(packed);
+		acc.injectorsThisSecond.add(packed);
 	}
 
 	public static void tick(World world) {
@@ -59,7 +71,7 @@ public class StarcoreThroughputTracker {
 		long now = world.getTotalWorldTime();
 
 		Accumulator acc = get(world);
-		if(acc.lastProcessedTick == now) return;
+		if(acc.lastProcessedTick >= now) return;
 		acc.lastProcessedTick = now;
 
 		long total = acc.totalThisTick;
@@ -74,22 +86,18 @@ public class StarcoreThroughputTracker {
 		if(now % 20 == 0) {
 			acc.lastSecondTotal = acc.totalThisSecond;
 			acc.totalThisSecond = 0;
+			acc.injectorsLastSecond = acc.injectorsThisSecond.size();
+			acc.injectorsThisSecond.clear();
 		}
-		acc.energyBank += total;
 		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
-		long bufferCap = threshold * STARCORE_BUFFER_TICKS;
-		long effective = Math.min(acc.energyBank, threshold);
-		acc.energyBank -= effective;
-		long excess = 0L;
-		if(acc.energyBank > bufferCap) {
-			excess = acc.energyBank - bufferCap;
-			acc.energyBank = bufferCap;
-		}
+		long avgTotal = acc.lastSecondTotal > 0 ? acc.lastSecondTotal / 20L : total;
+		long effective = Math.min(avgTotal, threshold);
+		long excess = Math.max(0L, total - threshold);
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.STARCORE) {
-			if(effective >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK) {
+			if(avgTotal >= threshold) {
 				skyState.setState(CBT_SkyState.SkyState.SUN);
 				skyState.setStarcoreThroughput(0);
 				skyState.setSunCharge(CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK * 20L * 10L);
@@ -108,7 +116,7 @@ public class StarcoreThroughputTracker {
 				CelestialBody.getStar(world).modifyTraits(skyState);
 				lastSustain = now;
 			}
-			if(effective >= CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK) {
+			if(avgTotal >= threshold) {
 				if(skyState.getSunLastSustainTick() != now) {
 					skyState.setSunLastSustainTick(now);
 					CelestialBody.getStar(world).modifyTraits(skyState);
@@ -182,10 +190,17 @@ public class StarcoreThroughputTracker {
 		return get(world).injectorsLastFiveTicks;
 	}
 
-	private static long packInjectorPos(int x, int y, int z) {
+	public static int getLastSecondInjectorCount(World world) {
+		if(world == null) return 0;
+		return get(world).injectorsLastSecond;
+	}
+
+	private static long packInjectorPos(int dim, int x, int y, int z) {
 		long lx = ((long) x & 0x3FFFFFFL) << 38;
 		long lz = ((long) z & 0x3FFFFFFL) << 12;
 		long ly = (long) y & 0xFFFL;
-		return lx | lz | ly;
+		long pos = lx | lz | ly;
+		long d = ((long) dim & 0xFFFFFL) << 44;
+		return pos ^ d;
 	}
 }

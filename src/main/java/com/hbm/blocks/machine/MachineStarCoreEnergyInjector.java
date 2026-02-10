@@ -7,6 +7,7 @@ import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.items.ModItems;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityStarCoreEnergyInjector;
@@ -23,6 +24,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldProviderEnd;
+import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
 
 public class MachineStarCoreEnergyInjector extends BlockContainer implements ILookOverlay, ITooltipProvider {
@@ -71,6 +74,7 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		ItemStack heldStack = player.getHeldItem();
 
 		if(heldStack != null && heldStack.getItem() == ModItems.sat_chip) {
+			if(world.provider instanceof WorldProviderKerbol) return false;
 			if(injector.slots[0] != null) return false;
 
 			injector.slots[0] = heldStack.copy();
@@ -93,8 +97,18 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		TileEntity te = world.getTileEntity(x, y, z);
 		if(!(te instanceof TileEntityStarCoreEnergyInjector)) return;
 
+		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) {
+			return;
+		}
+
 		TileEntityStarCoreEnergyInjector injector = (TileEntityStarCoreEnergyInjector) te;
 		List<String> text = new ArrayList<>();
+
+		if(world.provider instanceof WorldProviderKerbol) {
+			text.add(EnumChatFormatting.RED + "never.");
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
 
 		if(injector.getChipFreq() <= 0) {
 			text.add("No Satellite ID-Chip installed!");
