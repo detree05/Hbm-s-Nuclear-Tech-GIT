@@ -1,10 +1,9 @@
 package com.hbm.tileentity.machine;
 
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.DfcThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.items.ISatChip;
-import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.DfcIgnitionSkyPacket;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
 import com.hbm.saveddata.satellites.SatelliteDfcRelay;
@@ -48,42 +47,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 			if(tickSecond) {
 				throughputLastSecond = throughputThisSecond;
 				throughputThisSecond = 0;
-
-				CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-				CBT_SkyState.SkyState state = skyState.getState();
-				if(state == CBT_SkyState.SkyState.DFC) {
-					if(throughputLastSecond >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
-						skyState.setState(CBT_SkyState.SkyState.SUN);
-						skyState.setDfcThroughput(0);
-						skyState.setSunLastSustainTick(worldObj.getTotalWorldTime());
-						PacketDispatcher.wrapper.sendToDimension(
-							new DfcIgnitionSkyPacket(worldObj.getTotalWorldTime(), worldObj.provider.dimensionId),
-							worldObj.provider.dimensionId
-						);
-					} else {
-						skyState.setDfcThroughput(throughputLastSecond);
-					}
-					CelestialBody.getStar(worldObj).modifyTraits(skyState);
-				} else if(state == CBT_SkyState.SkyState.SUN) {
-					if(throughputLastSecond >= CBT_SkyState.DFC_THRESHOLD_HE_PER_SEC) {
-						long now = worldObj.getTotalWorldTime();
-						if(skyState.getSunLastSustainTick() != now) {
-							skyState.setSunLastSustainTick(now);
-							CelestialBody.getStar(worldObj).modifyTraits(skyState);
-						}
-					}
-					if(skyState.getDfcThroughput() != 0) {
-						skyState.setDfcThroughput(0);
-						CelestialBody.getStar(worldObj).modifyTraits(skyState);
-					}
-				} else {
-					if(skyState.getDfcThroughput() != 0) {
-						skyState.setDfcThroughput(0);
-						CelestialBody.getStar(worldObj).modifyTraits(skyState);
-					}
-					throughputLastSecond = 0;
-					throughputThisSecond = 0;
-				}
+				DfcThroughputTracker.add(worldObj, throughputLastSecond);
 			}
 
 			power = 0;

@@ -9,9 +9,8 @@ import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
-	public static final long DFC_THRESHOLD_HE_PER_SEC = 10_000_000_000_000L;
-	// Temporary: tweakable decay time in ticks (20 ticks = 1 second)
-	public static int SUN_DECAY_TICKS = 20 * 60;
+	public static final long DFC_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
+	public static int SUN_DECAY_TICKS = 5 * 24000;
 
 	public enum SkyState {
 		SUN,

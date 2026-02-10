@@ -33,6 +33,7 @@ import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.DfcThroughputTracker;
 import com.hbm.dim.WorldProviderEarth;
 import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -871,6 +872,7 @@ public class ModEventHandler {
 	public void worldTick(WorldTickEvent event) {
 
 		if(event.world != null && !event.world.isRemote) {
+			DfcThroughputTracker.tick(event.world);
 			CBT_SkyState sunSkyState = CBT_SkyState.get(event.world);
 			if(sunSkyState != null && sunSkyState.getState() == CBT_SkyState.SkyState.SUN) {
 				long now = event.world.getTotalWorldTime();
