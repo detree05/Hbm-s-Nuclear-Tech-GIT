@@ -23,9 +23,11 @@ public class StarcoreThroughputTracker {
 		private long totalThisSecond;
 		private long lastSecondTotal;
 		private long lastProcessedTick;
+		private long energyBank;
 	}
 
 	private static final Map<Integer, Accumulator> perDimension = new HashMap<>();
+	private static final long STARCORE_BUFFER_TICKS = 20L;
 
 	private static Accumulator get(World world) {
 		int dim = world.provider != null ? world.provider.dimensionId : 0;
@@ -73,8 +75,16 @@ public class StarcoreThroughputTracker {
 			acc.lastSecondTotal = acc.totalThisSecond;
 			acc.totalThisSecond = 0;
 		}
-		long effective = Math.min(total, CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK);
-		long excess = Math.max(0L, total - CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK);
+		acc.energyBank += total;
+		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
+		long bufferCap = threshold * STARCORE_BUFFER_TICKS;
+		long effective = Math.min(acc.energyBank, threshold);
+		acc.energyBank -= effective;
+		long excess = 0L;
+		if(acc.energyBank > bufferCap) {
+			excess = acc.energyBank - bufferCap;
+			acc.energyBank = bufferCap;
+		}
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		CBT_SkyState.SkyState state = skyState.getState();

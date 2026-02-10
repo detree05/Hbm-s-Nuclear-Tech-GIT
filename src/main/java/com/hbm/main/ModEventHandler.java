@@ -875,7 +875,7 @@ public class ModEventHandler {
 	@SubscribeEvent
 	public void worldTick(WorldTickEvent event) {
 
-		if(event.world != null && !event.world.isRemote) {
+		if(event.world != null && !event.world.isRemote && event.phase == WorldTickEvent.Phase.END) {
 			StarcoreThroughputTracker.tick(event.world);
 
 			if(event.world.provider.dimensionId == 0) {
