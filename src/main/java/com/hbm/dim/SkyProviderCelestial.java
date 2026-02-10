@@ -192,7 +192,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		} else if(sky == CBT_SkyState.SkyState.STARCORE) {
 			long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
 			float ratio = MathHelper.clamp_float(
-				(float)((double)starcoreThroughput / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC),
+				(float)((double)starcoreThroughput / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK),
 				0.0F,
 				1.0F
 			);
@@ -684,6 +684,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float sunChargeRatio = (sky == CBT_SkyState.SkyState.SUN && skyState != null)
 			? MathHelper.clamp_float((float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE), 0.0F, 1.0F)
 			: 1.0F;
+		float sunDecayProgress = 1.0F - sunChargeRatio;
 		float sunScale = 0.35F + 0.65F * sunChargeRatio;
 		double renderSunSize = sunSize * sunScale;
 		double renderCoronaSize = coronaSize * sunScale;
@@ -691,7 +692,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		if(sky == CBT_SkyState.SkyState.STARCORE) {
 			GL11.glEnable(GL11.GL_TEXTURE_2D);
 			long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
-			float ratio = MathHelper.clamp_float((float)((double) starcoreThroughput / (double) CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC), 0.0F, 1.0F);
+			float ratio = MathHelper.clamp_float((float)((double) starcoreThroughput / (double) CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK), 0.0F, 1.0F);
 			float hueSpeed = 0.01F + 0.04F * ratio;
 			float hue = ((world.getWorldTime() + partialTicks) * hueSpeed + ratio * 0.25F) % 1.0F;
 			int rgb = Color.HSBtoRGB(hue, 1.0F, 1.0F);
@@ -729,6 +730,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 			renderStarcoreDecayFlareEffect(partialTicks, world, mc, sunSize);
 			return;
 		}
+
+		renderStarcoreDecayFlareEffect(partialTicks, world, mc, sunSize);
 
 		if(sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE) {
 			return;

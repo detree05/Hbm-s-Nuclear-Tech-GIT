@@ -4,16 +4,15 @@ import com.hbm.dim.CelestialBody;
 
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 public class CBT_SkyState extends CelestialBodyTrait {
 
-	public static final long STARCORE_THRESHOLD_HE_PER_SEC = 500_000_000_000_000L;
-	public static int SUN_DECAY_TICKS = 5 * 24000;
+	public static final long STARCORE_THRESHOLD_HE_PER_TICK = 500_000_000_000_000L / 20L;
 	public static final int SUN_BUILDUP_TICKS = 5 * 24000;
 	public static final long SUN_BUILDUP_SECONDS = SUN_BUILDUP_TICKS / 20L;
-	public static final long SUN_MAX_HE = STARCORE_THRESHOLD_HE_PER_SEC * SUN_BUILDUP_SECONDS;
+	public static final long SUN_MAX_HE = STARCORE_THRESHOLD_HE_PER_TICK * 20L * SUN_BUILDUP_SECONDS;
+	public static final int SUN_GRACE_TICKS = 10 * 20;
 
 	public enum SkyState {
 		SUN,
@@ -89,14 +88,6 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	public void setSunCharge(long charge) {
 		sunCharge = Math.max(0, charge);
-	}
-
-	public float getSunDecayProgress(World world, float partialTicks) {
-		if(world == null || state != SkyState.SUN) return 0.0F;
-		if(SUN_DECAY_TICKS <= 0) return 1.0F;
-		if(sunLastSustainTick <= 0) return 0.0F;
-		float elapsed = (world.getTotalWorldTime() - sunLastSustainTick) + partialTicks;
-		return MathHelper.clamp_float(elapsed / (float) SUN_DECAY_TICKS, 0.0F, 1.0F);
 	}
 
 	public static CBT_SkyState get(World world) {

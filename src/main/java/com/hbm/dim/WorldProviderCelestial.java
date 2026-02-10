@@ -220,7 +220,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
-					(float)((double)skyState.getStarcoreThroughput() / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC),
+					(float)((double)skyState.getStarcoreThroughput() / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK),
 					0.0F,
 					1.0F
 				);

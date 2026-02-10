@@ -75,9 +75,9 @@ public class PacketDispatcher {
 		wrapper.registerMessage(GravityEventPacket.Handler.class, GravityEventPacket.class, i++, Side.CLIENT);
 		//Novae sky + overlay event
 		wrapper.registerMessage(SupernovaeSkyPacket.Handler.class, SupernovaeSkyPacket.class, i++, Side.CLIENT);
-		//DFC ignition sky + overlay event
+		//Starcore ignition sky + overlay event
 		wrapper.registerMessage(StarcoreIgnitionSkyPacket.Handler.class, StarcoreIgnitionSkyPacket.class, i++, Side.CLIENT);
-		//DFC decay sky + overlay event
+		//Starcore decay sky + overlay event
 		wrapper.registerMessage(StarcoreDecaySkyPacket.Handler.class, StarcoreDecaySkyPacket.class, i++, Side.CLIENT);
 
 		// Sends info about currently linked transporters to player

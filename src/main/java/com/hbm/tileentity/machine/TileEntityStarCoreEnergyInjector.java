@@ -21,6 +21,9 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	private long receivedThisTick;
 	private long throughputThisSecond;
 	private long throughputLastSecond;
+	private long throughputLastTick;
+	private long throughputThisFiveTicks;
+	private long throughputLastFiveTicks;
 	private int chipFreq;
 
 	public TileEntityStarCoreEnergyInjector() {
@@ -39,15 +42,25 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 				trySubscribe(worldObj, xCoord + dir.offsetX, yCoord + dir.offsetY, zCoord + dir.offsetZ, dir);
 			}
 
+			long sentThisTick = receivedThisTick;
 			throughputThisSecond += receivedThisTick;
 			receivedThisTick = 0;
+			throughputLastTick = sentThisTick;
+			if(sentThisTick > 0) {
+				StarcoreThroughputTracker.add(worldObj, sentThisTick);
+			}
+			StarcoreThroughputTracker.registerInjectorTick(worldObj, xCoord, yCoord, zCoord);
+			throughputThisFiveTicks += sentThisTick;
 			chipFreq = ISatChip.getFreqS(slots[0]);
 
 			boolean tickSecond = worldObj.getTotalWorldTime() % 20 == 0;
 			if(tickSecond) {
 				throughputLastSecond = throughputThisSecond;
 				throughputThisSecond = 0;
-				StarcoreThroughputTracker.add(worldObj, throughputLastSecond);
+			}
+			if(worldObj.getTotalWorldTime() % 5 == 0) {
+				throughputLastFiveTicks = throughputThisFiveTicks;
+				throughputThisFiveTicks = 0;
 			}
 
 			power = 0;
@@ -66,7 +79,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(!canOperate()) {
 			return power;
 		}
-		long allowance = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_SEC - (throughputThisSecond + receivedThisTick);
+		long allowance = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick;
 		if(allowance <= 0) {
 			return power;
 		}
@@ -82,6 +95,14 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 
 	public long getThroughputPerSecond() {
 		return throughputLastSecond;
+	}
+
+	public long getThroughputPerTick() {
+		return throughputLastTick;
+	}
+
+	public long getThroughputPerFiveTicks() {
+		return throughputLastFiveTicks;
 	}
 
 	public int getChipFreq() {
@@ -134,6 +155,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	public void serialize(ByteBuf buf) {
 		super.serialize(buf);
 		buf.writeLong(throughputLastSecond);
+		buf.writeLong(throughputLastFiveTicks);
 		buf.writeInt(chipFreq);
 	}
 
@@ -141,6 +163,7 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	public void deserialize(ByteBuf buf) {
 		super.deserialize(buf);
 		throughputLastSecond = Math.max(0, buf.readLong());
+		throughputLastFiveTicks = Math.max(0, buf.readLong());
 		chipFreq = buf.readInt();
 	}
 

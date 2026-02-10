@@ -5,6 +5,7 @@ import java.util.List;
 
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
+import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.items.ModItems;
 import com.hbm.lib.RefStrings;
@@ -107,7 +108,12 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
 			text.add(color + "Nothing to shoot beam at... yet.");
 		} else {
-			text.add("Power throughput: " + BobMathUtil.getShortNumber(injector.getThroughputPerSecond()) + "HE/s");
+			long injectorPerSecond = injector.getThroughputPerFiveTicks() * 4L;
+			long totalPerSecond = StarcoreThroughputTracker.getLastFiveTickTotal(world) * 4L;
+			text.add("Current power: " + BobMathUtil.getShortNumber(injectorPerSecond) + "HE/s");
+			text.add("Injectors: " + StarcoreThroughputTracker.getLastFiveTickInjectorCount(world) + " injectors");
+			text.add("Total power: " + BobMathUtil.getShortNumber(totalPerSecond) + "HE/s");
+			text.add("Star charge: " + BobMathUtil.getShortNumber(skyState.getSunCharge()) + "HE");
 		}
 
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);

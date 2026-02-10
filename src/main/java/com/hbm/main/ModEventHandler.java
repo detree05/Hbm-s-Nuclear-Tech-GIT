@@ -877,28 +877,6 @@ public class ModEventHandler {
 
 		if(event.world != null && !event.world.isRemote) {
 			StarcoreThroughputTracker.tick(event.world);
-			CBT_SkyState sunSkyState = CBT_SkyState.get(event.world);
-			if(sunSkyState != null && sunSkyState.getState() == CBT_SkyState.SkyState.SUN) {
-				long now = event.world.getTotalWorldTime();
-				if(sunSkyState.getSunLastSustainTick() <= 0) {
-					sunSkyState.setSunLastSustainTick(now);
-					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
-				}
-
-				long elapsed = now - sunSkyState.getSunLastSustainTick();
-				if(elapsed >= CBT_SkyState.SUN_DECAY_TICKS) {
-					sunSkyState.setState(CBT_SkyState.SkyState.NOTHING);
-					sunSkyState.setStarcoreThroughput(0);
-					sunSkyState.setSunCharge(0);
-					sunSkyState.setSunLastSustainTick(0);
-					CelestialBody.getStar(event.world).modifyTraits(sunSkyState);
-					CBT_Dyson.clearAll(event.world);
-					PacketDispatcher.wrapper.sendToDimension(
-						new StarcoreDecaySkyPacket(event.world.getTotalWorldTime(), event.world.provider.dimensionId),
-						event.world.provider.dimensionId
-					);
-				}
-			}
 
 			if(event.world.provider.dimensionId == 0) {
 				SolarSystem.applyMinmusShatterState();
