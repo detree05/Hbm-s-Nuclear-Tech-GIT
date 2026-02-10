@@ -430,8 +430,8 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 			issues.add(EnumChatFormatting.RED + "Its gone...");
 			return;
 		}
-		if(to.body != null && to.body.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
-			issues.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+		if(to.body != null && to.body.getEnum() == SolarSystem.Body.KERBOL) {
+			issues.add(EnumChatFormatting.RED + "You aren't getting there buddy");
 			return;
 		}
 

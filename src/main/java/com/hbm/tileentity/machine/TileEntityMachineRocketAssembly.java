@@ -90,8 +90,8 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 
 			if(toTarget.body != null
 					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
-					&& !SolarSystem.isKerbolBlackhole()) {
-				rocket.addIssue(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+					) {
+				rocket.addIssue(EnumChatFormatting.RED + "You aren't getting there buddy");
 			}
 
 			if(toTarget.body != null
@@ -269,8 +269,7 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 		ItemStack toStack = slots[slots.length - (RocketStruct.MAX_STAGES - currentStage) * 2 + 1];
 		Target toTarget = ItemVOTVdrive.getTarget(toStack, worldObj);
 		return toTarget.body != null
-			&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
-			&& !SolarSystem.isKerbolBlackhole();
+			&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL;
 	}
 
 	public boolean canDeconstruct() {

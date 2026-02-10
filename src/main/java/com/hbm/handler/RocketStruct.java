@@ -142,8 +142,8 @@ public class RocketStruct {
 				issues.add(EnumChatFormatting.RED + "Its gone...");
 				return issues;
 			}
-			if(to.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
-				issues.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
+			if(to.getEnum() == SolarSystem.Body.KERBOL) {
+				issues.add(EnumChatFormatting.RED + "You aren't getting there buddy");
 				return issues;
 			}
 			if(from.getEnum() == SolarSystem.Body.KERBOL && to.getEnum() != SolarSystem.Body.KERBOL) {
@@ -194,7 +194,7 @@ public class RocketStruct {
 	}
 
 	public boolean hasSufficientFuel(CelestialBody from, CelestialBody to, boolean fromOrbit, boolean toOrbit) {
-		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !hasSingularityThruster()) {
+		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL) {
 			return false;
 		}
 
@@ -229,7 +229,7 @@ public class RocketStruct {
 
 		if(stage.fuselage == null || stage.thruster == null) return -1;
 
-		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !hasSingularityThruster()) {
+		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL) {
 			return Integer.MAX_VALUE;
 		}
 
@@ -238,16 +238,6 @@ public class RocketStruct {
 		int isp = getISP(stage);
 
 		return SolarSystem.getCostBetween(from, to, rocketMass, thrust, isp, fromOrbit, toOrbit);
-	}
-
-	private boolean hasSingularityThruster() {
-		for(RocketStage stage : stages) {
-			if(stage == null || stage.thruster == null) continue;
-			if(stage.thruster.part == ModItems.mp_thruster_20_singularity) {
-				return true;
-			}
-		}
-		return false;
 	}
 
 	public int getThrust() {
