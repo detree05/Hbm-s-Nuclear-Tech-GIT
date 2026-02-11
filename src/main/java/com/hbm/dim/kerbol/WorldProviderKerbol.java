@@ -52,18 +52,23 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 			GL11.glPushMatrix();
 			{
-				// Speed up the dual-star orbit in the Kerbol sky.
-				float solarAngle = (world.getCelestialAngle(partialTicks) * 128.0F) % 1.0F;
-				if(solarAngle < 0.0F) {
-					solarAngle += 1.0F;
+				// Speed up the dual-star orbits in the Kerbol sky.
+				float baseAngle = world.getCelestialAngle(partialTicks);
+				float starAAngle = (baseAngle * 128.0F) % 1.0F;
+				float starBAngle = (baseAngle * 192.0F + 0.17F) % 1.0F;
+				if(starAAngle < 0.0F) {
+					starAAngle += 1.0F;
+				}
+				if(starBAngle < 0.0F) {
+					starBAngle += 1.0F;
 				}
 
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-				GL11.glRotatef(solarAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 
 				// Star A (red, larger)
 				GL11.glPushMatrix();
 				{
+					GL11.glRotatef(starAAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 					GL11.glRotatef(25.0F, 0.0F, 1.0F, 0.0F);
 					GL11.glRotatef(45.0F, 0.0F, 0.0F, 1.0F);
 
@@ -95,6 +100,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 				// Star B (orange, smaller)
 				GL11.glPushMatrix();
 				{
+					GL11.glRotatef(starBAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 					GL11.glRotatef(-75.0F, 0.0F, 1.0F, 0.0F);
 					GL11.glRotatef(20.0F, 0.0F, 0.0F, 1.0F);
 

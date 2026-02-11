@@ -6,10 +6,6 @@ import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.config.SpaceConfig;
-import com.hbm.items.ISatChip;
-import com.hbm.saveddata.SatelliteSavedData;
-import com.hbm.saveddata.satellites.Satellite;
-import com.hbm.saveddata.satellites.StarcoreRelayUtil;
 import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
@@ -30,11 +26,10 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	private long throughputLastTick;
 	private long throughputThisFiveTicks;
 	private long throughputLastFiveTicks;
-	private int chipFreq;
 	private boolean registered;
 
 	public TileEntityStarCoreEnergyInjector() {
-		super(1);
+		super(0);
 	}
 
 	@Override
@@ -57,7 +52,6 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 				StarcoreThroughputTracker.registerInjectorTick(worldObj, xCoord, yCoord, zCoord);
 			}
 			throughputThisFiveTicks += sentThisTick;
-			chipFreq = ISatChip.getFreqS(slots[0]);
 
 			boolean tickSecond = worldObj.getTotalWorldTime() % 20 == 0;
 			if(tickSecond) {
@@ -121,10 +115,6 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		return throughputLastFiveTicks;
 	}
 
-	public int getChipFreq() {
-		return chipFreq;
-	}
-
 	private boolean canOperate() {
 		if(worldObj == null) return false;
 		if(worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.orbitDimension) {
@@ -135,17 +125,11 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 			|| worldObj.provider instanceof WorldProviderKerbol) {
 			return false;
 		}
-		int freq = chipFreq > 0 ? chipFreq : ISatChip.getFreqS(slots[0]);
-		if(freq <= 0) return false;
 		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 		if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 			return true;
 		}
-		if(isWorldDaytime()) return true;
-		SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);
-		if(data == null) return false;
-		Satellite sat = data.getSatFromFreq(freq);
-		return StarcoreRelayUtil.isStarcoreRelay(sat);
+		return isWorldDaytime();
 	}
 
 	private boolean isWorldDaytime() {
@@ -232,7 +216,6 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		super.serialize(buf);
 		buf.writeLong(throughputLastSecond);
 		buf.writeLong(throughputLastFiveTicks);
-		buf.writeInt(chipFreq);
 	}
 
 	@Override
@@ -240,7 +223,6 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		super.deserialize(buf);
 		throughputLastSecond = Math.max(0, buf.readLong());
 		throughputLastFiveTicks = Math.max(0, buf.readLong());
-		chipFreq = buf.readInt();
 	}
 
 	@Override public long getPower() { return power; }

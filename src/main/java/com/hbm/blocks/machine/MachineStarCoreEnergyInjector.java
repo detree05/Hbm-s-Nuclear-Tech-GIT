@@ -9,7 +9,6 @@ import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.config.SpaceConfig;
-import com.hbm.items.ModItems;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.machine.TileEntityStarCoreEnergyInjector;
 import com.hbm.util.BobMathUtil;
@@ -64,33 +63,6 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ) {
-		if(world.isRemote) {
-			return true;
-		}
-
-		TileEntity te = world.getTileEntity(x, y, z);
-		if(!(te instanceof TileEntityStarCoreEnergyInjector)) return false;
-		TileEntityStarCoreEnergyInjector injector = (TileEntityStarCoreEnergyInjector) te;
-
-		ItemStack heldStack = player.getHeldItem();
-
-		if(heldStack != null && heldStack.getItem() == ModItems.sat_chip) {
-			if(world.provider != null && world.provider.dimensionId == SpaceConfig.orbitDimension) return false;
-			if(world.provider instanceof WorldProviderKerbol) return false;
-			if(injector.slots[0] != null) return false;
-
-			injector.slots[0] = heldStack.copy();
-			injector.markChanged();
-			heldStack.stackSize = 0;
-			world.playSoundEffect(x, y, z, "hbm:item.upgradePlug", 1.0F, 1.0F);
-		} else if(heldStack == null && injector.slots[0] != null) {
-			if(player.inventory.addItemStackToInventory(injector.slots[0].copy())) {
-				injector.slots[0] = null;
-				injector.markChanged();
-				world.playSoundEffect(x, y, z, "hbm:item.upgradePlug", 1.0F, 1.0F);
-			}
-		}
-
 		return true;
 	}
 
@@ -118,12 +90,6 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 		if(world.provider instanceof WorldProviderKerbol) {
 			text.add(EnumChatFormatting.RED + "never.");
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
-			return;
-		}
-
-		if(injector.getChipFreq() <= 0) {
-			text.add("No Satellite ID-Chip installed!");
-			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 			return;
 		}
 

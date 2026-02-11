@@ -156,6 +156,7 @@ public class ModEventHandlerClient {
 	private static Float lastKerbolGravity;
 	private static long lastKerbolHeartbeatBeat = -1L;
 	private static final double KERBOL_HEARTBEAT_PERIOD_TICKS = 200.0D;
+	private static int kerbolDialogueCooldownTicks = -1;
 
 
 	@SubscribeEvent
@@ -761,14 +762,6 @@ public class ModEventHandlerClient {
 
 		WorldClient wc = mc.theWorld;
 
-		if(wc != null && wc.provider != null && wc.provider.dimensionId == SpaceConfig.kerbolDimension) {
-			String soundId = r != null ? r.toString() : "";
-			if("minecraft:ambient.cave.cave".equals(soundId) || "ambient.cave.cave".equals(soundId)) {
-				e.result = new PositionedSoundRecord(new ResourceLocation("hbm:misc.itlives_dialogue"), e.sound.getVolume(), e.sound.getPitch(), e.sound.getXPosF(), e.sound.getYPosF(), e.sound.getZPosF());
-				return;
-			}
-		}
-
 		//Alright, alright, I give the fuck up, you've wasted my time enough with this bullshit. You win.
 		//A winner is you.
 		//Conglaturations.
@@ -1084,6 +1077,7 @@ public class ModEventHandlerClient {
 			if(BlockAshes.ashes < 0) BlockAshes.ashes = 0;
 
 			maybeSpawnKerbolRedRain(mc);
+			maybePlayKerbolDialogue(mc);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
 				lastBrightness = currentBrightness;
@@ -1335,6 +1329,29 @@ public class ModEventHandlerClient {
 		}
 		lastKerbolHeartbeatBeat = beatIndex;
 		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
+	}
+
+	private void maybePlayKerbolDialogue(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			kerbolDialogueCooldownTicks = -1;
+			return;
+		}
+
+		if(kerbolDialogueCooldownTicks < 0) {
+			kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+			return;
+		}
+
+		if(kerbolDialogueCooldownTicks > 0) {
+			kerbolDialogueCooldownTicks--;
+			return;
+		}
+
+		kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue", 1.0F, 1.0F);
 	}
 
 	private void maybeSpawnKerbolRedRain(Minecraft mc) {

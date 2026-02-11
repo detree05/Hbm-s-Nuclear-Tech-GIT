@@ -77,7 +77,6 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 		if(this == ModItems.sat_dyson_relay)
 			list.add(I18nUtil.resolveKey("item.sat.desc.dyson_relay"));
 
-		if(this == ModItems.sat_starcore_relay)
 			list.add(I18nUtil.resolveKey("item.sat.desc.starcore_relay"));
 
 		if(canLaunchByHand) {
