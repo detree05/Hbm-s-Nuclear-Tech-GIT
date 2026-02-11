@@ -97,11 +97,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 						} else if(depth < 24) {
 							blocks[index] = voidStone != null ? voidStone : fleshMass;
 						} else {
-							if(blood != null && isBloodCavity(wx, y, wz)) {
-								blocks[index] = blood;
-							} else {
-								blocks[index] = fleshMass;
-							}
+							blocks[index] = fleshMass;
 						}
 					}
 					meta[index] = 0;

@@ -966,8 +966,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
 		float blendDarken = 0.1F;
-		final float redTint = 0.0F;
-		final float greenBlueScale = 1.0F;
 		final float redOverlayAlpha = 0.0F;
 
 		double transitionMinSize = 0.1D;
@@ -1000,7 +998,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 			if(injectorCount > 0 && bodyVisibility > 0.05F) {
 				float distanceFactor = (float)MathHelper.clamp_double(metric.distance / maxDistance, 0.0D, 1.0D);
-				float lineWidth = MathHelper.clamp_float((2.5F - 1.75F * distanceFactor) * 1.1F, 1.8F, 9.0F);
+				float lineWidth = MathHelper.clamp_float((2.5F - 1.75F * distanceFactor) * 1.05F, 1.8F, 9.0F);
 				float time = (float)(world.getTotalWorldTime() + partialTicks);
 				float spinAngle = (float)(((world.getTotalWorldTime() + partialTicks) / 1024.0D) * Math.PI * 2.0D);
 				renderInjectorLines(tessellator, metric, axialTilt, injectorCount, bodyVisibility, lineWidth, time, spinAngle);
@@ -1383,24 +1381,19 @@ public class SkyProviderCelestial extends IRenderHandler {
 		dirZ /= dirLen;
 
 		double rightX = 1.0D;
-		double rightY = 0.0D;
 		double rightZ = 0.0D;
 
 		double forwardX = 0.0D;
-		double forwardY = 0.0D;
 		double forwardZ = 1.0D;
 
 		double spinCos = Math.cos(spinAngle);
 		double spinSin = Math.sin(spinAngle);
 		double spinRightX = rightX * spinCos + forwardX * spinSin;
-		double spinRightY = 0.0D;
 		double spinRightZ = -rightX * spinSin + forwardX * spinCos;
 		double spinForwardX = forwardX * spinCos - rightX * spinSin;
-		double spinForwardY = 0.0D;
 		double spinForwardZ = forwardZ * spinCos + rightZ * spinSin;
 
 		double litX = dirX;
-		double litY = 0.0D;
 		double litZ = dirZ;
 		double litLen = Math.sqrt(litX * litX + litZ * litZ);
 		if(litLen < 1.0E-4D) return;

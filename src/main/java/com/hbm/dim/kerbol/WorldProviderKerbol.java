@@ -28,10 +28,9 @@ import net.minecraft.util.ResourceLocation;
 import java.util.Random;
 
 public class WorldProviderKerbol extends WorldProviderCelestial {
-	private static final float GRAVITY_MIN = 1F;
+	private static final float GRAVITY_MIN = 0.1F;
 	private static final float GRAVITY_MAX = 6.0F;
 	private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
-	private static final long GRAVITY_SEED_SALT = 0x9E3779B97F4A7C15L;
 
 	private long lastGravityEventMillis = -1L;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
@@ -43,7 +42,6 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static final IRenderHandler KERBOL_SKY = new IRenderHandler() {
 		@Override
 		public void render(float partialTicks, WorldClient world, Minecraft mc) {
-			// Render a single bright "star" using the sun texture.
 			Tessellator tessellator = Tessellator.instance;
 
 			GL11.glDisable(GL11.GL_FOG);
@@ -295,9 +293,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		kerbol.lastGravityEventMillis = now;
 
 		float current = kerbol.getGravityMultiplier();
-		float next = GRAVITY_MIN + GRAVITY_MAX - current; // 🔄 flip
-
-		next = Math.max(GRAVITY_MIN, Math.min(GRAVITY_MAX, next));
+		float next = Math.abs(current - GRAVITY_MAX) < 0.01F ? GRAVITY_MIN : GRAVITY_MAX;
 
 		return next;
 	}

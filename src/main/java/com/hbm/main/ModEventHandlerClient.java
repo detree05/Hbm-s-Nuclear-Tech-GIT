@@ -591,6 +591,26 @@ public class ModEventHandlerClient {
 		event.newfov = fov;
 	}
 
+	private static final String[] CAM_ROLL_FIELDS = new String[] { "camRoll", "field_78495_O", "O" };
+
+	@SubscribeEvent
+	public void onRenderTick(TickEvent.RenderTickEvent event) {
+		if(event.phase != Phase.END) {
+			return;
+		}
+		Minecraft mc = Minecraft.getMinecraft();
+		WorldClient world = mc != null ? mc.theWorld : null;
+		if(mc == null || mc.entityRenderer == null) {
+			return;
+		}
+		float roll = 0.0F;
+		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			float t = (float)(world.getTotalWorldTime() + event.renderTickTime);
+			roll = MathHelper.sin(t * 0.001F) * 2.0F;
+		}
+		ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, roll, CAM_ROLL_FIELDS);
+	}
+
 	public static boolean ducked = false;
 
 	@SubscribeEvent

@@ -43,6 +43,7 @@ public class CommandNtmDaytime extends CommandBase {
 
 		float angle = world != null ? world.getCelestialAngleRadians(0.0F) : 0.0F;
 		boolean orbitDay = MathHelper.cos(angle) > 0.0F;
+		boolean providerDay = provider != null && provider.isDaytime();
 		boolean isDaytime = !eclipse && orbitDay;
 
 		String providerName = provider != null ? provider.getClass().getSimpleName() : "null";
@@ -53,6 +54,8 @@ public class CommandNtmDaytime extends CommandBase {
 			+ EnumChatFormatting.WHITE + (isDaytime ? "DAY" : "NIGHT")));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GRAY + "provider="
 			+ EnumChatFormatting.WHITE + providerName
+			+ EnumChatFormatting.GRAY + " providerDay="
+			+ EnumChatFormatting.WHITE + providerDay
 			+ EnumChatFormatting.GRAY + " eclipse="
 			+ EnumChatFormatting.WHITE + eclipse));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GRAY + "worldTime="
