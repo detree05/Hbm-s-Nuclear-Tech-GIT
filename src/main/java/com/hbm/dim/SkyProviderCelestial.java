@@ -1000,8 +1000,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 			if(injectorCount > 0 && bodyVisibility > 0.05F) {
 				float distanceFactor = (float)MathHelper.clamp_double(metric.distance / maxDistance, 0.0D, 1.0D);
-				float lineWidth = MathHelper.clamp_float(2.5F - 1.75F * distanceFactor, 0.6F, 3.0F);
-				renderInjectorLines(tessellator, metric, axialTilt, injectorCount, bodyVisibility, lineWidth);
+				float lineWidth = MathHelper.clamp_float((2.5F - 1.75F * distanceFactor) * 1.1F, 1.8F, 9.0F);
+				float time = (float)(world.getTotalWorldTime() + partialTicks);
+				float spinAngle = (float)(((world.getTotalWorldTime() + partialTicks) / 1024.0D) * Math.PI * 2.0D);
+				renderInjectorLines(tessellator, metric, axialTilt, injectorCount, bodyVisibility, lineWidth, time, spinAngle);
 			}
 
 			GL11.glPushMatrix();
@@ -1332,7 +1334,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 	}
 
-	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth) {
+	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth, float time, float spinAngle) {
 		if(count <= 0) return;
 
 		final double skyHeight = 100.0D;
@@ -1340,23 +1342,31 @@ public class SkyProviderCelestial extends IRenderHandler {
 		final double inclinationRad = Math.toRadians(metric.inclination);
 		final double tiltRad = Math.toRadians(axialTilt + 90.0F);
 
-		double y1 = Math.cos(angleRad);
-		double z1 = Math.sin(angleRad);
-		double x1 = 0.0D;
+		double x = 0.0D;
+		double y = skyHeight;
+		double z = 0.0D;
 
-		double x2 = -y1 * Math.sin(inclinationRad);
-		double y2 = y1 * Math.cos(inclinationRad);
+		double cosY = Math.cos(tiltRad);
+		double sinY = Math.sin(tiltRad);
+		double x1 = x * cosY + z * sinY;
+		double y1 = y;
+		double z1 = -x * sinY + z * cosY;
+
+		double cosZ = Math.cos(inclinationRad);
+		double sinZ = Math.sin(inclinationRad);
+		double x2 = x1 * cosZ - y1 * sinZ;
+		double y2 = x1 * sinZ + y1 * cosZ;
 		double z2 = z1;
 
-		double cosT = Math.cos(tiltRad);
-		double sinT = Math.sin(tiltRad);
-		double x3 = x2 * cosT + z2 * sinT;
-		double y3 = y2;
-		double z3 = -x2 * sinT + z2 * cosT;
+		double cosX = Math.cos(angleRad);
+		double sinX = Math.sin(angleRad);
+		double x3 = x2;
+		double y3 = y2 * cosX - z2 * sinX;
+		double z3 = y2 * sinX + z2 * cosX;
 
-		double bodyX = x3 * skyHeight;
-		double bodyY = y3 * skyHeight;
-		double bodyZ = z3 * skyHeight;
+		double bodyX = x3;
+		double bodyY = y3;
+		double bodyZ = z3;
 
 		double sunX = 0.0D;
 		double sunY = skyHeight;
@@ -1372,31 +1382,30 @@ public class SkyProviderCelestial extends IRenderHandler {
 		dirY /= dirLen;
 		dirZ /= dirLen;
 
-		double upX = 0.0D;
-		double upY = 1.0D;
-		double upZ = 0.0D;
+		double rightX = 1.0D;
+		double rightY = 0.0D;
+		double rightZ = 0.0D;
 
-		double rightX = dirY * upZ - dirZ * upY;
-		double rightY = dirZ * upX - dirX * upZ;
-		double rightZ = dirX * upY - dirY * upX;
-		double rightLen = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
-		if(rightLen < 1.0E-4D) {
-			upX = 1.0D;
-			upY = 0.0D;
-			upZ = 0.0D;
-			rightX = dirY * upZ - dirZ * upY;
-			rightY = dirZ * upX - dirX * upZ;
-			rightZ = dirX * upY - dirY * upX;
-			rightLen = Math.sqrt(rightX * rightX + rightY * rightY + rightZ * rightZ);
-			if(rightLen < 1.0E-4D) return;
-		}
-		rightX /= rightLen;
-		rightY /= rightLen;
-		rightZ /= rightLen;
+		double forwardX = 0.0D;
+		double forwardY = 0.0D;
+		double forwardZ = 1.0D;
 
-		double forwardX = rightY * dirZ - rightZ * dirY;
-		double forwardY = rightZ * dirX - rightX * dirZ;
-		double forwardZ = rightX * dirY - rightY * dirX;
+		double spinCos = Math.cos(spinAngle);
+		double spinSin = Math.sin(spinAngle);
+		double spinRightX = rightX * spinCos + forwardX * spinSin;
+		double spinRightY = 0.0D;
+		double spinRightZ = -rightX * spinSin + forwardX * spinCos;
+		double spinForwardX = forwardX * spinCos - rightX * spinSin;
+		double spinForwardY = 0.0D;
+		double spinForwardZ = forwardZ * spinCos + rightZ * spinSin;
+
+		double litX = dirX;
+		double litY = 0.0D;
+		double litZ = dirZ;
+		double litLen = Math.sqrt(litX * litX + litZ * litZ);
+		if(litLen < 1.0E-4D) return;
+		litX /= litLen;
+		litZ /= litLen;
 
 		GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_LINE_BIT | GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
@@ -1406,9 +1415,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glLineWidth(lineWidth);
 		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 
-		float alpha = MathHelper.clamp_float(visibility * 0.6F, 0.0F, 1.0F);
+		float alpha = MathHelper.clamp_float(visibility * 0.1F, 0.0F, 1.0F);
+		float basePhase = time * 0.02F;
 		tessellator.startDrawing(GL11.GL_LINES);
-		tessellator.setColorRGBA_F(1.0F, 0.15F, 0.15F, alpha);
 		for(int i = 0; i < count; i++) {
 			int seedBase = metric.body != null ? metric.body.dimensionId : 0;
 			int hash = seedBase * 73471 + i * 912367;
@@ -1416,13 +1425,25 @@ public class SkyProviderCelestial extends IRenderHandler {
 			hash ^= (hash >>> 17);
 			hash ^= (hash << 5);
 
+			float phase = basePhase + ((hash & 0xFF) / 255.0F) * 6.2831855F;
+			float r = 0.5F + 0.5F * MathHelper.sin(phase);
+			float g = 0.5F + 0.5F * MathHelper.sin(phase + 2.0943952F);
+			float b = 0.5F + 0.5F * MathHelper.sin(phase + 4.1887903F);
+
 			double theta = ((hash & 0xFFFF) / 65535.0D) * Math.PI * 2.0D;
 			double radius = 0.15D + (((hash >> 16) & 0xFF) / 255.0D) * 0.35D;
 
-			double offsetX = rightX * Math.cos(theta) * radius + forwardX * Math.sin(theta) * radius;
-			double offsetY = rightY * Math.cos(theta) * radius + forwardY * Math.sin(theta) * radius;
-			double offsetZ = rightZ * Math.cos(theta) * radius + forwardZ * Math.sin(theta) * radius;
+			double offsetX = spinRightX * Math.cos(theta) * radius + spinForwardX * Math.sin(theta) * radius;
+			double offsetY = 0.0D;
+			double offsetZ = spinRightZ * Math.cos(theta) * radius + spinForwardZ * Math.sin(theta) * radius;
 
+			double litDot = offsetX * litX + offsetZ * litZ;
+			if(litDot < 0.0D) {
+				offsetX = -offsetX;
+				offsetZ = -offsetZ;
+			}
+
+			tessellator.setColorRGBA_F(r, g, b, alpha);
 			tessellator.addVertex(bodyX + offsetX, bodyY + offsetY, bodyZ + offsetZ);
 			tessellator.addVertex(sunX, sunY, sunZ);
 		}

@@ -14,6 +14,7 @@ import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -136,6 +137,10 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		}
 		int freq = chipFreq > 0 ? chipFreq : ISatChip.getFreqS(slots[0]);
 		if(freq <= 0) return false;
+		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+		if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
+			return true;
+		}
 		if(isWorldDaytime()) return true;
 		SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);
 		if(data == null) return false;
@@ -148,11 +153,8 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(worldObj.provider instanceof WorldProviderCelestial) {
 			if(((WorldProviderCelestial) worldObj.provider).isEclipse()) return false;
 		}
-		if(worldObj.provider != null) {
-			return worldObj.provider.isDaytime();
-		}
-		long time = worldObj.getWorldTime() % 24000L;
-		return time < 12000L;
+		float angle = worldObj.getCelestialAngleRadians(0.0F);
+		return MathHelper.cos(angle) > 0.0F;
 	}
 
 	private static long getPerTickCap(CBT_SkyState.SkyState state, CBT_SkyState skyState) {

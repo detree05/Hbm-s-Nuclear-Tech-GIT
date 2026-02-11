@@ -1116,13 +1116,16 @@ public class ModEventHandler {
 				}
 			}
 
-			// Tick our per celestial body timer
-			if(event.phase == Phase.START && event.world.provider instanceof WorldProviderCelestial && event.world.provider.dimensionId != 0) {
-				if(event.world.getGameRules().getGameRuleBooleanValue("doDaylightCycle")) {
-					event.world.provider.setWorldTime(event.world.provider.getWorldTime() + 1L);
-				}
-			}
+		}
 
+		// Tick our per celestial body timer
+		if(event.world != null && !event.world.isRemote
+			&& event.phase == Phase.START
+			&& event.world.provider instanceof WorldProviderCelestial
+			&& event.world.provider.dimensionId != 0) {
+			if(event.world.getGameRules().getGameRuleBooleanValue("doDaylightCycle")) {
+				event.world.provider.setWorldTime(event.world.provider.getWorldTime() + 1L);
+			}
 		}
 
 		if(event.phase == Phase.START) {
