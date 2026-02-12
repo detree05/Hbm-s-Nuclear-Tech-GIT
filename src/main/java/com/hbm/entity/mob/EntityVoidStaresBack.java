@@ -1,5 +1,7 @@
 package com.hbm.entity.mob;
 
+import com.hbm.main.MainRegistry;
+import com.hbm.sound.AudioWrapper;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,16 +15,25 @@ public class EntityVoidStaresBack extends EntityLiving {
 
 	private static final int DW_RECT_WIDTH = 20;
 	private static final int DW_RECT_HEIGHT = 21;
+	private static final int DW_CHASING = 22;
 	private static final float LOOK_DOT_THRESHOLD = 0.98F;
 	private static final int LOOK_TICKS_REQUIRED = 20;
 	private static final float CHASE_SPEED_MIN = 0.05F;
-	private static final float CHASE_SPEED_MAX = 0.6F;
+	private static final float CHASE_SPEED_MAX = 3.0F;
 	private static final int CHASE_RAMP_TICKS = 200;
+	private static final float CHASE_SOUND_RANGE = 64.0F;
+	private static final float CHASE_SOUND_VOLUME = 2.0F;
+	private static final float RECT_WIGGLE_STEP = 0.12F;
+	private static final float RECT_WIGGLE_MIN = 0.75F;
+	private static final float RECT_WIGGLE_MAX = 3.5F;
+	private static final int NOT_LOOKED_TICKS_LIMIT = 1200;
 
 	private int lookedTicks = 0;
+	private int notLookedTicks = 0;
 	private boolean chasing = false;
 	private int chaseTicks = 0;
 	private int targetEntityId = -1;
+	private AudioWrapper audioChase;
 
     public EntityVoidStaresBack(World world) {
         super(world);
@@ -40,6 +51,7 @@ public class EntityVoidStaresBack extends EntityLiving {
         super.entityInit();
         this.dataWatcher.addObject(DW_RECT_WIDTH, Float.valueOf(1.0F));
         this.dataWatcher.addObject(DW_RECT_HEIGHT, Float.valueOf(1.0F));
+        this.dataWatcher.addObject(DW_CHASING, Byte.valueOf((byte) 0));
     }
 
     private void setRandomRectSize() {
@@ -48,6 +60,15 @@ public class EntityVoidStaresBack extends EntityLiving {
         this.dataWatcher.updateObject(DW_RECT_WIDTH, Float.valueOf(width));
         this.dataWatcher.updateObject(DW_RECT_HEIGHT, Float.valueOf(height));
     }
+
+	private void wiggleRectSize() {
+		float width = getRectWidth() + (this.rand.nextFloat() - 0.5F) * RECT_WIGGLE_STEP;
+		float height = getRectHeight() + (this.rand.nextFloat() - 0.5F) * RECT_WIGGLE_STEP;
+		width = MathHelper.clamp_float(width, RECT_WIGGLE_MIN, RECT_WIGGLE_MAX);
+		height = MathHelper.clamp_float(height, RECT_WIGGLE_MIN, RECT_WIGGLE_MAX);
+		this.dataWatcher.updateObject(DW_RECT_WIDTH, Float.valueOf(width));
+		this.dataWatcher.updateObject(DW_RECT_HEIGHT, Float.valueOf(height));
+	}
 
     public float getRectWidth() {
         return this.dataWatcher.getWatchableObjectFloat(DW_RECT_WIDTH);
@@ -74,6 +95,42 @@ public class EntityVoidStaresBack extends EntityLiving {
 		super.onLivingUpdate();
 
 		if(worldObj.isRemote) {
+			if(this.isDead) {
+				if(this.audioChase != null) {
+					this.audioChase.stopSound();
+					this.audioChase = null;
+				}
+			} else if(isChasing()) {
+				if(this.audioChase == null) {
+					this.audioChase = MainRegistry.proxy.getLoopedSound("hbm:misc.itlives_itstaresback", this, CHASE_SOUND_VOLUME, CHASE_SOUND_RANGE, 1.0F, 10);
+				}
+
+				EntityPlayer player = MainRegistry.proxy.me();
+				if(player != null) {
+					float dist = player.getDistanceToEntity(this);
+					float scale = 1.0F - (dist / CHASE_SOUND_RANGE);
+					if(scale < 0.0F) {
+						scale = 0.0F;
+					}
+					// Much steeper falloff so it's quiet unless you're close
+					scale = scale * scale * scale;
+					this.audioChase.updateVolume(CHASE_SOUND_VOLUME * scale);
+				} else {
+					this.audioChase.updateVolume(CHASE_SOUND_VOLUME);
+				}
+
+				if(this.audioChase.isPlaying()) {
+					this.audioChase.keepAlive();
+				} else {
+					this.audioChase.startSound();
+				}
+			} else {
+				if(this.audioChase != null) {
+					this.audioChase.stopSound();
+					this.audioChase = null;
+				}
+			}
+
 			this.motionX = 0.0D;
 			this.motionY = 0.0D;
 			this.motionZ = 0.0D;
@@ -81,16 +138,18 @@ public class EntityVoidStaresBack extends EntityLiving {
 			return;
 		}
 
-		if(chasing) {
+		wiggleRectSize();
+
+		if(isChasing()) {
 			EntityPlayer target = getTargetPlayer();
 			if(target != null && target.isEntityAlive()) {
 				Vec3 toTarget = Vec3.createVectorHelper(
 					target.posX - this.posX,
-					(target.posY + target.getEyeHeight() * 0.5D) - this.posY,
+					(target.posY + target.height * 0.5D) - this.posY,
 					target.posZ - this.posZ
 				);
 				double dist = toTarget.lengthVector();
-				if(dist < 2.0D) {
+				if(dist < 1.0D) {
 					this.setDead();
 					return;
 				}
@@ -110,7 +169,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 				}
 				chaseTicks++;
 			} else {
-				chasing = false;
+				setChasing(false);
 				chaseTicks = 0;
 				targetEntityId = -1;
 			}
@@ -123,9 +182,10 @@ public class EntityVoidStaresBack extends EntityLiving {
 			EntityPlayer watcher = getWatchingPlayer();
 			if(watcher != null) {
 				lookedTicks++;
+				notLookedTicks = 0;
 				if(lookedTicks >= LOOK_TICKS_REQUIRED) {
 					if(this.rand.nextFloat() < 0.05F) {
-						chasing = true;
+						setChasing(true);
 						chaseTicks = 0;
 						targetEntityId = watcher.getEntityId();
 					} else {
@@ -134,6 +194,10 @@ public class EntityVoidStaresBack extends EntityLiving {
 				}
 			} else {
 				lookedTicks = 0;
+				notLookedTicks++;
+				if(notLookedTicks >= NOT_LOOKED_TICKS_LIMIT) {
+					this.setDead();
+				}
 			}
 		}
 	}
@@ -171,10 +235,6 @@ public class EntityVoidStaresBack extends EntityLiving {
 			return null;
 		}
 
-		if(!player.canEntityBeSeen(this)) {
-			return null;
-		}
-
 		return player;
 	}
 
@@ -203,14 +263,36 @@ public class EntityVoidStaresBack extends EntityLiving {
 		return false;
 	}
 
+	@Override
+	public void moveEntity(double x, double y, double z) {
+		if(!isChasing()) {
+			return;
+		}
+		super.moveEntity(x, y, z);
+	}
+
 	public void startChasing(EntityPlayer target) {
 		if(target == null) {
 			return;
 		}
-		this.chasing = true;
+		setChasing(true);
 		this.chaseTicks = 0;
 		this.targetEntityId = target.getEntityId();
 		this.lookedTicks = 0;
+	}
+
+	private void setChasing(boolean chasing) {
+		this.chasing = chasing;
+		if(!worldObj.isRemote) {
+			this.dataWatcher.updateObject(DW_CHASING, Byte.valueOf((byte) (chasing ? 1 : 0)));
+		}
+	}
+
+	public boolean isChasing() {
+		if(worldObj.isRemote) {
+			return this.dataWatcher.getWatchableObjectByte(DW_CHASING) != 0;
+		}
+		return this.chasing;
 	}
 
     @Override
@@ -221,6 +303,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 		nbt.setBoolean("chasing", chasing);
 		nbt.setInteger("chaseTicks", chaseTicks);
 		nbt.setInteger("targetEntityId", targetEntityId);
+		nbt.setInteger("notLookedTicks", notLookedTicks);
 	}
 
     @Override
@@ -234,12 +317,18 @@ public class EntityVoidStaresBack extends EntityLiving {
 		}
 		if(nbt.hasKey("chasing")) {
 			this.chasing = nbt.getBoolean("chasing");
+			if(!worldObj.isRemote) {
+				this.dataWatcher.updateObject(DW_CHASING, Byte.valueOf((byte) (this.chasing ? 1 : 0)));
+			}
 		}
 		if(nbt.hasKey("chaseTicks")) {
 			this.chaseTicks = nbt.getInteger("chaseTicks");
 		}
 		if(nbt.hasKey("targetEntityId")) {
 			this.targetEntityId = nbt.getInteger("targetEntityId");
+		}
+		if(nbt.hasKey("notLookedTicks")) {
+			this.notLookedTicks = nbt.getInteger("notLookedTicks");
 		}
 	}
 }

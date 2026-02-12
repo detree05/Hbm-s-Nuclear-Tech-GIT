@@ -6,6 +6,7 @@ import com.hbm.lib.RefStrings;
 import net.minecraft.client.model.ModelBase;
 import net.minecraft.client.renderer.entity.RenderChicken;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.passive.EntityChicken;
 import net.minecraft.util.ResourceLocation;
 
 public class RenderDuck extends RenderChicken {
@@ -16,11 +17,8 @@ public class RenderDuck extends RenderChicken {
 		super(p_i1252_1_, p_i1252_2_);
 	}
 
-	protected ResourceLocation getEntityTexture(Entity entity) {
-		return this.getEntityTexture((EntityDuck) entity);
-	}
-
-	protected ResourceLocation getEntityTexture(EntityDuck entity) {
+	@Override
+	protected ResourceLocation getEntityTexture(EntityChicken entity) {
 		return ducc;
 	}
 }

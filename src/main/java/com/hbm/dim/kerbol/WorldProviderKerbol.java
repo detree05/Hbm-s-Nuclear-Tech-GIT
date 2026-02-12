@@ -60,6 +60,13 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static float STAR_B_SIZE_PHASE = 0.0F;
 	private static long STAR_LAST_UPDATE_TICK = -1L;
 
+	private static long getKerbolTime(WorldClient world) {
+		if(world != null && world.provider instanceof WorldProviderCelestial) {
+			return ((WorldProviderCelestial) world.provider).getWorldTime();
+		}
+		return world != null ? world.getTotalWorldTime() : 0L;
+	}
+
 	private static void ensureStarMotion(WorldClient world) {
 		if(STAR_MOTION_INIT || world == null) {
 			return;
@@ -76,7 +83,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		STAR_A_FLIP_PENDING = false;
 		STAR_B_FLIP_PENDING = false;
 
-		long now = world.getTotalWorldTime();
+		long now = getKerbolTime(world);
 		STAR_A_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
 		STAR_B_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
 
@@ -93,7 +100,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 			return;
 		}
 
-		long now = world.getTotalWorldTime();
+		long now = getKerbolTime(world);
 		if(STAR_LAST_UPDATE_TICK < 0L) {
 			STAR_LAST_UPDATE_TICK = now;
 			return;
@@ -179,7 +186,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 				}
 
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-				float ticks = (float)(world.getTotalWorldTime() + partialTicks);
+				float ticks = (float)(getKerbolTime(world) + partialTicks);
 				float starAScale = getStarScale(ticks, STAR_A_SIZE_PERIOD, STAR_A_SIZE_PHASE);
 				float starBScale = getStarScale(ticks, STAR_B_SIZE_PERIOD, STAR_B_SIZE_PHASE);
 

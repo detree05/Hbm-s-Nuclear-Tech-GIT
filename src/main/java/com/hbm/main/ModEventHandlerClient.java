@@ -159,6 +159,10 @@ public class ModEventHandlerClient {
 	private static Float lastKerbolGravity;
 	private static long lastKerbolHeartbeatBeat = -1L;
 	private static final double KERBOL_HEARTBEAT_PERIOD_TICKS = 200.0D;
+	private static final float VOID_STARE_EFFECT_RANGE = 64.0F;
+	private static final float VOID_STARE_MAX_FOV_SHIFT = 0.25F;
+	private static final float VOID_STARE_MAX_BLUR_ALPHA = 1.0F;
+	private static ResourceLocation voidStareBlurTexture;
 	private static int kerbolDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
 
@@ -220,6 +224,13 @@ public class ModEventHandlerClient {
 			GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
 			GL11.glDepthMask(true);
 			return;
+		}
+
+		if(event.type == ElementType.CROSSHAIRS) {
+			float intensity = getVoidStareIntensity(player);
+			if(intensity > 0.001F) {
+				renderVoidStareOverlay(event.resolution, intensity);
+			}
 		}
 
 		/*if(event.type == ElementType.CROSSHAIRS && player.getHeldItem() != null && player.getHeldItem().getItem() == ModItems.gun_aberrator) {
@@ -615,7 +626,68 @@ public class ModEventHandlerClient {
 			}
 		}
 
+		float voidStareIntensity = getVoidStareIntensity(player);
+		if(voidStareIntensity > 0.001F) {
+			float curve = voidStareIntensity * voidStareIntensity;
+			fov *= (1.0F + VOID_STARE_MAX_FOV_SHIFT * curve);
+		}
+
 		event.newfov = fov;
+	}
+
+	private static float getVoidStareIntensity(EntityPlayer player) {
+		if(player == null || player.worldObj == null) {
+			return 0.0F;
+		}
+		AxisAlignedBB bounds = player.boundingBox.expand(VOID_STARE_EFFECT_RANGE, VOID_STARE_EFFECT_RANGE, VOID_STARE_EFFECT_RANGE);
+		List<EntityVoidStaresBack> nearby = player.worldObj.getEntitiesWithinAABB(EntityVoidStaresBack.class, bounds);
+		if(nearby == null || nearby.isEmpty()) {
+			return 0.0F;
+		}
+
+		float max = 0.0F;
+		for(EntityVoidStaresBack entity : nearby) {
+			if(entity == null || entity.isDead || !entity.isChasing()) {
+				continue;
+			}
+			float dist = player.getDistanceToEntity(entity);
+			float intensity = 1.0F - (dist / VOID_STARE_EFFECT_RANGE);
+			if(intensity > max) {
+				max = intensity;
+			}
+		}
+		return MathHelper.clamp_float(max, 0.0F, 1.0F);
+	}
+
+	private static void renderVoidStareOverlay(ScaledResolution resolution, float intensity) {
+		if(voidStareBlurTexture == null) {
+			voidStareBlurTexture = new ResourceLocation(RefStrings.MODID + ":textures/misc/overlay_goggles.png");
+		}
+
+		float curve = MathHelper.clamp_float(intensity * intensity, 0.0F, 1.0F);
+		float alpha = VOID_STARE_MAX_BLUR_ALPHA * curve;
+
+		Minecraft.getMinecraft().getTextureManager().bindTexture(voidStareBlurTexture);
+
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glDisable(GL11.GL_DEPTH_TEST);
+		GL11.glDepthMask(false);
+		OpenGlHelper.glBlendFunc(770, 771, 1, 0);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, alpha);
+		GL11.glDisable(GL11.GL_ALPHA_TEST);
+
+		Tessellator tessellator = Tessellator.instance;
+		tessellator.startDrawingQuads();
+		tessellator.addVertexWithUV(0.0D, (double) resolution.getScaledHeight(), -90.0D, 0.0D, 1.0D);
+		tessellator.addVertexWithUV((double) resolution.getScaledWidth(), (double) resolution.getScaledHeight(), -90.0D, 1.0D, 1.0D);
+		tessellator.addVertexWithUV((double) resolution.getScaledWidth(), 0.0D, -90.0D, 1.0D, 0.0D);
+		tessellator.addVertexWithUV(0.0D, 0.0D, -90.0D, 0.0D, 0.0D);
+		tessellator.draw();
+
+		GL11.glDepthMask(true);
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
+		GL11.glEnable(GL11.GL_ALPHA_TEST);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
 	private static final String[] CAM_ROLL_FIELDS = new String[] { "camRoll", "field_78495_O", "O" };
@@ -1377,7 +1449,7 @@ public class ModEventHandlerClient {
 		}
 
 		kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
-		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue", 1.0F, 1.0F);
+		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue1", 1.0F, 1.0F);
 	}
 
 	private void maybeSpawnKerbolRedRain(Minecraft mc) {
