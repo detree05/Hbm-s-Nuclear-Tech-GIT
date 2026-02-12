@@ -740,6 +740,7 @@ public class MainRegistry {
 		event.registerServerCommand(new CommandShatter());
 		event.registerServerCommand(new CommandNovae());
 		event.registerServerCommand(new CommandNtmDaytime());
+		event.registerServerCommand(new CommandVoidStaresBack());
 		ArcFurnaceRecipes.registerFurnaceSmeltables(); // because we have to wait for other mods to take their merry ass time to register recipes
 	}
 

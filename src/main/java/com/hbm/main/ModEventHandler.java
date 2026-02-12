@@ -49,6 +49,7 @@ import com.hbm.entity.mob.EntityCyberCrab;
 import com.hbm.entity.projectile.EntityBulletBaseMK4;
 import com.hbm.entity.projectile.EntityBurningFOEQ;
 import com.hbm.entity.projectile.EntityKerbolMeteor;
+import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.entity.train.EntityRailCarBase;
 import com.hbm.explosion.vanillant.ExplosionVNT;
 import com.hbm.explosion.vanillant.standard.EntityProcessorCrossSmooth;
@@ -204,6 +205,10 @@ public class ModEventHandler {
 	private static final long KERBOL_HEARTBEAT_PERIOD_TICKS = 200L;
 	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
 	private static final int KERBOL_METEOR_CHANCE = 100;
+	private static final int KERBOL_VOID_INTERVAL_TICKS = 60 * 20;
+	private static final int KERBOL_VOID_CHANCE = 10;
+	private static final int KERBOL_VOID_MIN_DIST = 30;
+	private static final int KERBOL_VOID_MAX_DIST = 50;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 
 	@SubscribeEvent
@@ -1038,6 +1043,12 @@ public class ModEventHandler {
 							spawnKerbolMeteor(event.world);
 						}
 					}
+
+					if(!event.world.isRemote && tick % KERBOL_VOID_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
+						if(event.world.rand.nextInt(KERBOL_VOID_CHANCE) == 0) {
+							spawnKerbolVoidStaresBack(event.world);
+						}
+					}
 				}
 
 				if(!event.world.isRemote && event.world.provider.dimensionId != SpaceConfig.orbitDimension) {
@@ -1159,7 +1170,33 @@ public class ModEventHandler {
 	}
 
 
-	// Spawn a purely cosmetic meteor so Kerbol's sky keeps pulsing without leaving debris.
+	// Spawn a rare, immobile void apparition near players in Kerbol.
+	private void spawnKerbolVoidStaresBack(World world) {
+		if(world.playerEntities.isEmpty()) {
+			return;
+		}
+
+		EntityPlayer player = (EntityPlayer) world.playerEntities.get(world.rand.nextInt(world.playerEntities.size()));
+		if(player == null) {
+			return;
+		}
+
+		if(!world.getEntitiesWithinAABB(EntityVoidStaresBack.class, player.boundingBox.expand(90.0D, 60.0D, 90.0D)).isEmpty()) {
+			return;
+		}
+
+		int radius = KERBOL_VOID_MIN_DIST + world.rand.nextInt(KERBOL_VOID_MAX_DIST - KERBOL_VOID_MIN_DIST + 1);
+		double angle = world.rand.nextDouble() * Math.PI * 2.0D;
+		double x = player.posX + Math.cos(angle) * radius;
+		double z = player.posZ + Math.sin(angle) * radius;
+		double y = player.posY + (world.rand.nextInt(9) - 4);
+		y = MathHelper.clamp_double(y, 2.0D, world.getHeight() - 2.0D);
+
+		EntityVoidStaresBack entity = new EntityVoidStaresBack(world);
+		entity.setPositionAndRotation(x, y, z, world.rand.nextFloat() * 360.0F, 0.0F);
+		world.spawnEntityInWorld(entity);
+	}
+
 	private void spawnKerbolMeteor(World world) {
 		EntityPlayer player = (EntityPlayer) world.playerEntities.get(world.rand.nextInt(world.playerEntities.size()));
 		EntityKerbolMeteor meteor = new EntityKerbolMeteor(world);
