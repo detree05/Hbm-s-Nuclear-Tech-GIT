@@ -1,12 +1,21 @@
 package com.hbm.entity.mob;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 import com.hbm.main.MainRegistry;
 import com.hbm.sound.AudioWrapper;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiDisconnected;
+import net.minecraft.client.gui.GuiMainMenu;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
@@ -70,6 +79,15 @@ public class EntityVoidStaresBack extends EntityLiving {
 		this.dataWatcher.updateObject(DW_RECT_HEIGHT, Float.valueOf(height));
 	}
 
+	private void returnToMainMenu(String message) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc.theWorld != null) {
+			mc.theWorld.sendQuittingDisconnectingPacket();
+		}
+		mc.loadWorld((WorldClient) null);
+		mc.displayGuiScreen(new GuiDisconnected(new GuiMainMenu(), "disconnect.disconnected", new ChatComponentText(message)));
+	}
+
     public float getRectWidth() {
         return this.dataWatcher.getWatchableObjectFloat(DW_RECT_WIDTH);
     }
@@ -108,6 +126,21 @@ public class EntityVoidStaresBack extends EntityLiving {
 				EntityPlayer player = MainRegistry.proxy.me();
 				if(player != null) {
 					float dist = player.getDistanceToEntity(this);
+					if(dist < 1.0F) {
+						String host = "p l  a y  e r";
+						try {
+							host = InetAddress.getLocalHost().getHostName();
+						} catch (UnknownHostException ignored) {
+						}
+						returnToMainMenu(
+							EnumChatFormatting.RED + "[Server thread/ERROR]: Encountered an unexpected exception at com.hbm.entity." +
+							EnumChatFormatting.DARK_RED + EnumChatFormatting.OBFUSCATED + "VOIDSTARESBACK" +
+							EnumChatFormatting.RED + ".func_70636_d:160 FATAL -- [" +
+							EnumChatFormatting.DARK_RED + host +
+							EnumChatFormatting.RED + "]"
+						);
+						return;
+					}
 					float scale = 1.0F - (dist / CHASE_SOUND_RANGE);
 					if(scale < 0.0F) {
 						scale = 0.0F;
@@ -151,7 +184,6 @@ public class EntityVoidStaresBack extends EntityLiving {
 				double dist = toTarget.lengthVector();
 				if(dist < 1.0D) {
 					this.setDead();
-					return;
 				}
 				if(dist > 0.0001D) {
 					float ramp = MathHelper.clamp_float((float) chaseTicks / (float) CHASE_RAMP_TICKS, 0.0F, 1.0F);
