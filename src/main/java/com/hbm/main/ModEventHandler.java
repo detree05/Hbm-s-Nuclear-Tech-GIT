@@ -207,8 +207,8 @@ public class ModEventHandler {
 	private static final int KERBOL_METEOR_CHANCE = 100;
 	private static final int KERBOL_VOID_INTERVAL_TICKS = 60 * 20;
 	private static final int KERBOL_VOID_CHANCE = 10;
-	private static final int KERBOL_VOID_MIN_DIST = 30;
-	private static final int KERBOL_VOID_MAX_DIST = 50;
+	private static final int KERBOL_VOID_MIN_DIST = 50;
+	private static final int KERBOL_VOID_MAX_DIST = 70;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 
 	@SubscribeEvent

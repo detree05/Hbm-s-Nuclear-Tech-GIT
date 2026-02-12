@@ -8,18 +8,17 @@ import net.minecraft.command.PlayerNotFoundException;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.MathHelper;
 
-public class CommandVoidStaresBack extends CommandBase {
+public class CommandVoidStaresBackChase extends CommandBase {
 
 	@Override
 	public String getCommandName() {
-		return "ntmvoid";
+		return "ntmstaresback";
 	}
 
 	@Override
 	public String getCommandUsage(ICommandSender sender) {
-		return "/ntmvoid";
+		return "/ntmstaresback";
 	}
 
 	@Override
@@ -30,21 +29,10 @@ public class CommandVoidStaresBack extends CommandBase {
 
 		EntityPlayer player = (EntityPlayer) sender;
 		EntityVoidStaresBack entity = new EntityVoidStaresBack(player.worldObj);
-		double[] pos = getSpawnPosition(player);
+		double[] pos = CommandVoidStaresBack.getSpawnPosition(player);
 		entity.setPositionAndRotation(pos[0], pos[1], pos[2], player.rotationYaw, 0.0F);
+		entity.startChasing(player);
 		player.worldObj.spawnEntityInWorld(entity);
-		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.DARK_PURPLE + "The void stares back."));
-	}
-
-	protected static double[] getSpawnPosition(EntityPlayer player) {
-		int min = 50;
-		int max = 70;
-		int radius = min + player.worldObj.rand.nextInt(max - min + 1);
-		double angle = player.worldObj.rand.nextDouble() * Math.PI * 2.0D;
-		double x = player.posX + Math.cos(angle) * radius;
-		double z = player.posZ + Math.sin(angle) * radius;
-		double y = player.posY + (player.worldObj.rand.nextInt(9) - 4);
-		y = MathHelper.clamp_double(y, 2.0D, player.worldObj.getHeight() - 2.0D);
-		return new double[] { x, y, z };
+		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.DARK_PURPLE + "It begins to approach."));
 	}
 }

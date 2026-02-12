@@ -20,6 +20,7 @@ import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.entity.mob.EntityHunterChopper;
+import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.entity.projectile.EntityChopperMine;
 import com.hbm.entity.train.EntityRailCarRidable;
 import com.hbm.extprop.HbmLivingProps;
@@ -105,9 +106,11 @@ import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.multiplayer.WorldClient;
+import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.Entity;
@@ -157,6 +160,29 @@ public class ModEventHandlerClient {
 	private static long lastKerbolHeartbeatBeat = -1L;
 	private static final double KERBOL_HEARTBEAT_PERIOD_TICKS = 200.0D;
 	private static int kerbolDialogueCooldownTicks = -1;
+	private static Method setupCameraTransformMethod;
+
+	private static boolean setupCameraTransform(Minecraft mc, float partialTicks) {
+		if(mc == null || mc.entityRenderer == null) {
+			return false;
+		}
+		try {
+			if(setupCameraTransformMethod == null) {
+				setupCameraTransformMethod = ReflectionHelper.findMethod(
+					EntityRenderer.class,
+					mc.entityRenderer,
+					new String[] { "setupCameraTransform", "func_78479_a" },
+					float.class, int.class
+				);
+				setupCameraTransformMethod.setAccessible(true);
+			}
+			setupCameraTransformMethod.invoke(mc.entityRenderer, partialTicks, 0);
+			return true;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
 
 
 	@SubscribeEvent
@@ -1692,6 +1718,38 @@ public class ModEventHandlerClient {
 		}
 
 		RenderOverhead.renderActionPreview(event.partialTicks);
+	}
+
+	@SideOnly(Side.CLIENT)
+	@SubscribeEvent
+	public void onGuiScreenDrawPost(GuiScreenEvent.DrawScreenEvent.Post event) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+
+		float partialTicks = event.renderPartialTicks;
+		if(!setupCameraTransform(mc, partialTicks)) {
+			return;
+		}
+
+		RenderManager rm = RenderManager.instance;
+		for(Object obj : mc.theWorld.loadedEntityList) {
+			if(!(obj instanceof EntityVoidStaresBack)) {
+				continue;
+			}
+			EntityVoidStaresBack voidEntity = (EntityVoidStaresBack) obj;
+			rm.renderEntityWithPosYaw(
+				voidEntity,
+				voidEntity.posX - rm.renderPosX,
+				voidEntity.posY - rm.renderPosY,
+				voidEntity.posZ - rm.renderPosZ,
+				voidEntity.rotationYaw,
+				partialTicks
+			);
+		}
+
+		mc.entityRenderer.setupOverlayRendering();
 	}
 
 	@SubscribeEvent(priority = EventPriority.HIGHEST)

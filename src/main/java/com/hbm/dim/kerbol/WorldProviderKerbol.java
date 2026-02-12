@@ -40,14 +40,18 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
 	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
 	private static final int STAR_MAX_FLIP_TICKS = 5 * 60 * 20;
+	private static final float STAR_SPEED_EPS = 0.1F;
 	private static boolean STAR_MOTION_INIT = false;
 	private static Random STAR_RAND;
-	private static float STAR_A_SPEED = 128.0F;
-	private static float STAR_B_SPEED = 192.0F;
-	private static float STAR_A_TARGET_SPEED = 128.0F;
-	private static float STAR_B_TARGET_SPEED = 192.0F;
+	private static final float STAR_MAX_SPEED = 2.0F;
+	private static float STAR_A_SPEED = 0.0F;
+	private static float STAR_B_SPEED = 0.0F;
+	private static float STAR_A_TARGET_SPEED = 0.0F;
+	private static float STAR_B_TARGET_SPEED = 0.0F;
 	private static float STAR_A_DIR = 1.0F;
 	private static float STAR_B_DIR = 1.0F;
+	private static boolean STAR_A_FLIP_PENDING = false;
+	private static boolean STAR_B_FLIP_PENDING = false;
 	private static long STAR_A_NEXT_FLIP_TICK = 0L;
 	private static long STAR_B_NEXT_FLIP_TICK = 0L;
 	private static float STAR_A_SIZE_PERIOD = 3000.0F;
@@ -63,12 +67,14 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 		long seed = world.getSeed();
 		STAR_RAND = new Random(seed ^ 0x4B4F1A55L);
-		STAR_A_SPEED = 64.0F + STAR_RAND.nextFloat() * 192.0F;
-		STAR_B_SPEED = 64.0F + STAR_RAND.nextFloat() * 192.0F;
+		STAR_A_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
+		STAR_B_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
 		STAR_A_TARGET_SPEED = STAR_A_SPEED;
 		STAR_B_TARGET_SPEED = STAR_B_SPEED;
 		STAR_A_DIR = STAR_RAND.nextBoolean() ? 1.0F : -1.0F;
 		STAR_B_DIR = STAR_RAND.nextBoolean() ? 1.0F : -1.0F;
+		STAR_A_FLIP_PENDING = false;
+		STAR_B_FLIP_PENDING = false;
 
 		long now = world.getTotalWorldTime();
 		STAR_A_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
@@ -99,15 +105,21 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		}
 
 		while(now >= STAR_A_NEXT_FLIP_TICK) {
-			STAR_A_DIR *= -1.0F;
-			STAR_A_TARGET_SPEED = 64.0F + STAR_RAND.nextFloat() * 192.0F;
-			STAR_A_NEXT_FLIP_TICK += 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
+			if(!STAR_A_FLIP_PENDING) {
+				STAR_A_FLIP_PENDING = true;
+				STAR_A_TARGET_SPEED = 0.0F;
+			}
+			STAR_A_NEXT_FLIP_TICK = now + 1;
+			break;
 		}
 
 		while(now >= STAR_B_NEXT_FLIP_TICK) {
-			STAR_B_DIR *= -1.0F;
-			STAR_B_TARGET_SPEED = 64.0F + STAR_RAND.nextFloat() * 192.0F;
-			STAR_B_NEXT_FLIP_TICK += 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
+			if(!STAR_B_FLIP_PENDING) {
+				STAR_B_FLIP_PENDING = true;
+				STAR_B_TARGET_SPEED = 0.0F;
+			}
+			STAR_B_NEXT_FLIP_TICK = now + 1;
+			break;
 		}
 
 		float deltaTicks = (float)(now - STAR_LAST_UPDATE_TICK);
@@ -117,6 +129,20 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 			float deltaB = MathHelper.clamp_float(STAR_B_TARGET_SPEED - STAR_B_SPEED, -maxDelta, maxDelta);
 			STAR_A_SPEED += deltaA;
 			STAR_B_SPEED += deltaB;
+		}
+
+		if(STAR_A_FLIP_PENDING && Math.abs(STAR_A_SPEED) <= STAR_SPEED_EPS) {
+			STAR_A_DIR *= -1.0F;
+			STAR_A_TARGET_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
+			STAR_A_FLIP_PENDING = false;
+			STAR_A_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
+		}
+
+		if(STAR_B_FLIP_PENDING && Math.abs(STAR_B_SPEED) <= STAR_SPEED_EPS) {
+			STAR_B_DIR *= -1.0F;
+			STAR_B_TARGET_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
+			STAR_B_FLIP_PENDING = false;
+			STAR_B_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
 		}
 
 		STAR_LAST_UPDATE_TICK = now;
