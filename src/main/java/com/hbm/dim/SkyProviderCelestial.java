@@ -1890,8 +1890,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 	}
 
-
-	protected void renderStation(float partialTicks, WorldClient world, Minecraft mc, OrbitalStation station, float solarAngle) {
+protected void renderStation(float partialTicks, WorldClient world, Minecraft mc, OrbitalStation station, float solarAngle) {
 		Tessellator tessellator = Tessellator.instance;
 
 		long seed = station.dX * 1024 + station.dZ;
