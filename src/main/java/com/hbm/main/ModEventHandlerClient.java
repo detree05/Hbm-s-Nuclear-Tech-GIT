@@ -162,6 +162,12 @@ public class ModEventHandlerClient {
 	private static final float VOID_STARE_EFFECT_RANGE = 64.0F;
 	private static final float VOID_STARE_MAX_FOV_SHIFT = 0.25F;
 	private static final float VOID_STARE_MAX_BLUR_ALPHA = 1.0F;
+	private static final float KERBOL_STAR_STARE_ANGLE_DEG = 35.0F;
+	private static final float KERBOL_STAR_STARE_MAX_TURN_DEG = 2.5F;
+	private static final float KERBOL_STAR_STARE_MAX_FOV_ZOOM = 0.6F;
+	private static final float KERBOL_STAR_STARE_RAYTRACE_DISTANCE = 512.0F;
+	private static final String KERBOL_STAR_STARE_TEXT = "THE STAR GAZES BACK";
+	private static float kerbolStarStareIntensity = 0.0F;
 	private static ResourceLocation voidStareBlurTexture;
 	private static int kerbolDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
@@ -228,8 +234,12 @@ public class ModEventHandlerClient {
 
 		if(event.type == ElementType.CROSSHAIRS) {
 			float intensity = getVoidStareIntensity(player);
-			if(intensity > 0.001F) {
-				renderVoidStareOverlay(event.resolution, intensity);
+			float overlayIntensity = Math.max(intensity, kerbolStarStareIntensity);
+			if(overlayIntensity > 0.001F) {
+				renderVoidStareOverlay(event.resolution, overlayIntensity);
+			}
+			if(kerbolStarStareIntensity > 0.001F) {
+				renderKerbolStarStareText(event.resolution, kerbolStarStareIntensity);
 			}
 		}
 
@@ -632,6 +642,11 @@ public class ModEventHandlerClient {
 			fov *= (1.0F + VOID_STARE_MAX_FOV_SHIFT * curve);
 		}
 
+		if(kerbolStarStareIntensity > 0.001F) {
+			float zoomScale = 1.0F - KERBOL_STAR_STARE_MAX_FOV_ZOOM * kerbolStarStareIntensity;
+			fov *= MathHelper.clamp_float(zoomScale, 0.1F, 1.0F);
+		}
+
 		event.newfov = fov;
 	}
 
@@ -657,6 +672,145 @@ public class ModEventHandlerClient {
 			}
 		}
 		return MathHelper.clamp_float(max, 0.0F, 1.0F);
+	}
+
+	private static void updateKerbolStarStare(Minecraft mc, float partialTicks) {
+		kerbolStarStareIntensity = 0.0F;
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
+			return;
+		}
+
+		Vec3 starDir = getKerbolStarADirection(mc.theWorld, partialTicks);
+		if(starDir == null) {
+			return;
+		}
+
+		EntityPlayer player = mc.thePlayer;
+		Vec3 look = player.getLookVec();
+		if(look == null) {
+			return;
+		}
+
+		double dot = look.xCoord * starDir.xCoord + look.yCoord * starDir.yCoord + look.zCoord * starDir.zCoord;
+		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
+		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
+		if(angleDeg > KERBOL_STAR_STARE_ANGLE_DEG) {
+			return;
+		}
+
+		if(!isStarVisible(mc.theWorld, player, starDir, KERBOL_STAR_STARE_RAYTRACE_DISTANCE)) {
+			return;
+		}
+
+		float intensity = 1.0F - (angleDeg / KERBOL_STAR_STARE_ANGLE_DEG);
+		intensity = intensity * intensity;
+		kerbolStarStareIntensity = intensity;
+
+		float targetYaw = (float) (Math.atan2(starDir.zCoord, starDir.xCoord) * 180.0D / Math.PI) - 90.0F;
+		float targetPitch = (float) (-Math.asin(starDir.yCoord) * 180.0D / Math.PI);
+
+		float maxStep = KERBOL_STAR_STARE_MAX_TURN_DEG * intensity;
+		float yaw = player.rotationYaw;
+		float pitch = player.rotationPitch;
+
+		float yawDiff = MathHelper.wrapAngleTo180_float(targetYaw - yaw);
+		float pitchDiff = MathHelper.wrapAngleTo180_float(targetPitch - pitch);
+
+		yaw += MathHelper.clamp_float(yawDiff, -maxStep, maxStep);
+		pitch += MathHelper.clamp_float(pitchDiff, -maxStep, maxStep);
+
+		player.rotationYaw = yaw;
+		player.rotationPitch = MathHelper.clamp_float(pitch, -90.0F, 90.0F);
+		player.rotationYawHead = yaw;
+	}
+
+	private static Vec3 getKerbolStarADirection(World world, float partialTicks) {
+		if(world == null) {
+			return null;
+		}
+		float solarAngle = (world.getCelestialAngle(partialTicks) * 128.0F) % 1.0F;
+		if(solarAngle < 0.0F) {
+			solarAngle += 1.0F;
+		}
+
+		Vec3 dir = Vec3.createVectorHelper(0.0D, 1.0D, 0.0D);
+		dir = rotateZ(dir, 45.0F);
+		dir = rotateY(dir, 25.0F);
+		dir = rotateX(dir, solarAngle * 360.0F);
+		dir = rotateY(dir, -90.0F);
+
+		if(dir.lengthVector() <= 0.0D) {
+			return null;
+		}
+		return dir.normalize();
+	}
+
+	private static Vec3 rotateX(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double y = v.yCoord * cos - v.zCoord * sin;
+		double z = v.yCoord * sin + v.zCoord * cos;
+		return Vec3.createVectorHelper(v.xCoord, y, z);
+	}
+
+	private static Vec3 rotateY(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double x = v.xCoord * cos + v.zCoord * sin;
+		double z = -v.xCoord * sin + v.zCoord * cos;
+		return Vec3.createVectorHelper(x, v.yCoord, z);
+	}
+
+	private static Vec3 rotateZ(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double x = v.xCoord * cos - v.yCoord * sin;
+		double y = v.xCoord * sin + v.yCoord * cos;
+		return Vec3.createVectorHelper(x, y, v.zCoord);
+	}
+
+	private static boolean isStarVisible(World world, EntityPlayer player, Vec3 dir, double maxDistance) {
+		Vec3 start = Vec3.createVectorHelper(
+			player.posX,
+			player.posY + player.getEyeHeight(),
+			player.posZ
+		);
+		Vec3 end = start.addVector(dir.xCoord * maxDistance, dir.yCoord * maxDistance, dir.zCoord * maxDistance);
+		Vec3 cursor = start;
+
+		for(int i = 0; i < 16; i++) {
+			MovingObjectPosition hit = world.rayTraceBlocks(cursor, end, false);
+			if(hit == null || hit.typeOfHit != MovingObjectType.BLOCK) {
+				return true;
+			}
+
+			Block block = world.getBlock(hit.blockX, hit.blockY, hit.blockZ);
+			if(block != null && block.isOpaqueCube()) {
+				return false;
+			}
+
+			if(hit.hitVec == null) {
+				return true;
+			}
+
+			cursor = Vec3.createVectorHelper(
+				hit.hitVec.xCoord + dir.xCoord * 0.01D,
+				hit.hitVec.yCoord + dir.yCoord * 0.01D,
+				hit.hitVec.zCoord + dir.zCoord * 0.01D
+			);
+
+			if(cursor.distanceTo(start) >= maxDistance) {
+				return true;
+			}
+		}
+
+		return true;
 	}
 
 	private static void renderVoidStareOverlay(ScaledResolution resolution, float intensity) {
@@ -688,6 +842,26 @@ public class ModEventHandlerClient {
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		GL11.glEnable(GL11.GL_ALPHA_TEST);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	private static void renderKerbolStarStareText(ScaledResolution resolution, float intensity) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.fontRenderer == null || resolution == null) {
+			return;
+		}
+
+		float curve = MathHelper.clamp_float(intensity * intensity, 0.0F, 1.0F);
+		int alpha = MathHelper.clamp_int((int)(curve * 255.0F), 32, 255);
+		int color = (alpha << 24) | 0xFFAA66;
+		int x = (resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(KERBOL_STAR_STARE_TEXT)) / 2;
+		int y = resolution.getScaledHeight() / 2 + 18;
+
+		GL11.glPushMatrix();
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		mc.fontRenderer.drawStringWithShadow(KERBOL_STAR_STARE_TEXT, x, y, color);
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+		GL11.glPopMatrix();
 	}
 
 	private static final String[] CAM_ROLL_FIELDS = new String[] { "camRoll", "field_78495_O", "O" };
@@ -1176,6 +1350,7 @@ public class ModEventHandlerClient {
 
 			maybeSpawnKerbolRedRain(mc);
 			maybePlayKerbolDialogue(mc);
+			updateKerbolStarStare(mc, 0.0F);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
 				lastBrightness = currentBrightness;

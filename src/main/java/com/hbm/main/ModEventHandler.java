@@ -220,7 +220,7 @@ public class ModEventHandler {
 	private static final int KERBOL_FOOTSTEP_MIN_END_INTERVAL = 2;
 	private static final int KERBOL_FOOTSTEP_MAX_END_INTERVAL = 4;
 	private static final float KERBOL_FOOTSTEP_START_VOLUME = 0.12F;
-	private static final float KERBOL_FOOTSTEP_END_VOLUME = 0.85F;
+	private static final float KERBOL_FOOTSTEP_END_VOLUME = 0.5F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 	private static final Map<UUID, KerbolFootstepSequence> kerbolFootsteps = new HashMap<UUID, KerbolFootstepSequence>();
 
@@ -229,13 +229,12 @@ public class ModEventHandler {
 		private final int totalTicks;
 		private int remainingTicks;
 		private int nextStepTicks;
-		private final float angle;
 		private final int startDistance;
 		private final int endDistance;
 		private final int startInterval;
 		private final int endInterval;
 
-		private KerbolFootstepSequence(UUID playerId, int durationTicks, int startInterval, int endInterval, int startDistance, int endDistance, float angle) {
+		private KerbolFootstepSequence(UUID playerId, int durationTicks, int startInterval, int endInterval, int startDistance, int endDistance) {
 			this.playerId = playerId;
 			this.totalTicks = durationTicks;
 			this.remainingTicks = durationTicks;
@@ -243,7 +242,6 @@ public class ModEventHandler {
 			this.endInterval = endInterval;
 			this.startDistance = startDistance;
 			this.endDistance = endDistance;
-			this.angle = angle;
 			this.nextStepTicks = Math.max(1, startInterval);
 		}
 	}
@@ -1246,8 +1244,9 @@ public class ModEventHandler {
 			sequence.nextStepTicks = Math.max(1, interval);
 
 			int distance = lerpInt(sequence.startDistance, sequence.endDistance, progress);
-			double x = player.posX + Math.cos(sequence.angle) * distance;
-			double z = player.posZ + Math.sin(sequence.angle) * distance;
+			double angle = world.rand.nextDouble() * Math.PI * 2.0D;
+			double x = player.posX + Math.cos(angle) * distance;
+			double z = player.posZ + Math.sin(angle) * distance;
 			int ix = MathHelper.floor_double(x);
 			int iz = MathHelper.floor_double(z);
 			int y = world.getTopSolidOrLiquidBlock(ix, iz);
@@ -1305,15 +1304,13 @@ public class ModEventHandler {
 		int endInterval = KERBOL_FOOTSTEP_MIN_END_INTERVAL
 			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_END_INTERVAL - KERBOL_FOOTSTEP_MIN_END_INTERVAL + 1);
 
-		float angle = rand.nextFloat() * (float) Math.PI * 2.0F;
 		KerbolFootstepSequence sequence = new KerbolFootstepSequence(
 			player.getUniqueID(),
 			durationTicks,
 			startInterval,
 			endInterval,
 			startDistance,
-			endDistance,
-			angle
+			endDistance
 		);
 		kerbolFootsteps.put(player.getUniqueID(), sequence);
 	}
