@@ -806,6 +806,7 @@ public class ModEventHandlerClient {
 	}
 
 	private static final ResourceLocation MUSIC_LOCATION = new ResourceLocation("hbm:music.game.space");
+	private static final ResourceLocation MUSIC_LOCATION_KERBOL = new ResourceLocation("hbm:music.game.kerbol");
 	private ISound currentSong;
 
 	@SubscribeEvent
@@ -821,11 +822,10 @@ public class ModEventHandlerClient {
 			return;
 		}
 
-		// No music in Kerbol
+		// Kerbol: match space music cadence
 		WorldProvider provider = Minecraft.getMinecraft().theWorld.provider;
 		if(provider != null && provider.dimensionId == SpaceConfig.kerbolDimension) {
-			event.setResult(Result.DENY);
-			event.result = null;
+			event.result = currentSong = PositionedSoundRecord.func_147673_a(MUSIC_LOCATION_KERBOL);
 			return;
 		}
 

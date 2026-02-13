@@ -165,6 +165,11 @@
 		{"name": "music/spaceCalm", "stream": true},
 		{"name": "music/spaceKoyaanis", "stream": true}
 	]},
+	"music.game.kerbol": {"category": "music", "sounds": [
+		{"name": "music/dmitriyDrone", "stream": true},
+		{"name": "music/dmitriyLost", "stream": true},
+		{"name": "music/dmitriyVoid", "stream": true}
+	]},
 
 	"weapon.tauShoot": {"category": "player", "sounds": [{"name": "weapon/tauShoot", "stream": false}]},
 	"weapon.tauChargeLoop": {"category": "player", "sounds": [{"name": "weapon/tauChargeLoop", "stream": true}]},

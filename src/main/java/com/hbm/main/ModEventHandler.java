@@ -206,10 +206,47 @@ public class ModEventHandler {
 	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
 	private static final int KERBOL_METEOR_CHANCE = 100;
 	private static final int KERBOL_VOID_INTERVAL_TICKS = 60 * 20;
-	private static final int KERBOL_VOID_CHANCE = 10;
+	private static final int KERBOL_VOID_CHANCE = 1;
 	private static final int KERBOL_VOID_MIN_DIST = 50;
 	private static final int KERBOL_VOID_MAX_DIST = 70;
+	private static final int KERBOL_FOOTSTEP_MIN_DURATION_TICKS = 5 * 20;
+	private static final int KERBOL_FOOTSTEP_MAX_DURATION_TICKS = 15 * 20;
+	private static final int KERBOL_FOOTSTEP_MIN_START_DISTANCE = 12;
+	private static final int KERBOL_FOOTSTEP_MAX_START_DISTANCE = 20;
+	private static final int KERBOL_FOOTSTEP_MIN_END_DISTANCE = 2;
+	private static final int KERBOL_FOOTSTEP_MAX_END_DISTANCE = 4;
+	private static final int KERBOL_FOOTSTEP_MIN_START_INTERVAL = 16;
+	private static final int KERBOL_FOOTSTEP_MAX_START_INTERVAL = 24;
+	private static final int KERBOL_FOOTSTEP_MIN_END_INTERVAL = 2;
+	private static final int KERBOL_FOOTSTEP_MAX_END_INTERVAL = 4;
+	private static final float KERBOL_FOOTSTEP_START_VOLUME = 0.12F;
+	private static final float KERBOL_FOOTSTEP_END_VOLUME = 0.85F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
+	private static final Map<UUID, KerbolFootstepSequence> kerbolFootsteps = new HashMap<UUID, KerbolFootstepSequence>();
+
+	private static class KerbolFootstepSequence {
+		private final UUID playerId;
+		private final int totalTicks;
+		private int remainingTicks;
+		private int nextStepTicks;
+		private final float angle;
+		private final int startDistance;
+		private final int endDistance;
+		private final int startInterval;
+		private final int endInterval;
+
+		private KerbolFootstepSequence(UUID playerId, int durationTicks, int startInterval, int endInterval, int startDistance, int endDistance, float angle) {
+			this.playerId = playerId;
+			this.totalTicks = durationTicks;
+			this.remainingTicks = durationTicks;
+			this.startInterval = startInterval;
+			this.endInterval = endInterval;
+			this.startDistance = startDistance;
+			this.endDistance = endDistance;
+			this.angle = angle;
+			this.nextStepTicks = Math.max(1, startInterval);
+		}
+	}
 
 	@SubscribeEvent
 	public void onPlayerLogin(PlayerEvent.PlayerLoggedInEvent event) {
@@ -872,6 +909,9 @@ public class ModEventHandler {
 	@SubscribeEvent
 	public void onUnload(WorldEvent.Unload event) {
 		NeutronNodeWorld.streamWorlds.remove(event.world);
+		if(event.world.provider instanceof WorldProviderKerbol) {
+			kerbolFootsteps.clear();
+		}
 	}
 
 	public static boolean didSit = false;
@@ -968,6 +1008,8 @@ public class ModEventHandler {
 						}
 					}
 
+					updateKerbolFootsteps(event.world);
+
 					long tick = event.world.getTotalWorldTime();
 					long beatIndex = tick / KERBOL_HEARTBEAT_PERIOD_TICKS;
 					if(beatIndex != lastKerbolHeartbeatBeat) {
@@ -982,6 +1024,10 @@ public class ModEventHandler {
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
 							Random rand = player.getRNG();
+							if(rand.nextFloat() < 0.10F && !kerbolFootsteps.containsKey(player.getUniqueID())) {
+								maybeStartKerbolFootsteps(event.world, player, rand);
+							}
+
 							if(rand.nextFloat() >= 0.10F) {
 								continue;
 							}
@@ -1169,6 +1215,126 @@ public class ModEventHandler {
 		Blocks.flowing_water.setLightOpacity(waterOpacity);
 	}
 
+	private static void updateKerbolFootsteps(World world) {
+		if(kerbolFootsteps.isEmpty()) {
+			return;
+		}
+
+		List<UUID> expired = new ArrayList<UUID>();
+		for(Map.Entry<UUID, KerbolFootstepSequence> entry : kerbolFootsteps.entrySet()) {
+			KerbolFootstepSequence sequence = entry.getValue();
+			EntityPlayer player = findPlayerByUUID(world, sequence.playerId);
+			if(player == null || player.worldObj != world || !(world.provider instanceof WorldProviderKerbol)) {
+				expired.add(entry.getKey());
+				continue;
+			}
+
+			if(sequence.remainingTicks <= 0) {
+				expired.add(entry.getKey());
+				continue;
+			}
+
+			sequence.remainingTicks--;
+			sequence.nextStepTicks--;
+
+			if(sequence.nextStepTicks > 0) {
+				continue;
+			}
+
+			float progress = 1.0F - (sequence.remainingTicks / (float) sequence.totalTicks);
+			int interval = lerpInt(sequence.startInterval, sequence.endInterval, progress);
+			sequence.nextStepTicks = Math.max(1, interval);
+
+			int distance = lerpInt(sequence.startDistance, sequence.endDistance, progress);
+			double x = player.posX + Math.cos(sequence.angle) * distance;
+			double z = player.posZ + Math.sin(sequence.angle) * distance;
+			int ix = MathHelper.floor_double(x);
+			int iz = MathHelper.floor_double(z);
+			int y = world.getTopSolidOrLiquidBlock(ix, iz);
+
+			Block block = null;
+			if(y > 0) {
+				block = world.getBlock(ix, y - 1, iz);
+				if(block != null && block.isAir(world, ix, y - 1, iz)) {
+					block = null;
+				} else {
+					y -= 1;
+				}
+			}
+
+			if(block == null || block.stepSound == null) {
+				continue;
+			}
+
+			String sound = block.stepSound.getStepResourcePath();
+			if(sound == null || sound.isEmpty()) {
+				sound = block.stepSound.getBreakSound();
+			}
+			if(sound == null || sound.isEmpty()) {
+				sound = block.stepSound.func_150496_b();
+			}
+			if(sound == null || sound.isEmpty()) {
+				continue;
+			}
+
+			float volume = lerpFloat(KERBOL_FOOTSTEP_START_VOLUME, KERBOL_FOOTSTEP_END_VOLUME, progress);
+			volume *= (0.9F + world.rand.nextFloat() * 0.2F);
+			float pitch = block.stepSound.getPitch() * (0.8F + world.rand.nextFloat() * 0.3F);
+
+			world.playSoundEffect(ix + 0.5D, y + 0.5D, iz + 0.5D, sound, volume, pitch);
+		}
+
+		for(UUID id : expired) {
+			kerbolFootsteps.remove(id);
+		}
+	}
+
+	private static void maybeStartKerbolFootsteps(World world, EntityPlayer player, Random rand) {
+		if(player == null || player.worldObj != world) {
+			return;
+		}
+
+		int durationTicks = KERBOL_FOOTSTEP_MIN_DURATION_TICKS
+			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_DURATION_TICKS - KERBOL_FOOTSTEP_MIN_DURATION_TICKS + 1);
+		int startDistance = KERBOL_FOOTSTEP_MIN_START_DISTANCE
+			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_START_DISTANCE - KERBOL_FOOTSTEP_MIN_START_DISTANCE + 1);
+		int endDistance = KERBOL_FOOTSTEP_MIN_END_DISTANCE
+			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_END_DISTANCE - KERBOL_FOOTSTEP_MIN_END_DISTANCE + 1);
+		int startInterval = KERBOL_FOOTSTEP_MIN_START_INTERVAL
+			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_START_INTERVAL - KERBOL_FOOTSTEP_MIN_START_INTERVAL + 1);
+		int endInterval = KERBOL_FOOTSTEP_MIN_END_INTERVAL
+			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_END_INTERVAL - KERBOL_FOOTSTEP_MIN_END_INTERVAL + 1);
+
+		float angle = rand.nextFloat() * (float) Math.PI * 2.0F;
+		KerbolFootstepSequence sequence = new KerbolFootstepSequence(
+			player.getUniqueID(),
+			durationTicks,
+			startInterval,
+			endInterval,
+			startDistance,
+			endDistance,
+			angle
+		);
+		kerbolFootsteps.put(player.getUniqueID(), sequence);
+	}
+
+	private static EntityPlayer findPlayerByUUID(World world, UUID id) {
+		for(Object obj : world.playerEntities) {
+			EntityPlayer player = (EntityPlayer) obj;
+			if(id.equals(player.getUniqueID())) {
+				return player;
+			}
+		}
+		return null;
+	}
+
+	private static int lerpInt(int start, int end, float t) {
+		return Math.round(start + (end - start) * t);
+	}
+
+	private static float lerpFloat(float start, float end, float t) {
+		return start + (end - start) * t;
+	}
 
 	// Spawn a rare, immobile void apparition near players in Kerbol.
 	private void spawnKerbolVoidStaresBack(World world) {

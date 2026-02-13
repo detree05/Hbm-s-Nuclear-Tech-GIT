@@ -1,9 +1,12 @@
 package com.hbm.dim.kerbol;
 
+import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
 import com.hbm.lib.RefStrings;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
+import com.hbm.dim.trait.CBT_Destroyed;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.util.ParticleUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -39,126 +42,6 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
 	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
 	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
-	private static final int STAR_MAX_FLIP_TICKS = 5 * 60 * 20;
-	private static final float STAR_SPEED_EPS = 0.1F;
-	private static boolean STAR_MOTION_INIT = false;
-	private static Random STAR_RAND;
-	private static final float STAR_MAX_SPEED = 2.0F;
-	private static float STAR_A_SPEED = 0.0F;
-	private static float STAR_B_SPEED = 0.0F;
-	private static float STAR_A_TARGET_SPEED = 0.0F;
-	private static float STAR_B_TARGET_SPEED = 0.0F;
-	private static float STAR_A_DIR = 1.0F;
-	private static float STAR_B_DIR = 1.0F;
-	private static boolean STAR_A_FLIP_PENDING = false;
-	private static boolean STAR_B_FLIP_PENDING = false;
-	private static long STAR_A_NEXT_FLIP_TICK = 0L;
-	private static long STAR_B_NEXT_FLIP_TICK = 0L;
-	private static float STAR_A_SIZE_PERIOD = 3000.0F;
-	private static float STAR_B_SIZE_PERIOD = 4200.0F;
-	private static float STAR_A_SIZE_PHASE = 0.0F;
-	private static float STAR_B_SIZE_PHASE = 0.0F;
-	private static long STAR_LAST_UPDATE_TICK = -1L;
-
-	private static long getKerbolTime(WorldClient world) {
-		if(world != null && world.provider instanceof WorldProviderCelestial) {
-			return ((WorldProviderCelestial) world.provider).getWorldTime();
-		}
-		return world != null ? world.getTotalWorldTime() : 0L;
-	}
-
-	private static void ensureStarMotion(WorldClient world) {
-		if(STAR_MOTION_INIT || world == null) {
-			return;
-		}
-
-		long seed = world.getSeed();
-		STAR_RAND = new Random(seed ^ 0x4B4F1A55L);
-		STAR_A_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
-		STAR_B_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
-		STAR_A_TARGET_SPEED = STAR_A_SPEED;
-		STAR_B_TARGET_SPEED = STAR_B_SPEED;
-		STAR_A_DIR = STAR_RAND.nextBoolean() ? 1.0F : -1.0F;
-		STAR_B_DIR = STAR_RAND.nextBoolean() ? 1.0F : -1.0F;
-		STAR_A_FLIP_PENDING = false;
-		STAR_B_FLIP_PENDING = false;
-
-		long now = getKerbolTime(world);
-		STAR_A_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
-		STAR_B_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
-
-		STAR_A_SIZE_PERIOD = 1200.0F + STAR_RAND.nextFloat() * 4800.0F;
-		STAR_B_SIZE_PERIOD = 1200.0F + STAR_RAND.nextFloat() * 4800.0F;
-		STAR_A_SIZE_PHASE = STAR_RAND.nextFloat() * (float)(Math.PI * 2.0D);
-		STAR_B_SIZE_PHASE = STAR_RAND.nextFloat() * (float)(Math.PI * 2.0D);
-		STAR_LAST_UPDATE_TICK = now;
-		STAR_MOTION_INIT = true;
-	}
-
-	private static void updateStarMotion(WorldClient world) {
-		if(!STAR_MOTION_INIT || STAR_RAND == null || world == null) {
-			return;
-		}
-
-		long now = getKerbolTime(world);
-		if(STAR_LAST_UPDATE_TICK < 0L) {
-			STAR_LAST_UPDATE_TICK = now;
-			return;
-		}
-
-		if(now < STAR_LAST_UPDATE_TICK) {
-			STAR_LAST_UPDATE_TICK = now;
-			return;
-		}
-
-		while(now >= STAR_A_NEXT_FLIP_TICK) {
-			if(!STAR_A_FLIP_PENDING) {
-				STAR_A_FLIP_PENDING = true;
-				STAR_A_TARGET_SPEED = 0.0F;
-			}
-			STAR_A_NEXT_FLIP_TICK = now + 1;
-			break;
-		}
-
-		while(now >= STAR_B_NEXT_FLIP_TICK) {
-			if(!STAR_B_FLIP_PENDING) {
-				STAR_B_FLIP_PENDING = true;
-				STAR_B_TARGET_SPEED = 0.0F;
-			}
-			STAR_B_NEXT_FLIP_TICK = now + 1;
-			break;
-		}
-
-		float deltaTicks = (float)(now - STAR_LAST_UPDATE_TICK);
-		if(deltaTicks > 0.0F) {
-			float maxDelta = 0.02F * deltaTicks;
-			float deltaA = MathHelper.clamp_float(STAR_A_TARGET_SPEED - STAR_A_SPEED, -maxDelta, maxDelta);
-			float deltaB = MathHelper.clamp_float(STAR_B_TARGET_SPEED - STAR_B_SPEED, -maxDelta, maxDelta);
-			STAR_A_SPEED += deltaA;
-			STAR_B_SPEED += deltaB;
-		}
-
-		if(STAR_A_FLIP_PENDING && Math.abs(STAR_A_SPEED) <= STAR_SPEED_EPS) {
-			STAR_A_DIR *= -1.0F;
-			STAR_A_TARGET_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
-			STAR_A_FLIP_PENDING = false;
-			STAR_A_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
-		}
-
-		if(STAR_B_FLIP_PENDING && Math.abs(STAR_B_SPEED) <= STAR_SPEED_EPS) {
-			STAR_B_DIR *= -1.0F;
-			STAR_B_TARGET_SPEED = STAR_RAND.nextFloat() * STAR_MAX_SPEED;
-			STAR_B_FLIP_PENDING = false;
-			STAR_B_NEXT_FLIP_TICK = now + 1 + STAR_RAND.nextInt(STAR_MAX_FLIP_TICKS);
-		}
-
-		STAR_LAST_UPDATE_TICK = now;
-	}
-
-	private static float getStarScale(float ticks, float period, float phase) {
-		float angle = ticks / period * (float)(Math.PI * 2.0D) + phase;
-		return 1.0F + 0.2F * (0.5F + 0.5F * MathHelper.sin(angle));
-	}
 	private static final IRenderHandler KERBOL_SKY = new IRenderHandler() {
 		@Override
 		public void render(float partialTicks, WorldClient world, Minecraft mc) {
@@ -172,32 +55,22 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 			GL11.glPushMatrix();
 			{
-				ensureStarMotion(world);
-				updateStarMotion(world);
-				// Speed up the dual-star orbits in the Kerbol sky.
-				float baseAngle = world.getCelestialAngle(partialTicks);
-				float starAAngle = (baseAngle * STAR_A_SPEED * STAR_A_DIR) % 1.0F;
-				float starBAngle = (baseAngle * STAR_B_SPEED * STAR_B_DIR + 0.17F) % 1.0F;
-				if(starAAngle < 0.0F) {
-					starAAngle += 1.0F;
-				}
-				if(starBAngle < 0.0F) {
-					starBAngle += 1.0F;
+				// Speed up the dual-star orbit in the Kerbol sky.
+				float solarAngle = (world.getCelestialAngle(partialTicks) * 128.0F) % 1.0F;
+				if(solarAngle < 0.0F) {
+					solarAngle += 1.0F;
 				}
 
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
-				float ticks = (float)(getKerbolTime(world) + partialTicks);
-				float starAScale = getStarScale(ticks, STAR_A_SIZE_PERIOD, STAR_A_SIZE_PHASE);
-				float starBScale = getStarScale(ticks, STAR_B_SIZE_PERIOD, STAR_B_SIZE_PHASE);
+				GL11.glRotatef(solarAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 
 				// Star A (red, larger)
 				GL11.glPushMatrix();
 				{
-					GL11.glRotatef(starAAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 					GL11.glRotatef(25.0F, 0.0F, 1.0F, 0.0F);
 					GL11.glRotatef(45.0F, 0.0F, 0.0F, 1.0F);
 
-					double spikeSize = 16.0D * starAScale;
+					double spikeSize = 16.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
 					GL11.glColor4f(1.0F, 0.2F, 0.2F, 0.9F);
 					tessellator.startDrawingQuads();
@@ -210,7 +83,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
 					GL11.glDisable(GL11.GL_TEXTURE_2D);
 					GL11.glColor4f(0.0F, 0.0F, 0.0F, 1.0F);
-					double size = 2.4D * starAScale;
+					double size = 2.4D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertex(-size, 100.0D, -size);
 					tessellator.addVertex(size, 100.0D, -size);
@@ -225,13 +98,12 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 				// Star B (orange, smaller)
 				GL11.glPushMatrix();
 				{
-					GL11.glRotatef(starBAngle * 360.0F, 1.0F, 0.0F, 0.0F);
 					GL11.glRotatef(-75.0F, 0.0F, 1.0F, 0.0F);
 					GL11.glRotatef(20.0F, 0.0F, 0.0F, 1.0F);
 
-					double spikeSize = 10.0D * starBScale;
+					double spikeSize = 10.0D;
 					mc.renderEngine.bindTexture(SUNSPIKE_TEXTURE);
-					GL11.glColor4f(0.55F, 0.12F, 1.1F, 0.85F);
+					GL11.glColor4f(0.35F, 0.05F, 0.6F, 0.85F);
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, -spikeSize, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(spikeSize, 99.9D, -spikeSize, 1.0D, 0.0D);
@@ -240,8 +112,8 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.draw();
 
 					mc.renderEngine.bindTexture(NEIDON_TEXTURE);
-					GL11.glColor4f(1.9F, 0.3F, 3.8F, 1.0F);
-					double size = 0.6666667D * starBScale;
+					GL11.glColor4f(0.7F, 0.08F, 1.1F, 1.0F);
+					double size = 0.6666667D;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
@@ -475,6 +347,25 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	@Override
 	public float[] calcSunriseSunsetColors(float solarAngle, float partialTicks) {
 		return null;
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public float getSunBrightnessFactor(float par1) {
+		return 0.45F;
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public float getSunBrightness(float par1) {
+		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+		if(skyState.isBlackhole() || skyState.isNothing() || skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
+			return 0.0F;
+		}
+		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class)) {
+			return 0.0F;
+		}
+		return 0.45F;
 	}
 
 	private float getHeartbeatPulse(float partialTicks) {
