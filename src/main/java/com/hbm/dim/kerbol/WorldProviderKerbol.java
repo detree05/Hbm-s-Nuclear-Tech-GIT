@@ -38,7 +38,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private long lastGravityEventMillis = -1L;
 	private static final ResourceLocation SUNSPIKE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sunspike.png");
 	private static final ResourceLocation CLOUD_TEXTURE = new ResourceLocation("textures/environment/clouds.png");
-	private static final ResourceLocation NEIDON_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/neidon.png");
+	private static final ResourceLocation LODE_TEXTURE = new ResourceLocation(RefStrings.MODID, "textures/misc/space/lode.png");
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
 	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
 	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
@@ -111,7 +111,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 					tessellator.addVertexWithUV(-spikeSize, 99.9D, spikeSize, 0.0D, 1.0D);
 					tessellator.draw();
 
-					mc.renderEngine.bindTexture(NEIDON_TEXTURE);
+					mc.renderEngine.bindTexture(LODE_TEXTURE);
 					GL11.glColor4f(0.7F, 0.08F, 1.1F, 1.0F);
 					double size = 0.6666667D;
 					tessellator.startDrawingQuads();
@@ -352,7 +352,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightnessFactor(float par1) {
-		return 0.45F;
+		return 0.20F;
 	}
 
 	@Override
@@ -365,7 +365,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		if(CelestialBody.getStar(worldObj).hasTrait(CBT_Destroyed.class)) {
 			return 0.0F;
 		}
-		return 0.45F;
+		return 0.20F;
 	}
 
 	private float getHeartbeatPulse(float partialTicks) {
