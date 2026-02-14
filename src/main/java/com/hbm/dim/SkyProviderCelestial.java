@@ -13,12 +13,15 @@ import com.hbm.dim.SolarSystem.AstroMetric;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CelestialBodyTrait.CBT_COMPROMISED;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.extprop.HbmLivingProps;
+import com.hbm.inventory.fluid.FluidType;
+import com.hbm.inventory.fluid.Fluids;
 import com.hbm.lib.RefStrings;
 import com.hbm.main.ResourceManager;
 import com.hbm.render.shader.Shader;
@@ -1001,6 +1004,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			double uvOffset = orbitingThis ? 1 - ((((double)world.getWorldTime() + partialTicks) / 1024) % 1) : 0;
 			float axialTilt = orbitingThis ? 0 : metric.body.axialTilt;
+			Vec3 bodyTextureTint = getBodyTextureTint(metric.body);
 
 			int injectorCount = 0;
 			if(skyState != null && metric.body != null && metric.body.canLand) {
@@ -1093,7 +1097,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 								GL11.glRotatef(randomRotation * d.interp * 0.05F, 0.0F, 1.0F, 0.0F);
 
 								mc.renderEngine.bindTexture(metric.body.texture);
-								GL11.glColor4d(1, 1, 1, bodyVisibility);
+								GL11.glColor4d(bodyTextureTint.xCoord, bodyTextureTint.yCoord, bodyTextureTint.zCoord, bodyVisibility);
 
 								tessellator.startDrawingQuads();
 								double qsize = size * random.nextDouble() * 0.1;
@@ -1156,7 +1160,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 					} else {
 
 						GL11.glDisable(GL11.GL_BLEND);
-						GL11.glColor4f(bodyVisibility, bodyVisibility, bodyVisibility, bodyVisibility);
+						GL11.glColor4f((float)bodyTextureTint.xCoord * bodyVisibility, (float)bodyTextureTint.yCoord * bodyVisibility, (float)bodyTextureTint.zCoord * bodyVisibility, bodyVisibility);
 						mc.renderEngine.bindTexture(metric.body.texture);
 
 						tessellator.startDrawingQuads();
@@ -1323,9 +1327,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 				if(renderPoint) {
 					float alpha = MathHelper.clamp_float((float)size * 100.0F, 0.0F, 1.0F);
 					alpha *= 1 - BobMathUtil.remap01_clamp((float)size, (float)transitionMinSize, (float)transitionMaxSize);
-					float r = MathHelper.clamp_float(metric.body.color[0], 0.0F, 1.0F);
-					float g = MathHelper.clamp_float(metric.body.color[1], 0.0F, 1.0F);
-					float b = MathHelper.clamp_float(metric.body.color[2], 0.0F, 1.0F);
+					float r = MathHelper.clamp_float(metric.body.color[0] * (float)bodyTextureTint.xCoord, 0.0F, 1.0F);
+					float g = MathHelper.clamp_float(metric.body.color[1] * (float)bodyTextureTint.yCoord, 0.0F, 1.0F);
+					float b = MathHelper.clamp_float(metric.body.color[2] * (float)bodyTextureTint.zCoord, 0.0F, 1.0F);
 					GL11.glColor4f(r, g, b, alpha * visibility);
 					mc.renderEngine.bindTexture(planetTexture);
 
@@ -1340,6 +1344,90 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 			GL11.glPopMatrix();
 		}
+	}
+
+	private Vec3 getBodyTextureTint(CelestialBody body) {
+		if(body == null) {
+			return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+		}
+
+		Vec3 atmosphereColor = getBodyAtmosphereColor(body);
+
+		float tintStrength = 0.0F;
+		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
+		if(atmosphere != null && !atmosphere.fluids.isEmpty()) {
+			float pressure = MathHelper.clamp_float((float)atmosphere.getPressure(), 0.0F, 2.0F);
+			tintStrength = MathHelper.clamp_float(0.25F + pressure * 0.2F, 0.25F, 0.65F);
+		} else if(body.gas != null) {
+			tintStrength = 0.65F;
+		}
+
+		float r = MathHelper.clamp_float(1.0F + ((float)atmosphereColor.xCoord - 1.0F) * tintStrength, 0.0F, 1.0F);
+		float g = MathHelper.clamp_float(1.0F + ((float)atmosphereColor.yCoord - 1.0F) * tintStrength, 0.0F, 1.0F);
+		float b = MathHelper.clamp_float(1.0F + ((float)atmosphereColor.zCoord - 1.0F) * tintStrength, 0.0F, 1.0F);
+		return Vec3.createVectorHelper(r, g, b);
+	}
+
+	private Vec3 getBodyAtmosphereColor(CelestialBody body) {
+		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
+		if(atmosphere != null && !atmosphere.fluids.isEmpty()) {
+			double totalPressure = atmosphere.getPressure();
+
+			if(totalPressure > 0.0D) {
+				double r = 0.0D;
+				double g = 0.0D;
+				double b = 0.0D;
+
+				for(FluidEntry entry : atmosphere.fluids) {
+					if(entry == null || entry.fluid == null || entry.pressure <= 0.0D) {
+						continue;
+					}
+
+					Vec3 fluidColor = getAtmosphereFluidColor(entry.fluid);
+					double percentage = entry.pressure / totalPressure;
+					r += fluidColor.xCoord * percentage;
+					g += fluidColor.yCoord * percentage;
+					b += fluidColor.zCoord * percentage;
+				}
+
+				return Vec3.createVectorHelper(
+					MathHelper.clamp_double(r, 0.0D, 1.0D),
+					MathHelper.clamp_double(g, 0.0D, 1.0D),
+					MathHelper.clamp_double(b, 0.0D, 1.0D)
+				);
+			}
+		}
+
+		if(body.gas != null) {
+			return getAtmosphereFluidColor(body.gas);
+		}
+
+		return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+	}
+
+	private Vec3 getAtmosphereFluidColor(FluidType fluid) {
+		if(fluid == null) {
+			return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+		}
+
+		if(fluid == Fluids.EVEAIR) {
+			return Vec3.createVectorHelper(53F / 255F, 32F / 255F, 74F / 255F);
+		}
+		if(fluid == Fluids.DUNAAIR || fluid == Fluids.CARBONDIOXIDE) {
+			return Vec3.createVectorHelper(212F / 255F, 112F / 255F, 78F / 255F);
+		}
+		if(fluid == Fluids.EARTHAIR || fluid == Fluids.OXYGEN || fluid == Fluids.NITROGEN) {
+			return Vec3.createVectorHelper(0.7529412F, 0.84705883F, 1.0F);
+		}
+
+		return getColorFromHex(fluid.getColor());
+	}
+
+	private Vec3 getColorFromHex(int hexColor) {
+		float red = ((hexColor >> 16) & 0xFF) / 255.0F;
+		float green = ((hexColor >> 8) & 0xFF) / 255.0F;
+		float blue = (hexColor & 0xFF) / 255.0F;
+		return Vec3.createVectorHelper(red, green, blue);
 	}
 
 	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth, float time, float spinAngle) {
