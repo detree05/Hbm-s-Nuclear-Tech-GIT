@@ -32,6 +32,7 @@ import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderGlobal;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.Vec3;
@@ -65,6 +66,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation impactTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/impact.png");
 	private static final ResourceLocation shockwaveTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/shockwave.png");
 	protected static final ResourceLocation shockFlareTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/flare.png");
+	private static final ResourceLocation particleBaseTexture = new ResourceLocation(RefStrings.MODID, "textures/particle/particle_base.png");
 
 	private static final ResourceLocation ringTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/rings.png");
 	private static final ResourceLocation destroyedBody = new ResourceLocation(RefStrings.MODID, "textures/misc/space/destroyed.png");
@@ -78,12 +80,20 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
 	
 	private static final List<NovaeEffect> novaeEffects = new CopyOnWriteArrayList<>();
+	private static final List<SkyfallMeteor> skyfallMeteors = new CopyOnWriteArrayList<>();
+	private static final List<SkyfallMeteor> skyfallSmoke = new CopyOnWriteArrayList<>();
 	private static boolean starcoreIgnitionActive = false;
 	private static long starcoreIgnitionStartWorldTime = 0L;
 	private static int starcoreIgnitionDimension = Integer.MIN_VALUE;
 	private static boolean starcoreDecayFlareActive = false;
 	private static long starcoreDecayFlareStartWorldTime = 0L;
 	private static int starcoreDecayFlareDimension = Integer.MIN_VALUE;
+	private static boolean skyfallActive = false;
+	private static long skyfallStartWorldTime = 0L;
+	private static int skyfallDurationTicks = 0;
+	private static int skyfallDimension = Integer.MIN_VALUE;
+	private static long skyfallLastUpdateTick = Long.MIN_VALUE;
+	private static final Random skyfallRandom = new Random();
 	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
@@ -1568,8 +1578,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	protected void renderSpecialEffects(float partialTicks, WorldClient world, Minecraft mc) {
-		if(novaeEffects.isEmpty()) return;
 		if(world.provider == null) return;
+		renderSkyfallEffect(partialTicks, world, mc);
+		if(novaeEffects.isEmpty()) return;
 		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return;
 
 		CelestialBody body = CelestialBody.getBody(world);
@@ -1718,6 +1729,187 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glPopMatrix();
 			GL11.glPopAttrib();
 		}
+	}
+
+	private void renderSkyfallEffect(float partialTicks, WorldClient world, Minecraft mc) {
+		if(!skyfallActive) return;
+		if(world.provider == null || world.provider.dimensionId != skyfallDimension) return;
+		if(mc.thePlayer == null) return;
+
+		long ageTicks = world.getTotalWorldTime() - skyfallStartWorldTime;
+		if(ageTicks < 0) return;
+		if(ageTicks > skyfallDurationTicks) {
+			skyfallActive = false;
+			skyfallMeteors.clear();
+			skyfallSmoke.clear();
+			return;
+		}
+
+		long worldTick = world.getTotalWorldTime();
+		if(worldTick != skyfallLastUpdateTick) {
+			skyfallLastUpdateTick = worldTick;
+
+			for(SkyfallMeteor meteor : skyfallMeteors) {
+				updateSkyfallMeteor(meteor);
+			}
+			for(SkyfallMeteor smoke : skyfallSmoke) {
+				updateSkyfallMeteor(smoke);
+			}
+
+			SkyfallMeteor meteor = new SkyfallMeteor(
+				(mc.thePlayer.posX + skyfallRandom.nextInt(16000)) - 8000,
+				2017.0D,
+				(mc.thePlayer.posZ + skyfallRandom.nextInt(16000)) - 8000,
+				-31.2D,
+				-20.8D,
+				20.0D,
+				false
+			);
+			skyfallMeteors.add(meteor);
+
+			skyfallMeteors.removeIf(m -> m.dead);
+			skyfallSmoke.removeIf(m -> m.dead);
+		}
+
+		double playerX = mc.thePlayer.prevPosX + (mc.thePlayer.posX - mc.thePlayer.prevPosX) * partialTicks;
+		double playerY = mc.thePlayer.prevPosY + (mc.thePlayer.posY - mc.thePlayer.prevPosY) * partialTicks;
+		double playerZ = mc.thePlayer.prevPosZ + (mc.thePlayer.posZ - mc.thePlayer.prevPosZ) * partialTicks;
+
+		GL11.glPushAttrib(GL11.GL_ENABLE_BIT | GL11.GL_COLOR_BUFFER_BIT);
+		GL11.glDisable(GL11.GL_FOG);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+		for(SkyfallMeteor meteor : skyfallMeteors) {
+			GL11.glPushMatrix();
+
+			Vec3 offset = Vec3.createVectorHelper(meteor.posX - playerX, meteor.posY - playerY, meteor.posZ - playerZ);
+			double offsetLength = offset.lengthVector();
+			double distance = Math.min(Minecraft.getMinecraft().gameSettings.renderDistanceChunks * 16, offsetLength);
+			Vec3 offsetNormal = offsetLength >= 1.0E-4D
+				? Vec3.createVectorHelper(offset.xCoord / offsetLength, offset.yCoord / offsetLength, offset.zCoord / offsetLength)
+				: offset;
+			Vec3 renderOffset = Vec3.createVectorHelper(offsetNormal.xCoord * distance, offsetNormal.yCoord * distance, offsetNormal.zCoord * distance);
+
+			GL11.glTranslated(renderOffset.xCoord, renderOffset.yCoord, renderOffset.zCoord);
+
+			double descent = 2017.0D - meteor.posY;
+			double quadratic = (-(descent * descent) + (1517.0D * descent)) / 41.0D;
+			double safeLength = Math.max(1.0D, offsetLength);
+			float scalar = (float)(quadratic / safeLength);
+			GL11.glScaled(scalar, scalar, scalar);
+
+			GL11.glColor4d(1, 1, 1, 1);
+			renderSkyfallGlow(shockFlareTexture);
+			GL11.glPopMatrix();
+		}
+
+		for(SkyfallMeteor smoke : skyfallSmoke) {
+			GL11.glPushMatrix();
+
+			Vec3 offset = Vec3.createVectorHelper(smoke.posX - playerX, smoke.posY - playerY, smoke.posZ - playerZ);
+			double offsetLength = offset.lengthVector();
+			double distance = Math.min(Minecraft.getMinecraft().gameSettings.renderDistanceChunks * 16, offsetLength);
+			Vec3 offsetNormal = offsetLength >= 1.0E-4D
+				? Vec3.createVectorHelper(offset.xCoord / offsetLength, offset.yCoord / offsetLength, offset.zCoord / offsetLength)
+				: offset;
+			Vec3 renderOffset = Vec3.createVectorHelper(offsetNormal.xCoord * distance, offsetNormal.yCoord * distance, offsetNormal.zCoord * distance);
+
+			GL11.glTranslated(renderOffset.xCoord, renderOffset.yCoord, renderOffset.zCoord);
+
+			double descent = 2017.0D - smoke.posY;
+			double quadratic = (-(descent * descent) + (1517.0D * descent)) / 41.0D;
+			double safeLength = Math.max(1.0D, offsetLength);
+			float scalar = (float)(quadratic / safeLength);
+			GL11.glScaled(scalar, scalar, scalar);
+
+			renderSkyfallSmoke(particleBaseTexture, smoke.age);
+			GL11.glPopMatrix();
+		}
+
+		GL11.glEnable(GL11.GL_FOG);
+		GL11.glPopAttrib();
+	}
+
+	private static void updateSkyfallMeteor(SkyfallMeteor meteor) {
+		if(!meteor.smoke) {
+			SkyfallMeteor smoke = new SkyfallMeteor(
+				(meteor.posX + skyfallRandom.nextInt(16)) - 8,
+				(meteor.posY + skyfallRandom.nextInt(16)),
+				(meteor.posZ + skyfallRandom.nextInt(16)) - 8,
+				0.0D,
+				0.0D,
+				0.0D,
+				true
+			);
+			skyfallSmoke.add(smoke);
+		}
+
+		if(meteor.posY <= 500.0D && !meteor.smoke) {
+			meteor.dead = true;
+		}
+
+		if(meteor.smoke) {
+			meteor.age++;
+			if(meteor.age >= 60) {
+				meteor.dead = true;
+			}
+		}
+
+		meteor.prevPosX = meteor.posX;
+		meteor.prevPosY = meteor.posY;
+		meteor.prevPosZ = meteor.posZ;
+		meteor.posX += meteor.motionX;
+		meteor.posY += meteor.motionY;
+		meteor.posZ += meteor.motionZ;
+	}
+
+	private void renderSkyfallSmoke(ResourceLocation texture, long age) {
+		GL11.glPushMatrix();
+		GL11.glEnable(GL11.GL_BLEND);
+		float width = 1.0F;
+		float xOffset = 0.5F;
+		float yOffset = 0.25F;
+		float dark = 1.0F - Math.min(((float)age / (100.0F * 0.35F)), 1.0F);
+		float tint = Math.min(1.0F, (float)age / 12.0F);
+		double r = (1.0 - tint) + (0.55 * tint);
+		double g = (1.0 - tint) + (1.0 * tint);
+		double b = (1.0 - tint) + (0.75 * tint);
+		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
+		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
+		GL11.glColor4d(r * dark, g * dark, b * dark, 1.0);
+		Tessellator tess = Tessellator.instance;
+		tess.startDrawingQuads();
+		tess.setNormal(0.0F, 1.0F, 0.0F);
+		tess.addVertexWithUV(0.0F - xOffset, 0.0F - yOffset, 0.0D, 1, 0);
+		tess.addVertexWithUV(width - xOffset, 0.0F - yOffset, 0.0D, 0, 0);
+		tess.addVertexWithUV(width - xOffset, width - yOffset, 0.0D, 0, 1);
+		tess.addVertexWithUV(0.0F - xOffset, width - yOffset, 0.0D, 1, 1);
+		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
+		tess.draw();
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.glPopMatrix();
+	}
+
+	private void renderSkyfallGlow(ResourceLocation texture) {
+		GL11.glPushMatrix();
+		GL11.glEnable(GL11.GL_BLEND);
+		float width = 1.0F;
+		float xOffset = 0.5F;
+		float yOffset = 0.25F;
+		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
+		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
+		GL11.glColor4d(1.0D, 1.0D, 1.0D, 1.0D);
+		Tessellator tess = Tessellator.instance;
+		tess.startDrawingQuads();
+		tess.setNormal(0.0F, 1.0F, 0.0F);
+		tess.addVertexWithUV(0.0F - xOffset, 0.0F - yOffset, 0.0D, 1, 0);
+		tess.addVertexWithUV(width - xOffset, 0.0F - yOffset, 0.0D, 0, 0);
+		tess.addVertexWithUV(width - xOffset, width - yOffset, 0.0D, 0, 1);
+		tess.addVertexWithUV(0.0F - xOffset, width - yOffset, 0.0D, 1, 1);
+		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
+		tess.draw();
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.glPopMatrix();
 	}
 
 	protected void renderStarcoreIgnitionEffect(float partialTicks, WorldClient world, Minecraft mc, double sunSize) {
@@ -1886,6 +2078,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 		starcoreDecayFlareDimension = dimension;
 	}
 
+	public static void startSkyfallEffect(long worldTime, int dimension, int durationTicks) {
+		skyfallActive = true;
+		skyfallStartWorldTime = worldTime;
+		skyfallDimension = dimension;
+		skyfallDurationTicks = Math.max(1, durationTicks);
+		skyfallLastUpdateTick = Long.MIN_VALUE;
+		skyfallMeteors.clear();
+		skyfallSmoke.clear();
+	}
+
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {
 
 	}
@@ -1921,6 +2123,31 @@ protected void renderStation(float partialTicks, WorldClient world, Minecraft mc
 
 		}
 		GL11.glPopMatrix();
+	}
+
+	private static final class SkyfallMeteor {
+		private double posX;
+		private double posY;
+		private double posZ;
+		private double prevPosX;
+		private double prevPosY;
+		private double prevPosZ;
+		private final double motionX;
+		private final double motionY;
+		private final double motionZ;
+		private long age;
+		private final boolean smoke;
+		private boolean dead;
+
+		private SkyfallMeteor(double posX, double posY, double posZ, double motionX, double motionY, double motionZ, boolean smoke) {
+			this.posX = posX;
+			this.posY = posY;
+			this.posZ = posZ;
+			this.motionX = motionX;
+			this.motionY = motionY;
+			this.motionZ = motionZ;
+			this.smoke = smoke;
+		}
 	}
 
 }

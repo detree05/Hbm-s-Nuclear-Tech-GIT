@@ -3,16 +3,24 @@ package com.hbm.commands;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CelestialBodyTrait;
+import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.SkyfallSkyPacket;
 import java.util.HashMap;
 
 import net.minecraft.command.CommandBase;
 import net.minecraft.command.ICommandSender;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.world.WorldServer;
+import net.minecraftforge.common.DimensionManager;
 
 public class CommandShatter extends CommandBase {
+	private static final int OVERWORLD_DIMENSION = 0;
+	private static final int SKYFALL_DURATION_TICKS = 20 * 60;
+	private static final int SKYFALL_DELAY_TICKS = 10 * 20;
 
 	@Override
 	public String getCommandName() {
@@ -43,11 +51,35 @@ public class CommandShatter extends CommandBase {
 		traits.put(CBT_Destroyed.class, new CBT_Destroyed());
 		data.setTraits(minmus.name, traits.values().toArray(new CelestialBodyTrait[traits.size()]));
 		SolarSystem.applyMinmusShatterState();
+		scheduleOverworldSkyfall();
 
 		if(alreadyDestroyed) {
 			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "Minmus was already shattered. Post-shatter state ensured."));
 		} else {
 			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "Minmus shattered."));
 		}
+		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.GOLD + "Skyfall will begin in 10 seconds (Overworld + Mun)."));
+	}
+
+	private static void scheduleOverworldSkyfall() {
+		scheduleSkyfallForDimension(OVERWORLD_DIMENSION);
+		scheduleSkyfallForDimension(SpaceConfig.moonDimension);
+	}
+
+	private static void scheduleSkyfallForDimension(int dimensionId) {
+		WorldServer world = DimensionManager.getWorld(dimensionId);
+		if(world == null) {
+			DimensionManager.initDimension(dimensionId);
+			world = DimensionManager.getWorld(dimensionId);
+		}
+		if(world == null) {
+			return;
+		}
+
+		long startTime = world.getTotalWorldTime() + SKYFALL_DELAY_TICKS;
+		PacketDispatcher.wrapper.sendToDimension(
+			new SkyfallSkyPacket(startTime, dimensionId, SKYFALL_DURATION_TICKS),
+			dimensionId
+		);
 	}
 }

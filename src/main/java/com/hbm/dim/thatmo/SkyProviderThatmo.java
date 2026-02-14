@@ -279,9 +279,13 @@ public class SkyProviderThatmo extends SkyProviderCelestial {
 		float f5 = 0.5F;
 		float f6 = 0.25F;
 		float dark = 1f - Math.min(((float)(age) / (float)(100f * 0.35F)), 1f);
+		float tint = Math.min(1.0F, (float) age / 12.0F);
+		double r = (1.0 - tint) + (0.55 * tint);
+		double g = (1.0 - tint) + (1.0 * tint);
+		double b = (1.0 - tint) + (0.75 * tint);
 		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
 		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
-		GL11.glColor4d(0.6*dark+0.0, 0.6*dark+0.0, 1*dark+0.0, 1);
+		GL11.glColor4d(r * dark, g * dark, b * dark, 1);
 		Tessellator tess = Tessellator.instance;
 		TextureManager tex = Minecraft.getMinecraft().getTextureManager();
 		tess.startDrawingQuads();

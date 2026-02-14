@@ -79,6 +79,8 @@ public class PacketDispatcher {
 		wrapper.registerMessage(StarcoreIgnitionSkyPacket.Handler.class, StarcoreIgnitionSkyPacket.class, i++, Side.CLIENT);
 		//Starcore decay sky + overlay event
 		wrapper.registerMessage(StarcoreDecaySkyPacket.Handler.class, StarcoreDecaySkyPacket.class, i++, Side.CLIENT);
+		//Overworld skyfall meteor visual event
+		wrapper.registerMessage(SkyfallSkyPacket.Handler.class, SkyfallSkyPacket.class, i++, Side.CLIENT);
 
 		// Sends info about currently linked transporters to player
 		wrapper.registerMessage(TransporterLinkerPacket.Handler.class, TransporterLinkerPacket.class, i++, Side.CLIENT);

@@ -739,6 +739,7 @@ public class MainRegistry {
 		event.registerServerCommand(new CommandReapNetworks());
 		event.registerServerCommand(new CommandShatter());
 		event.registerServerCommand(new CommandNovae());
+		event.registerServerCommand(new CommandSkyfall());
 		event.registerServerCommand(new CommandNtmDaytime());
 		event.registerServerCommand(new CommandVoidStaresBack());
 		event.registerServerCommand(new CommandVoidStaresBackChase());
