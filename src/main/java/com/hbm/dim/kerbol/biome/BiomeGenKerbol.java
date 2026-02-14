@@ -12,11 +12,11 @@ import net.minecraft.world.biome.BiomeGenBase;
 public class BiomeGenKerbol extends BiomeGenBaseCelestial {
 
 	public static final BiomeGenBase digammaWastelands = new BiomeGenKerbol(SpaceConfig.kerbolBiome);
-	public static final BiomeGenBase digmaOcean = new BiomeGenKerbolOcean(SpaceConfig.kerbolOceanBiome);
+	public static final BiomeGenBase digammaOcean = new BiomeGenKerbolOcean(SpaceConfig.kerbolOceanBiome);
 
 	public BiomeGenKerbol(int id) {
 		super(id);
-		this.setBiomeName("  w     as te land   s");
+		this.setBiomeName(" S  U    RF A CE :   )");
 		this.setDisableRain();
 	}
 

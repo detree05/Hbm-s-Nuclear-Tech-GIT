@@ -629,6 +629,7 @@ public class NBTStructure {
 					int meta = transformMeta(state.definition, piece.blockTable, coordBaseMode);
 
 					if(ry < 1) continue;
+					if(piece.keepExistingOnAir && block == Blocks.air) continue;
 
 					world.setBlock(rx, ry, rz, block, meta, 2);
 

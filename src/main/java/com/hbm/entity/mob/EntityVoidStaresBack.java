@@ -25,6 +25,8 @@ public class EntityVoidStaresBack extends EntityLiving {
 	private static final int DW_RECT_WIDTH = 20;
 	private static final int DW_RECT_HEIGHT = 21;
 	private static final int DW_CHASING = 22;
+	private static final int DW_COLLAPSING = 23;
+	private static final int DW_COLLAPSE_TICKS = 24;
 	private static final float LOOK_DOT_THRESHOLD = 0.98F;
 	private static final int LOOK_TICKS_REQUIRED = 20;
 	private static final float CHASE_SPEED_MIN = 0.05F;
@@ -36,12 +38,15 @@ public class EntityVoidStaresBack extends EntityLiving {
 	private static final float RECT_WIGGLE_MIN = 0.75F;
 	private static final float RECT_WIGGLE_MAX = 3.5F;
 	private static final int NOT_LOOKED_TICKS_LIMIT = 1200;
+	private static final int COLLAPSE_TICKS_TOTAL = 20;
 
 	private int lookedTicks = 0;
 	private int notLookedTicks = 0;
 	private boolean chasing = false;
 	private int chaseTicks = 0;
 	private int targetEntityId = -1;
+	private boolean collapsing = false;
+	private int collapseTicks = 0;
 	private AudioWrapper audioChase;
 
     public EntityVoidStaresBack(World world) {
@@ -61,6 +66,8 @@ public class EntityVoidStaresBack extends EntityLiving {
         this.dataWatcher.addObject(DW_RECT_WIDTH, Float.valueOf(1.0F));
         this.dataWatcher.addObject(DW_RECT_HEIGHT, Float.valueOf(1.0F));
         this.dataWatcher.addObject(DW_CHASING, Byte.valueOf((byte) 0));
+        this.dataWatcher.addObject(DW_COLLAPSING, Byte.valueOf((byte) 0));
+        this.dataWatcher.addObject(DW_COLLAPSE_TICKS, Integer.valueOf(0));
     }
 
     private void setRandomRectSize() {
@@ -171,6 +178,11 @@ public class EntityVoidStaresBack extends EntityLiving {
 			return;
 		}
 
+		if(isCollapsing()) {
+			updateCollapse();
+			return;
+		}
+
 		wiggleRectSize();
 
 		if(isChasing()) {
@@ -184,6 +196,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 				double dist = toTarget.lengthVector();
 				if(dist < 1.0D) {
 					this.setDead();
+					return;
 				}
 				if(dist > 0.0001D) {
 					float ramp = MathHelper.clamp_float((float) chaseTicks / (float) CHASE_RAMP_TICKS, 0.0F, 1.0F);
@@ -221,16 +234,54 @@ public class EntityVoidStaresBack extends EntityLiving {
 						chaseTicks = 0;
 						targetEntityId = watcher.getEntityId();
 					} else {
-						this.setDead();
+						beginCollapse();
+						return;
 					}
 				}
 			} else {
 				lookedTicks = 0;
 				notLookedTicks++;
 				if(notLookedTicks >= NOT_LOOKED_TICKS_LIMIT) {
-					this.setDead();
+					beginCollapse();
 				}
 			}
+		}
+	}
+
+	private void beginCollapse() {
+		if(this.collapsing || this.isDead) {
+			return;
+		}
+
+		this.collapsing = true;
+		this.collapseTicks = 0;
+		setChasing(false);
+		this.motionX = 0.0D;
+		this.motionY = 0.0D;
+		this.motionZ = 0.0D;
+		this.fallDistance = 0.0F;
+
+		if(!worldObj.isRemote) {
+			this.dataWatcher.updateObject(DW_COLLAPSING, Byte.valueOf((byte) 1));
+			this.dataWatcher.updateObject(DW_COLLAPSE_TICKS, Integer.valueOf(0));
+		}
+	}
+
+	private void updateCollapse() {
+		this.motionX = 0.0D;
+		this.motionY = 0.0D;
+		this.motionZ = 0.0D;
+		this.fallDistance = 0.0F;
+
+		if(worldObj.isRemote) {
+			return;
+		}
+
+		this.collapseTicks++;
+		this.dataWatcher.updateObject(DW_COLLAPSE_TICKS, Integer.valueOf(this.collapseTicks));
+
+		if(this.collapseTicks >= COLLAPSE_TICKS_TOTAL) {
+			this.setDead();
 		}
 	}
 
@@ -304,7 +355,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 	}
 
 	public void startChasing(EntityPlayer target) {
-		if(target == null) {
+		if(target == null || isCollapsing()) {
 			return;
 		}
 		setChasing(true);
@@ -327,6 +378,25 @@ public class EntityVoidStaresBack extends EntityLiving {
 		return this.chasing;
 	}
 
+	public boolean isCollapsing() {
+		if(worldObj.isRemote) {
+			return this.dataWatcher.getWatchableObjectByte(DW_COLLAPSING) != 0;
+		}
+		return this.collapsing;
+	}
+
+	public float getCollapseScale(float partialTicks) {
+		if(!isCollapsing()) {
+			return 1.0F;
+		}
+
+		float ticks = worldObj.isRemote
+			? this.dataWatcher.getWatchableObjectInt(DW_COLLAPSE_TICKS) + partialTicks
+			: this.collapseTicks + partialTicks;
+		float progress = MathHelper.clamp_float(ticks / (float) COLLAPSE_TICKS_TOTAL, 0.0F, 1.0F);
+		return 1.0F - progress;
+	}
+
     @Override
 	public void writeEntityToNBT(NBTTagCompound nbt) {
 		super.writeEntityToNBT(nbt);
@@ -336,6 +406,8 @@ public class EntityVoidStaresBack extends EntityLiving {
 		nbt.setInteger("chaseTicks", chaseTicks);
 		nbt.setInteger("targetEntityId", targetEntityId);
 		nbt.setInteger("notLookedTicks", notLookedTicks);
+		nbt.setBoolean("collapsing", collapsing);
+		nbt.setInteger("collapseTicks", collapseTicks);
 	}
 
     @Override
@@ -361,6 +433,18 @@ public class EntityVoidStaresBack extends EntityLiving {
 		}
 		if(nbt.hasKey("notLookedTicks")) {
 			this.notLookedTicks = nbt.getInteger("notLookedTicks");
+		}
+		if(nbt.hasKey("collapsing")) {
+			this.collapsing = nbt.getBoolean("collapsing");
+			if(!worldObj.isRemote) {
+				this.dataWatcher.updateObject(DW_COLLAPSING, Byte.valueOf((byte) (this.collapsing ? 1 : 0)));
+			}
+		}
+		if(nbt.hasKey("collapseTicks")) {
+			this.collapseTicks = nbt.getInteger("collapseTicks");
+			if(!worldObj.isRemote) {
+				this.dataWatcher.updateObject(DW_COLLAPSE_TICKS, Integer.valueOf(this.collapseTicks));
+			}
 		}
 	}
 }

@@ -221,6 +221,10 @@ public class ModEventHandler {
 	private static final int KERBOL_FOOTSTEP_MAX_END_INTERVAL = 4;
 	private static final float KERBOL_FOOTSTEP_START_VOLUME = 0.12F;
 	private static final float KERBOL_FOOTSTEP_END_VOLUME = 0.5F;
+	private static final float KERBOL_STAR_DRX_ANGLE_DEG = 35.0F;
+	private static final float KERBOL_STAR_DRX_EDGE_PER_SEC = 0.01F;
+	private static final float KERBOL_STAR_DRX_CENTER_PER_SEC = 0.1F;
+	private static final float KERBOL_STAR_DRX_RAYTRACE_DISTANCE = 512.0F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 	private static final Map<UUID, KerbolFootstepSequence> kerbolFootsteps = new HashMap<UUID, KerbolFootstepSequence>();
 
@@ -244,6 +248,130 @@ public class ModEventHandler {
 			this.endDistance = endDistance;
 			this.nextStepTicks = Math.max(1, startInterval);
 		}
+	}
+
+	private static void applyKerbolStarDigamma(EntityPlayer player) {
+		if(player == null || player.worldObj == null || player.capabilities.isCreativeMode) {
+			return;
+		}
+		if(!(player.worldObj.provider instanceof WorldProviderKerbol)) {
+			return;
+		}
+
+		Vec3 starDir = getKerbolStarADirection(player.worldObj);
+		if(starDir == null) {
+			return;
+		}
+
+		Vec3 look = player.getLookVec();
+		if(look == null) {
+			return;
+		}
+
+		double dot = look.xCoord * starDir.xCoord + look.yCoord * starDir.yCoord + look.zCoord * starDir.zCoord;
+		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
+		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
+		if(angleDeg > KERBOL_STAR_DRX_ANGLE_DEG) {
+			return;
+		}
+
+		if(!isKerbolStarVisible(player.worldObj, player, starDir, KERBOL_STAR_DRX_RAYTRACE_DISTANCE)) {
+			return;
+		}
+
+		float closeness = 1.0F - (angleDeg / KERBOL_STAR_DRX_ANGLE_DEG);
+		closeness = MathHelper.clamp_float(closeness, 0.0F, 1.0F);
+
+		float drxPerSecond = KERBOL_STAR_DRX_EDGE_PER_SEC
+				+ (KERBOL_STAR_DRX_CENTER_PER_SEC - KERBOL_STAR_DRX_EDGE_PER_SEC) * closeness;
+		HbmLivingProps.incrementDigamma(player, drxPerSecond / 20.0F);
+	}
+
+	private static Vec3 getKerbolStarADirection(World world) {
+		if(world == null) {
+			return null;
+		}
+
+		float solarAngle = (world.getCelestialAngle(0.0F) * 128.0F) % 1.0F;
+		if(solarAngle < 0.0F) {
+			solarAngle += 1.0F;
+		}
+
+		Vec3 dir = Vec3.createVectorHelper(0.0D, 1.0D, 0.0D);
+		dir = rotateZ(dir, 45.0F);
+		dir = rotateY(dir, 25.0F);
+		dir = rotateX(dir, solarAngle * 360.0F);
+		dir = rotateY(dir, -90.0F);
+
+		if(dir.lengthVector() <= 0.0D) {
+			return null;
+		}
+		return dir.normalize();
+	}
+
+	private static Vec3 rotateX(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double y = v.yCoord * cos - v.zCoord * sin;
+		double z = v.yCoord * sin + v.zCoord * cos;
+		return Vec3.createVectorHelper(v.xCoord, y, z);
+	}
+
+	private static Vec3 rotateY(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double x = v.xCoord * cos + v.zCoord * sin;
+		double z = -v.xCoord * sin + v.zCoord * cos;
+		return Vec3.createVectorHelper(x, v.yCoord, z);
+	}
+
+	private static Vec3 rotateZ(Vec3 v, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double x = v.xCoord * cos - v.yCoord * sin;
+		double y = v.xCoord * sin + v.yCoord * cos;
+		return Vec3.createVectorHelper(x, y, v.zCoord);
+	}
+
+	private static boolean isKerbolStarVisible(World world, EntityPlayer player, Vec3 dir, double maxDistance) {
+		Vec3 start = Vec3.createVectorHelper(
+			player.posX,
+			player.posY + player.getEyeHeight(),
+			player.posZ
+		);
+		Vec3 end = start.addVector(dir.xCoord * maxDistance, dir.yCoord * maxDistance, dir.zCoord * maxDistance);
+		Vec3 cursor = start;
+
+		for(int i = 0; i < 16; i++) {
+			MovingObjectPosition hit = world.rayTraceBlocks(cursor, end, false);
+			if(hit == null || hit.typeOfHit != MovingObjectType.BLOCK) {
+				return true;
+			}
+
+			Block block = world.getBlock(hit.blockX, hit.blockY, hit.blockZ);
+			if(block != null && block.isOpaqueCube()) {
+				return false;
+			}
+
+			if(hit.hitVec == null) {
+				return true;
+			}
+
+			cursor = Vec3.createVectorHelper(
+				hit.hitVec.xCoord + dir.xCoord * 0.01D,
+				hit.hitVec.yCoord + dir.yCoord * 0.01D,
+				hit.hitVec.zCoord + dir.zCoord * 0.01D
+			);
+
+			if(cursor.distanceTo(start) >= maxDistance) {
+				return true;
+			}
+		}
+
+		return true;
 	}
 
 	@SubscribeEvent
@@ -1771,6 +1899,15 @@ public class ModEventHandler {
 		}
 
 		if(!player.worldObj.isRemote && event.phase == TickEvent.Phase.START) {
+			if(player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+				try {
+					Field food = ReflectionHelper.findField(FoodStats.class, "field_75127_a", "foodLevel");
+					food.setInt(player.getFoodStats(), 20);
+				} catch(Exception ignored) { }
+				player.getFoodStats().addStats(20, 20.0F);
+			}
+			applyKerbolStarDigamma(player);
+
 			// Check for players attempting to cross over to another orbital grid
 			if(player.worldObj.provider instanceof WorldProviderOrbit && !(player.ridingEntity instanceof EntityRideableRocket)) {
 				double rx = Math.abs(player.posX) % OrbitalStation.STATION_SIZE;

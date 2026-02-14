@@ -19,7 +19,7 @@ public class ModBiomes
         BiomeDictionary.registerBiomeType(BiomeGenBaseMinmus.minmusCanyon, Type.COLD, Type.DRY, Type.DEAD, Type.SNOWY, Type.MOUNTAIN);
         BiomeDictionary.registerBiomeType(BiomeGenBaseMinmus.minmusPlains, Type.COLD, Type.DRY, Type.DEAD, Type.SNOWY, Type.MOUNTAIN);
         BiomeDictionary.registerBiomeType(BiomeGenKerbol.digammaWastelands, Type.DEAD, Type.DRY, Type.HOT);
-        BiomeDictionary.registerBiomeType(BiomeGenKerbol.digmaOcean, Type.OCEAN, Type.DEAD, Type.HOT);
+        BiomeDictionary.registerBiomeType(BiomeGenKerbol.digammaOcean, Type.OCEAN, Type.DEAD, Type.HOT);
 
     }
 }

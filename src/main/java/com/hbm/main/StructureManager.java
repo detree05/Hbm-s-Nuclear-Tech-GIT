@@ -105,6 +105,9 @@ public class StructureManager {
 	//IKE//
 	public static final NBTStructure ike_artifact = new NBTStructure(new ResourceLocation(RefStrings.MODID, "structures/ike_artifact.nbt"));
 
+	//KERBOL//
+	public static final NBTStructure tree = new NBTStructure(new ResourceLocation(RefStrings.MODID, "structures/tree.nbt"));
+
 	//THATMO//
 	public static final NBTStructure THATMOTESTMO = new NBTStructure(new ResourceLocation(RefStrings.MODID, "structures/thatmotestmo.nbt"));
 	public static final NBTStructure thatmo2 = new NBTStructure(new ResourceLocation(RefStrings.MODID, "structures/thatmo2.nbt"));

@@ -15,6 +15,7 @@ public class RenderVoidStaresBack extends Render {
 
 	private static final float SHAKE_RANGE = 64.0F;
 	private static final float SHAKE_MAX_OFFSET = 0.40F;
+	private static final float RENDER_SIZE_SCALE = 1.5F;
 
     public RenderVoidStaresBack() {
         this.shadowSize = 0.0F;
@@ -23,12 +24,19 @@ public class RenderVoidStaresBack extends Render {
     @Override
     public void doRender(Entity entity, double x, double y, double z, float yaw, float partialTicks) {
         EntityVoidStaresBack voidEntity = (EntityVoidStaresBack) entity;
-        float width = voidEntity.getRectWidth();
-        float height = voidEntity.getRectHeight();
+        float collapseScale = voidEntity.getCollapseScale(partialTicks);
+        if(collapseScale <= 0.001F) {
+            return;
+        }
+
+        float baseWidth = voidEntity.getRectWidth();
+        float baseHeight = voidEntity.getRectHeight();
+        float width = baseWidth * collapseScale * RENDER_SIZE_SCALE;
+        float height = baseHeight * collapseScale * RENDER_SIZE_SCALE;
 
         GL11.glPushMatrix();
 		GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
-        GL11.glTranslated(x, y + height * 0.5F, z);
+        GL11.glTranslated(x, y + baseHeight * 0.5F, z);
         applyShake(voidEntity, partialTicks);
 		GL11.glRotatef(180.0F - this.renderManager.playerViewY, 0.0F, 1.0F, 0.0F);
 		GL11.glRotatef(-this.renderManager.playerViewX, 1.0F, 0.0F, 0.0F);

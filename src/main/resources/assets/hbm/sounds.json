@@ -5,7 +5,7 @@
 	"misc.rumble": {"category": "player", "sounds": [{"name": "misc/rumble", "stream": false}]},
 	"misc.itlives_bell": {"category": "player", "sounds": [{"name": "misc/itlives_bell", "stream": false}]},
 	"misc.itlives_rumble": {"category": "player", "sounds": [{"name": "misc/itlives_rumble", "stream": false}]},
-	"misc.itlives_heartbeat": {"category": "player", "sounds": [{"name": "misc/itlives_heartbeat", "stream": true}]},
+	"misc.itlives_heartbeat": {"category": "hostile", "sounds": [{"name": "misc/itlives_heartbeat", "stream": true}]},
 	"misc.itlives_dialogue1": {"category": "ambient", "sounds": [{"name": "misc/itlives_dialogue1", "stream": true}]},
 	"misc.itlives_itstaresback": {"category": "ambient", "sounds": [{"name": "misc/itlives_itstaresback", "stream": true}]},
 	"misc.flesh": {"category": "player", "sounds": [{"name": "misc/flesh", "stream": false}]},
@@ -165,7 +165,7 @@
 		{"name": "music/spaceCalm", "stream": true},
 		{"name": "music/spaceKoyaanis", "stream": true}
 	]},
-	"music.game.kerbol": {"category": "music", "sounds": [
+	"music.game.kerbol": {"category": "hostile", "sounds": [
 		{"name": "music/dmitriyDrone", "stream": true},
 		{"name": "music/dmitriyLost", "stream": true},
 		{"name": "music/dmitriyVoid", "stream": true}

@@ -42,6 +42,12 @@ public class JigsawPiece {
 	public BlockSelector platform;
 
 	/**
+	 * If true, blocks in this structure that resolve to air will not be placed,
+	 * preserving terrain instead of carving empty space.
+	 */
+	public boolean keepExistingOnAir = false;
+
+	/**
 	 * If greater than 0, will limit the number of times this piece can spawn in a structure
 	 */
 	public int instanceLimit = 0;

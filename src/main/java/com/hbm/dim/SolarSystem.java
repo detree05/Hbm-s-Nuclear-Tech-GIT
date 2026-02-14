@@ -95,7 +95,7 @@ public class SolarSystem {
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 2)
 			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
 			.withTraits(
-				new CBT_Atmosphere(Fluids.DMITRIYGAS, 5.555D),
+				new CBT_Atmosphere(Fluids.DMITRIYGAS, 6.191D),
 				new CBT_Water(Fluids.BLOOD),
 				new CBT_SkyState(CBT_SkyState.SkyState.BLACKHOLE)
 			)

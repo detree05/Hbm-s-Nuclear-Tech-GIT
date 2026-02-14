@@ -9,6 +9,7 @@ import java.util.Locale;
 import java.util.Random;
 
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.handler.ArmorModHandler;
 import com.hbm.handler.HazmatRegistry;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
@@ -168,6 +169,7 @@ public class ArmorUtil {
 	}
 
 	public static boolean checkForOxy(EntityLivingBase entity, CBT_Atmosphere atmosphere) {
+		if(entity != null && entity.worldObj != null && entity.worldObj.provider instanceof WorldProviderKerbol) return true;
 		if(!(entity instanceof EntityPlayer)) return ChunkAtmosphereManager.proxy.canBreathe(atmosphere);
 		EntityPlayer player = (EntityPlayer) entity;
 

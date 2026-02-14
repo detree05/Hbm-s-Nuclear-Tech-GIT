@@ -146,6 +146,8 @@ import org.lwjgl.input.Mouse;
 import org.lwjgl.opengl.GL11;
 
 import java.lang.reflect.Method;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.*;
 
 public class ModEventHandlerClient {
@@ -165,12 +167,41 @@ public class ModEventHandlerClient {
 	private static final float KERBOL_STAR_STARE_ANGLE_DEG = 35.0F;
 	private static final float KERBOL_STAR_STARE_MAX_TURN_DEG = 2.5F;
 	private static final float KERBOL_STAR_STARE_MAX_FOV_ZOOM = 0.6F;
+	private static final float KERBOL_STAR_STARE_SHAKE_MIN_DEG = 0.25F;
+	private static final float KERBOL_STAR_STARE_SHAKE_MAX_DEG = 2.25F;
 	private static final float KERBOL_STAR_STARE_RAYTRACE_DISTANCE = 512.0F;
-	private static final String KERBOL_STAR_STARE_TEXT = "THE STAR GAZES BACK";
+	private static final String HOSTNAME = resolveHostnameSafe();
+	private static final String[] KERBOL_STAR_STARE_TEXT_OPTIONS = new String[] {
+		"I T   W A T C H E S",
+		"D O   N O T   B L I N K",
+		"I T ' S   H U N G R Y",
+		"L O O K   D E E P E R",
+		"I   K N O W   Y O U,   " + HOSTNAME,
+		"I   S E E   Y O U",
+		"S T A Y   I N   T H E   L I G H T",
+		"H A V E   Y O U   S E E N   T H E   " + EnumChatFormatting.DARK_RED + EnumChatFormatting.OBFUSCATED + "VOIDSTARESBACK" + EnumChatFormatting.RESET + "   ?"
+	};
+	private static final int KERBOL_STAR_STARE_TEXT_LIFETIME_TICKS = 15;
+	private static final int KERBOL_STAR_STARE_TEXT_SPAWN_INTERVAL_TICKS = 20;
+	private static final int KERBOL_STAR_STARE_TEXT_MAX_ACTIVE = 4;
+	private static final float KERBOL_STAR_STARE_TEXT_MAX_ALPHA = 1.0F;
+	private static final float KERBOL_STAR_STARE_TEXT_SHAKE_PX = 3.0F;
+	private static final Random KERBOL_STAR_STARE_TEXT_RANDOM = new Random();
 	private static float kerbolStarStareIntensity = 0.0F;
+	private static Integer lastClientDimensionId = null;
+	private static final List<KerbolStareTextEntry> kerbolStarStareTextEntries = new ArrayList<KerbolStareTextEntry>();
+	private static int kerbolStarStareTextSpawnTimer = 0;
 	private static ResourceLocation voidStareBlurTexture;
 	private static int kerbolDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
+
+	private static String resolveHostnameSafe() {
+		try {
+			return InetAddress.getLocalHost().getHostName();
+		} catch(UnknownHostException ignored) {
+			return "P L A Y E R";
+		}
+	}
 
 	private static boolean setupCameraTransform(Minecraft mc, float partialTicks) {
 		if(mc == null || mc.entityRenderer == null) {
@@ -190,6 +221,20 @@ public class ModEventHandlerClient {
 			return true;
 		} catch (Exception e) {
 			return false;
+		}
+	}
+
+	private static class KerbolStareTextEntry {
+		private final String text;
+		private final float anchorX;
+		private final float anchorY;
+		private int ageTicks;
+
+		private KerbolStareTextEntry(String text, float anchorX, float anchorY) {
+			this.text = text;
+			this.anchorX = anchorX;
+			this.anchorY = anchorY;
+			this.ageTicks = 0;
 		}
 	}
 
@@ -677,20 +722,24 @@ public class ModEventHandlerClient {
 	private static void updateKerbolStarStare(Minecraft mc, float partialTicks) {
 		kerbolStarStareIntensity = 0.0F;
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 
 		Vec3 starDir = getKerbolStarADirection(mc.theWorld, partialTicks);
 		if(starDir == null) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 
 		EntityPlayer player = mc.thePlayer;
 		Vec3 look = player.getLookVec();
 		if(look == null) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 
@@ -698,10 +747,12 @@ public class ModEventHandlerClient {
 		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
 		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
 		if(angleDeg > KERBOL_STAR_STARE_ANGLE_DEG) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 
 		if(!isStarVisible(mc.theWorld, player, starDir, KERBOL_STAR_STARE_RAYTRACE_DISTANCE)) {
+			updateKerbolStarStareTextState(false);
 			return;
 		}
 
@@ -725,6 +776,47 @@ public class ModEventHandlerClient {
 		player.rotationYaw = yaw;
 		player.rotationPitch = MathHelper.clamp_float(pitch, -90.0F, 90.0F);
 		player.rotationYawHead = yaw;
+		updateKerbolStarStareTextState(true);
+	}
+
+	private static void updateKerbolStarStareTextState(boolean stareActive) {
+		if(!stareActive) {
+			kerbolStarStareTextEntries.clear();
+			kerbolStarStareTextSpawnTimer = 0;
+			return;
+		}
+
+		for(Iterator<KerbolStareTextEntry> iterator = kerbolStarStareTextEntries.iterator(); iterator.hasNext();) {
+			KerbolStareTextEntry entry = iterator.next();
+			entry.ageTicks++;
+			if(entry.ageTicks >= getKerbolStarStareTextTotalTicks()) {
+				iterator.remove();
+			}
+		}
+
+		if(kerbolStarStareTextSpawnTimer > 0) {
+			kerbolStarStareTextSpawnTimer--;
+		}
+
+		if(kerbolStarStareTextSpawnTimer <= 0 && kerbolStarStareTextEntries.size() < KERBOL_STAR_STARE_TEXT_MAX_ACTIVE) {
+			kerbolStarStareTextEntries.add(createKerbolStarStareTextEntry());
+			kerbolStarStareTextSpawnTimer = KERBOL_STAR_STARE_TEXT_SPAWN_INTERVAL_TICKS;
+		}
+	}
+
+	private static KerbolStareTextEntry createKerbolStarStareTextEntry() {
+		String text = KERBOL_STAR_STARE_TEXT_OPTIONS[KERBOL_STAR_STARE_TEXT_RANDOM.nextInt(KERBOL_STAR_STARE_TEXT_OPTIONS.length)];
+		float anchorX = 0.15F + KERBOL_STAR_STARE_TEXT_RANDOM.nextFloat() * 0.70F;
+		float anchorY = 0.25F + KERBOL_STAR_STARE_TEXT_RANDOM.nextFloat() * 0.55F;
+		return new KerbolStareTextEntry(text, anchorX, anchorY);
+	}
+
+	private static int getKerbolStarStareTextTotalTicks() {
+		return KERBOL_STAR_STARE_TEXT_LIFETIME_TICKS;
+	}
+
+	private static float getKerbolStarStareTextFade(int ageTicks) {
+		return ageTicks < KERBOL_STAR_STARE_TEXT_LIFETIME_TICKS ? 1.0F : 0.0F;
 	}
 
 	private static Vec3 getKerbolStarADirection(World world, float partialTicks) {
@@ -849,22 +941,49 @@ public class ModEventHandlerClient {
 		if(mc == null || mc.fontRenderer == null || resolution == null) {
 			return;
 		}
-
-		float curve = MathHelper.clamp_float(intensity * intensity, 0.0F, 1.0F);
-		int alpha = MathHelper.clamp_int((int)(curve * 255.0F), 32, 255);
-		int color = (alpha << 24) | 0xFFAA66;
-		int x = (resolution.getScaledWidth() - mc.fontRenderer.getStringWidth(KERBOL_STAR_STARE_TEXT)) / 2;
-		int y = resolution.getScaledHeight() / 2 + 18;
+		if(kerbolStarStareTextEntries.isEmpty()) {
+			return;
+		}
 
 		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
-		mc.fontRenderer.drawStringWithShadow(KERBOL_STAR_STARE_TEXT, x, y, color);
+
+		for(KerbolStareTextEntry entry : kerbolStarStareTextEntries) {
+			float alphaFactor = 1.0F;
+			int alpha = MathHelper.clamp_int((int)(alphaFactor * 255.0F * KERBOL_STAR_STARE_TEXT_MAX_ALPHA), 0, 127);
+			if(alpha <= 0) {
+				continue;
+			}
+
+			String display = EnumChatFormatting.ITALIC + entry.text;
+			float shake = KERBOL_STAR_STARE_TEXT_SHAKE_PX * alphaFactor;
+			int jitterRange = MathHelper.ceiling_float_int(shake);
+			int jitterX = jitterRange > 0 ? KERBOL_STAR_STARE_TEXT_RANDOM.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
+			int jitterY = jitterRange > 0 ? KERBOL_STAR_STARE_TEXT_RANDOM.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
+			int textWidth = mc.fontRenderer.getStringWidth(display);
+			int x = (int)(resolution.getScaledWidth() * entry.anchorX) - textWidth / 2 + jitterX;
+			int y = (int)(resolution.getScaledHeight() * entry.anchorY) + jitterY;
+			x = MathHelper.clamp_int(x, 4, Math.max(4, resolution.getScaledWidth() - textWidth - 4));
+			y = MathHelper.clamp_int(y, 4, Math.max(4, resolution.getScaledHeight() - 12));
+			int color = (alpha << 24) | 0xFFFFFF;
+
+			mc.fontRenderer.drawStringWithShadow(display, x, y, color);
+		}
+
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		GL11.glPopMatrix();
 	}
 
 	private static final String[] CAM_ROLL_FIELDS = new String[] { "camRoll", "field_78495_O", "O" };
+
+	private static void resetKerbolCameraEffects(Minecraft mc) {
+		kerbolStarStareIntensity = 0.0F;
+		updateKerbolStarStareTextState(false);
+		if(mc != null && mc.entityRenderer != null) {
+			ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, 0.0F, CAM_ROLL_FIELDS);
+		}
+	}
 
 	@SubscribeEvent
 	public void onRenderTick(TickEvent.RenderTickEvent event) {
@@ -880,6 +999,20 @@ public class ModEventHandlerClient {
 		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
 			float t = (float)(world.getTotalWorldTime() + event.renderTickTime);
 			roll = MathHelper.sin(t * 0.001F) * 2.0F;
+
+			if(kerbolStarStareIntensity > 0.001F) {
+				float closeness = MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
+				float shakeAmp = KERBOL_STAR_STARE_SHAKE_MIN_DEG
+						+ (KERBOL_STAR_STARE_SHAKE_MAX_DEG - KERBOL_STAR_STARE_SHAKE_MIN_DEG) * closeness;
+
+				float tremor = 0.0F;
+				tremor += MathHelper.sin(t * 0.90F);
+				tremor += MathHelper.sin(t * 2.60F + 1.30F) * 0.55F;
+				tremor += MathHelper.cos(t * 4.10F + 0.20F) * 0.30F;
+				tremor /= 1.85F;
+
+				roll += tremor * shakeAmp;
+			}
 		}
 		ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, roll, CAM_ROLL_FIELDS);
 	}
@@ -1337,8 +1470,21 @@ public class ModEventHandlerClient {
 			LoggingUtil.errorWithHighlight("========================== WARNING ==========================");
 		}
 
-		if(mc.theWorld == null || mc.thePlayer == null)
+		if(mc.theWorld == null || mc.thePlayer == null) {
+			resetKerbolCameraEffects(mc);
+			lastClientDimensionId = null;
 			return;
+		}
+
+		int currentDimension = mc.theWorld.provider != null ? mc.theWorld.provider.dimensionId : 0;
+		if(lastClientDimensionId == null || lastClientDimensionId.intValue() != currentDimension) {
+			if(lastClientDimensionId != null) {
+				resetKerbolCameraEffects(mc);
+			}
+			lastClientDimensionId = currentDimension;
+		} else if(currentDimension != SpaceConfig.kerbolDimension) {
+			resetKerbolCameraEffects(mc);
+		}
 
 		SolarSystem.applyMinmusShatterState();
 
