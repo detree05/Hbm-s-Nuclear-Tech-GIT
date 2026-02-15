@@ -15,12 +15,13 @@ import org.lwjgl.opengl.GL11;
 
 import com.hbm.extprop.HbmLivingProps;
 import com.hbm.handler.ImpactWorldHandler;
+import com.hbm.lib.RefStrings;
 
 import java.util.Random;
 
 public class RenderNTMSkyboxImpact extends IRenderHandler {
 	
-	private static final ResourceLocation sunTexture = new ResourceLocation("textures/environment/sun.png");
+	private static final ResourceLocation sunTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sun.png");
 	private static final ResourceLocation moonTexture = new ResourceLocation("textures/environment/moon_phases.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation("hbm:textures/misc/star_digamma.png");
 	private static final ResourceLocation bobmazonSat = new ResourceLocation("hbm:textures/misc/sat_bobmazon.png");

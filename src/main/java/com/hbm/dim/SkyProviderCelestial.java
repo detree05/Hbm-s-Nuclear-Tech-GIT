@@ -56,13 +56,14 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 public class SkyProviderCelestial extends IRenderHandler {
 
 	private static final ResourceLocation planetTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/planet.png");
+	private static final ResourceLocation cloudsTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/clouds.png");
 	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore_spike.png");
 	private static final ResourceLocation supernovaeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/supernovae.png");
 	private static final ResourceLocation nightTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
 	private static final ResourceLocation lodeStar = new ResourceLocation(RefStrings.MODID, "textures/misc/star_lode.png");
 	private static final ResourceLocation stationTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/station.png");
-	private static final ResourceLocation defaultSunTexture = new ResourceLocation("textures/environment/sun.png");
+	private static final ResourceLocation defaultSunTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/sun.png");
 	private static final ResourceLocation starcoreSpikeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore_spike.png");
 	private static final ResourceLocation starcoreCoreTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore.png");
 
@@ -1170,6 +1171,26 @@ public class SkyProviderCelestial extends IRenderHandler {
 						tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D + uvOffset, 1.0D);
 						tessellator.draw();
 
+						float cloudAlpha = getCloudAlpha(metric.body) * bodyVisibility;
+						if(cloudAlpha > 0.001F) {
+							double cloudUvOffset = uvOffset + getCloudUvOffset(world, partialTicks, metric.body);
+
+							GL11.glEnable(GL11.GL_BLEND);
+							OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+
+							GL11.glColor4f(1.0F, 1.0F, 1.0F, cloudAlpha);
+							mc.renderEngine.bindTexture(cloudsTexture);
+
+							tessellator.startDrawingQuads();
+							tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D + cloudUvOffset, 0.0D);
+							tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D + cloudUvOffset, 0.0D);
+							tessellator.addVertexWithUV(size, 100.0D, size, 1.0D + cloudUvOffset, 1.0D);
+							tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D + cloudUvOffset, 1.0D);
+							tessellator.draw();
+
+							GL11.glDisable(GL11.GL_BLEND);
+						}
+
 
 						CBT_Impact impact = metric.body.getTrait(CBT_Impact.class);
 						CBT_Lights light = metric.body.getTrait(CBT_Lights.class);
@@ -1428,6 +1449,36 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float green = ((hexColor >> 8) & 0xFF) / 255.0F;
 		float blue = (hexColor & 0xFF) / 255.0F;
 		return Vec3.createVectorHelper(red, green, blue);
+	}
+
+	private float getCloudAlpha(CelestialBody body) {
+		if(body == null) {
+			return 0.0F;
+		}
+
+		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
+		if(atmosphere == null) {
+			return 0.0F;
+		}
+
+		float pressure = (float)atmosphere.getPressure();
+		if(pressure <= 0.5F) {
+			return 0.0F;
+		}
+
+		return MathHelper.clamp_float((pressure - 0.5F) * 0.5F, 0.05F, 0.35F);
+	}
+
+	private double getCloudUvOffset(WorldClient world, float partialTicks, CelestialBody body) {
+		if(world == null || body == null) {
+			return 0.0D;
+		}
+
+		double time = world.getWorldTime() + partialTicks;
+		double bodyPeriod = body.getRotationalPeriod();
+		double driftPeriod = bodyPeriod > 1.0D ? MathHelper.clamp_double(bodyPeriod * 0.35D, 4000.0D, 360000.0D) : 24000.0D;
+		double phaseOffset = (Math.abs(body.name.hashCode()) % 2048) / 2048.0D;
+		return (time / driftPeriod + phaseOffset) % 1.0D;
 	}
 
 	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth, float time, float spinAngle) {
