@@ -38,9 +38,14 @@ public class StarcoreThroughputTracker {
 	}
 
 	private static final Map<String, Accumulator> perStar = new HashMap<>();
+	private static final Map<String, Integer> loadedWorldRefs = new HashMap<>();
+
+	private static String getStarName(World world) {
+		return CelestialBody.getStar(world).name;
+	}
 
 	private static Accumulator get(World world) {
-		String starName = CelestialBody.getStar(world).name;
+		String starName = getStarName(world);
 		Accumulator acc = perStar.get(starName);
 		if(acc == null) {
 			acc = new Accumulator();
@@ -52,6 +57,45 @@ public class StarcoreThroughputTracker {
 			perStar.put(starName, acc);
 		}
 		return acc;
+	}
+
+	public static void onWorldLoad(World world) {
+		if(world == null || world.isRemote) return;
+		String starName = getStarName(world);
+		Integer refs = loadedWorldRefs.get(starName);
+		loadedWorldRefs.put(starName, refs == null ? 1 : refs.intValue() + 1);
+	}
+
+	public static void onWorldUnload(World world) {
+		if(world == null || world.isRemote) return;
+		String starName = getStarName(world);
+		Integer refs = loadedWorldRefs.get(starName);
+		if(refs == null || refs.intValue() <= 1) {
+			loadedWorldRefs.remove(starName);
+			perStar.remove(starName);
+		} else {
+			loadedWorldRefs.put(starName, refs.intValue() - 1);
+		}
+	}
+
+	private static void resetAccumulator(Accumulator acc) {
+		acc.totalThisTick = 0;
+		acc.lastTickTotal = 0;
+		acc.totalThisFiveTicks = 0;
+		acc.lastFiveTickTotal = 0;
+		acc.injectorsThisFiveTicks.clear();
+		acc.injectorsLastFiveTicks = 0;
+		acc.injectorsAll.clear();
+		acc.injectorsAllCount = 0;
+		acc.injectorsThisSecond.clear();
+		acc.injectorsLastSecond = 0;
+		acc.totalThisSecond = 0;
+		acc.lastSecondTotal = 0;
+		acc.lastProcessedTick = -1L;
+		acc.injectorsThisSecondByDim.clear();
+		acc.injectorsByDimension = new HashMap<>();
+		acc.injectorsByDimensionDirty = true;
+		acc.lastInjectorSyncTick = -20L;
 	}
 
 	public static void add(World world, long amount) {
@@ -112,7 +156,10 @@ public class StarcoreThroughputTracker {
 		long now = world.getTotalWorldTime();
 
 		Accumulator acc = get(world);
-		if(acc.lastProcessedTick >= now) return;
+		if(acc.lastProcessedTick > now) {
+			resetAccumulator(acc);
+		}
+		if(acc.lastProcessedTick == now) return;
 		acc.lastProcessedTick = now;
 
 		long total = acc.totalThisTick;

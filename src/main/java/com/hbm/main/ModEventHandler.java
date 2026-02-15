@@ -1026,6 +1026,9 @@ public class ModEventHandler {
 		BobmazonOfferFactory.init();
 
 		updateWaterOpacity(event.world);
+		if(!event.world.isRemote) {
+			StarcoreThroughputTracker.onWorldLoad(event.world);
+		}
 
 		if(!(event.world.provider instanceof WorldProviderEarth)) {
 			PlanetGen.overrideOverworldProvider();
@@ -1034,6 +1037,9 @@ public class ModEventHandler {
 
 	@SubscribeEvent
 	public void onUnload(WorldEvent.Unload event) {
+		if(!event.world.isRemote) {
+			StarcoreThroughputTracker.onWorldUnload(event.world);
+		}
 		NeutronNodeWorld.streamWorlds.remove(event.world);
 		if(event.world.provider instanceof WorldProviderKerbol) {
 			kerbolFootsteps.clear();

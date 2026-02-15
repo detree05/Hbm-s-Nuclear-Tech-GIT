@@ -1625,7 +1625,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 		long lastTick = ringFadeTick.containsKey(key) ? ringFadeTick.get(key) : tick;
 		long dt = Math.max(0L, tick - lastTick);
 
-		float fade = ringFade.containsKey(key) ? ringFade.get(key) : 0.0F;
+		// First observation should reflect current ring state immediately.
+		float fade = ringFade.containsKey(key) ? ringFade.get(key) : (body.hasRings ? 1.0F : 0.0F);
 		if(body.hasRings) {
 			fade = Math.min(1.0F, fade + dt * (1.0F / (5.0F * 24000.0F)));
 		} else {
