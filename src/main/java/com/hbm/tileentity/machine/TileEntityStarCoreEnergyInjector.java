@@ -18,6 +18,7 @@ import net.minecraftforge.common.util.ForgeDirection;
 public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase implements IEnergyReceiverMK2 {
 
 	public static final long MAX_POWER = 1_000_000_000_000_000L;
+	private static final long STEEL_INJECTOR_MAX_HE_PER_TICK = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
 
 	private long power;
 	private long receivedThisTick;
@@ -79,14 +80,15 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		if(!canOperate()) {
 			return power;
 		}
-		long globalPerTickCap = getPerTickCap(state, skyState);
-		long perInjectorCap = globalPerTickCap;
+		long supportRequirement = getSupportRequirementPerTick(state, skyState);
+		long globalPerTickCap = getPerTickCap(state, skyState, supportRequirement);
+		long perInjectorCap = Math.min(globalPerTickCap, STEEL_INJECTOR_MAX_HE_PER_TICK);
 		if(state == CBT_SkyState.SkyState.SUN && isSunChargeNearFull(skyState)) {
 			int injectors = Math.max(1, StarcoreThroughputTracker.getRegisteredInjectorCount(worldObj));
-			perInjectorCap = Math.max(1L, globalPerTickCap / injectors);
+			perInjectorCap = Math.min(perInjectorCap, Math.max(1L, globalPerTickCap / injectors));
 		}
 		long allowance = Math.min(
-			Math.min(CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - receivedThisTick, perInjectorCap),
+			Math.min(supportRequirement - receivedThisTick, perInjectorCap),
 			StarcoreThroughputTracker.getRemainingCapacity(worldObj, globalPerTickCap)
 		);
 		if(allowance <= 0) {
@@ -141,20 +143,26 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 		return MathHelper.cos(angle) > 0.0F;
 	}
 
-	private static long getPerTickCap(CBT_SkyState.SkyState state, CBT_SkyState skyState) {
-		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
+	private static long getSupportRequirementPerTick(CBT_SkyState.SkyState state, CBT_SkyState skyState) {
 		if(state != CBT_SkyState.SkyState.SUN) {
-			return threshold;
+			return CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
+		}
+		return CBT_SkyState.getSunSupportRequirementPerTick(skyState.getSunCharge());
+	}
+
+	private static long getPerTickCap(CBT_SkyState.SkyState state, CBT_SkyState skyState, long supportRequirement) {
+		if(state != CBT_SkyState.SkyState.SUN) {
+			return supportRequirement;
 		}
 		long current = skyState.getSunCharge();
 		if(current >= CBT_SkyState.SUN_MAX_HE) {
-			return threshold;
+			return supportRequirement;
 		}
 		long remaining = CBT_SkyState.SUN_MAX_HE - current;
-		if(remaining > Long.MAX_VALUE - threshold) {
+		if(remaining > Long.MAX_VALUE - supportRequirement) {
 			return Long.MAX_VALUE;
 		}
-		return threshold + remaining;
+		return supportRequirement + remaining;
 	}
 
 	private static boolean isSunChargeNearFull(CBT_SkyState skyState) {

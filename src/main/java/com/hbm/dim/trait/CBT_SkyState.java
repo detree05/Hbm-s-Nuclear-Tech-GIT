@@ -13,6 +13,8 @@ import net.minecraft.world.World;
 public class CBT_SkyState extends CelestialBodyTrait {
 
 	public static final long STARCORE_THRESHOLD_HE_PER_TICK = 500_000_000_000_000L / 20L;
+	public static final long SUN_SUPPORT_MIN_HE_PER_TICK = STARCORE_THRESHOLD_HE_PER_TICK;
+	public static final long SUN_SUPPORT_MAX_HE_PER_TICK = 3_000_000_000_000_000L / 20L;
 	public static final int SUN_BUILDUP_TICKS = 5 * 24000;
 	public static final long SUN_BUILDUP_SECONDS = SUN_BUILDUP_TICKS / 20L;
 	public static final long SUN_MAX_HE = STARCORE_THRESHOLD_HE_PER_TICK * 20L * SUN_BUILDUP_SECONDS;
@@ -142,6 +144,26 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	public static boolean isNothing(World world) {
 		return get(world).isNothing();
+	}
+
+	public static long getSunSupportRequirementPerTick(long sunCharge) {
+		if(SUN_MAX_HE <= 0) {
+			return SUN_SUPPORT_MIN_HE_PER_TICK;
+		}
+
+		long clampedCharge = Math.max(0L, Math.min(sunCharge, SUN_MAX_HE));
+		if(clampedCharge <= 0L) {
+			return SUN_SUPPORT_MIN_HE_PER_TICK;
+		}
+		if(clampedCharge >= SUN_MAX_HE) {
+			return SUN_SUPPORT_MAX_HE_PER_TICK;
+		}
+
+		double ratio = (double) clampedCharge / (double) SUN_MAX_HE;
+		double scaled = SUN_SUPPORT_MIN_HE_PER_TICK
+			+ (SUN_SUPPORT_MAX_HE_PER_TICK - SUN_SUPPORT_MIN_HE_PER_TICK) * ratio;
+		long requirement = Math.round(scaled);
+		return Math.max(SUN_SUPPORT_MIN_HE_PER_TICK, Math.min(requirement, SUN_SUPPORT_MAX_HE_PER_TICK));
 	}
 
 	@Override

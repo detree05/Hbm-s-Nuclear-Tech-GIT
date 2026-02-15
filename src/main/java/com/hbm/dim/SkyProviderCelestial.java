@@ -1466,7 +1466,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			return 0.0F;
 		}
 
-		return MathHelper.clamp_float((pressure - 0.5F) * 0.5F, 0.05F, 0.35F);
+		return MathHelper.clamp_float((pressure - 0.5F) * 0.5F, 0.3F, 0.8F);
 	}
 
 	private double getCloudUvOffset(WorldClient world, float partialTicks, CelestialBody body) {

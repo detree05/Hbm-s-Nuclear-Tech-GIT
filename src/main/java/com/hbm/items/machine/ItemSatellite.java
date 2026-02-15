@@ -50,6 +50,13 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.melter"));
 		}
 
+		if(this == ModItems.sat_derald) {
+			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.single_use"));
+			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.orbital_module"));
+			list.add(I18nUtil.resolveKey("item.sat.desc.derald.evil"));
+			list.add(I18nUtil.resolveKey("item.sat.desc.derald.tag").replace("&", "\u00A7"));
+		}
+
 		if(this == ModItems.sat_laser)
 			list.add(I18nUtil.resolveKey("item.sat.desc.laser"));
 
@@ -76,8 +83,6 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 
 		if(this == ModItems.sat_dyson_relay)
 			list.add(I18nUtil.resolveKey("item.sat.desc.dyson_relay"));
-
-			list.add(I18nUtil.resolveKey("item.sat.desc.starcore_relay"));
 
 		if(canLaunchByHand) {
 			list.add(EnumChatFormatting.GOLD + I18nUtil.resolveKey("item.sat.desc.launch_by_hand"));
@@ -110,6 +115,13 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 		stack.stackSize--;
 
 		return stack;
+	}
+
+	@Override
+	public String getSize(PartSize size) {
+		if(this == ModItems.sat_derald && size == PartSize.SIZE_20)
+			return "1.9m";
+		return super.getSize(size);
 	}
 
 }

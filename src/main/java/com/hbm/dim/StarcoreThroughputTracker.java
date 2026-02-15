@@ -196,12 +196,11 @@ public class StarcoreThroughputTracker {
 		}
 		long threshold = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
 		long avgTotal = acc.lastSecondTotal > 0 ? acc.lastSecondTotal / 20L : total;
-		long effective = Math.min(avgTotal, threshold);
-		long excess = Math.max(0L, total - threshold);
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.STARCORE) {
+			long effective = Math.min(avgTotal, threshold);
 			if(avgTotal >= threshold) {
 				skyState.setState(CBT_SkyState.SkyState.SUN);
 				skyState.setStarcoreThroughput(0);
@@ -215,13 +214,16 @@ public class StarcoreThroughputTracker {
 			}
 			CelestialBody.getStar(world).modifyTraits(skyState);
 		} else if(state == CBT_SkyState.SkyState.SUN) {
+			long supportRequirement = CBT_SkyState.getSunSupportRequirementPerTick(skyState.getSunCharge());
+			long effective = Math.min(avgTotal, supportRequirement);
+			long excess = Math.max(0L, total - supportRequirement);
 			long lastSustain = skyState.getSunLastSustainTick();
 			if(lastSustain <= 0) {
 				skyState.setSunLastSustainTick(now);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 				lastSustain = now;
 			}
-			if(avgTotal >= threshold) {
+			if(avgTotal >= supportRequirement) {
 				if(skyState.getSunLastSustainTick() != now) {
 					skyState.setSunLastSustainTick(now);
 					CelestialBody.getStar(world).modifyTraits(skyState);
@@ -236,7 +238,7 @@ public class StarcoreThroughputTracker {
 				}
 			}
 			long current = skyState.getSunCharge();
-			long decay = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK - effective;
+			long decay = supportRequirement - effective;
 			if(decay > 0) {
 				long next = Math.max(0L, current - decay);
 				if(next != current) {
@@ -244,7 +246,7 @@ public class StarcoreThroughputTracker {
 					CelestialBody.getStar(world).modifyTraits(skyState);
 				}
 			}
-			if(effective < CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK && skyState.getSunCharge() <= 0
+			if(effective < supportRequirement && skyState.getSunCharge() <= 0
 				&& (now - lastSustain) >= CBT_SkyState.SUN_GRACE_TICKS) {
 				skyState.setState(CBT_SkyState.SkyState.NOTHING);
 				skyState.setStarcoreThroughput(0);
