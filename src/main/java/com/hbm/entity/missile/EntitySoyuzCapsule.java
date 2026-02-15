@@ -17,6 +17,7 @@ import net.minecraft.world.World;
 public class EntitySoyuzCapsule extends EntityThrowable {
 
 	public int soyuz;
+	public boolean includeReturnRocket = true;
 	public ItemStack[] payload = new ItemStack[18];
 
 	public EntitySoyuzCapsule(World p_i1582_1_) {
@@ -52,9 +53,10 @@ public class EntitySoyuzCapsule extends EntityThrowable {
     				for(int i = 0; i < payload.length; i++) {
     					capsule.setInventorySlotContents(i, payload[i]);
     				}
+
+				if(includeReturnRocket)
+					capsule.setInventorySlotContents(18, new ItemStack(ModItems.missile_soyuz, 1, soyuz));
     			}
-    			
-    			capsule.setInventorySlotContents(18, new ItemStack(ModItems.missile_soyuz, 1, soyuz));
     		}
         }
     }
@@ -77,6 +79,9 @@ public class EntitySoyuzCapsule extends EntityThrowable {
 		NBTTagList list = nbt.getTagList("items", 10);
 		
 		soyuz = nbt.getInteger("soyuz");
+		if(nbt.hasKey("includeReturnRocket")) {
+			includeReturnRocket = nbt.getBoolean("includeReturnRocket");
+		}
 
 		for (int i = 0; i < list.tagCount(); i++) {
 			NBTTagCompound nbt1 = list.getCompoundTagAt(i);
@@ -93,6 +98,7 @@ public class EntitySoyuzCapsule extends EntityThrowable {
 		NBTTagList list = new NBTTagList();
 		
 		nbt.setInteger("soyuz", soyuz);
+		nbt.setBoolean("includeReturnRocket", includeReturnRocket);
 
 		for (int i = 0; i < payload.length; i++) {
 			if (payload[i] != null) {

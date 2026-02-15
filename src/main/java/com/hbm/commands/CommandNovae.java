@@ -51,6 +51,12 @@ public class CommandNovae extends CommandBase {
 			return;
 		}
 
+		triggerNovaeAcrossDimensions();
+		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "kaboom."));
+	}
+
+	public static void triggerNovaeAcrossDimensions() {
+
 		Integer[] dimensionIds = DimensionManager.getStaticDimensionIDs();
 		for(int dimensionId : dimensionIds) {
 			if(dimensionId == SpaceConfig.kerbolDimension) {
@@ -86,8 +92,6 @@ public class CommandNovae extends CommandBase {
 				dimensionId
 			);
 		}
-
-		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "kaboom."));
 	}
 
 	private static NovaOrientation pickVisibleOrientation(WorldServer world, Random rand) {

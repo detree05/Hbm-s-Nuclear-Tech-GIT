@@ -84,6 +84,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected static final Shader swarmShader = new Shader(new ResourceLocation(RefStrings.MODID, "shaders/swarm.vert"), new ResourceLocation(RefStrings.MODID, "shaders/swarm.frag"));
 	
 	private static final List<NovaeEffect> novaeEffects = new CopyOnWriteArrayList<>();
+	private static final double NOVAE_SIZE_MULTIPLIER = 1.0D / 1.5D;
 	private static final List<SkyfallMeteor> skyfallMeteors = new CopyOnWriteArrayList<>();
 	private static final List<SkyfallMeteor> skyfallSmoke = new CopyOnWriteArrayList<>();
 	private static boolean starcoreIgnitionActive = false;
@@ -1750,7 +1751,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			float minSpikeSize = 0.5F;
 			float maxSpikeSize = 20.0F;
-			double spikeSize = (minSpikeSize + (maxSpikeSize - minSpikeSize) * grow) * effect.sizeScale;
+			double spikeSize = (minSpikeSize + (maxSpikeSize - minSpikeSize) * grow) * effect.sizeScale * NOVAE_SIZE_MULTIPLIER;
 			double skyHeight = 120.0D;
 
 			GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
@@ -1788,7 +1789,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				float waveProgress = MathHelper.clamp_float(age / waveDurationTicks, 0.0F, 1.0F);
 				if(waveProgress < 1.0F) {
 					float waveAlpha = 1.0F - smoothstep(0.0F, 1.0F, waveProgress);
-					double waveSize = maxSpikeSize * effect.sizeScale * (1.0D + waveProgress * 6.0D);
+					double waveSize = maxSpikeSize * effect.sizeScale * (1.0D + waveProgress * 6.0D) * NOVAE_SIZE_MULTIPLIER;
 
 					GL11.glColor4f(effect.r, effect.g, effect.b, waveAlpha);
 					mc.renderEngine.bindTexture(shockwaveTexture);
@@ -1803,7 +1804,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 					float flareAlpha = 1.0F - smoothstep(0.0F, 1.0F, flareProgress);
 					GL11.glColor4f(effect.r, effect.g, effect.b, flareAlpha * 1.25F);
 					mc.renderEngine.bindTexture(shockFlareTexture);
-					double flareSize = maxSpikeSize * effect.sizeScale * (1.25D + waveProgress * 2.5D);
+					double flareSize = maxSpikeSize * effect.sizeScale * (1.25D + waveProgress * 2.5D) * NOVAE_SIZE_MULTIPLIER;
 					tessellator.startDrawingQuads();
 					tessellator.addVertexWithUV(-flareSize, skyHeight, -flareSize, 0.0D, 0.0D);
 					tessellator.addVertexWithUV(flareSize, skyHeight, -flareSize, 1.0D, 0.0D);
@@ -1816,7 +1817,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				float tomWaveDuration = 600.0F;
 				if(age <= tomWaveDuration) {
 					float tomProgress = MathHelper.clamp_float(age / tomWaveDuration, 0.0F, 1.0F);
-					double tomScale = 4.0D + (tomProgress * tomProgress) * 220.0D * effect.sizeScale;
+					double tomScale = (4.0D + (tomProgress * tomProgress) * 220.0D * effect.sizeScale) * NOVAE_SIZE_MULTIPLIER;
 
 					int segments = 16;
 					float angle = (float) Math.toRadians(360D / segments);
