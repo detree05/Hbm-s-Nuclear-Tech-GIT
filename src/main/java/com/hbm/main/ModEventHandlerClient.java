@@ -124,8 +124,10 @@ import net.minecraft.item.ItemArmor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.play.client.C03PacketPlayer;
 import net.minecraft.network.play.client.C0CPacketInput;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
+import net.minecraft.stats.Achievement;
 	import net.minecraft.util.*;
 	import net.minecraft.block.material.Material;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -170,6 +172,22 @@ public class ModEventHandlerClient {
 	private static final float KERBOL_STAR_STARE_SHAKE_MIN_DEG = 0.25F;
 	private static final float KERBOL_STAR_STARE_SHAKE_MAX_DEG = 2.25F;
 	private static final float KERBOL_STAR_STARE_RAYTRACE_DISTANCE = 512.0F;
+	private static final String KERBOL_STAR_STARE_SOUND_EVENT = "hbm:misc.stare";
+	private static final String KERBOL_STAR_STARE_BACK_SOUND_EVENT = "hbm:misc.itlives_itstaresback";
+	private static final float KERBOL_STAR_STARE_SOUND_RANGE = 1.0F;
+	private static final float KERBOL_STAR_STARE_SOUND_MAX_VOLUME = 0.2F;
+	private static final float KERBOL_STAR_STARE_BACK_SOUND_MAX_VOLUME = 0.1F;
+	private static final float KERBOL_STAR_STARE_SOUND_MIN_TRIGGER = 0.001F;
+	private static final int KERBOL_GHOST_CHAT_INTERVAL_TICKS = 60 * 20;
+	private static final float KERBOL_GHOST_CHAT_CHANCE = 0.05F;
+	private static final int KERBOL_GHOST_CHAT_MIN_LENGTH = 8;
+	private static final int KERBOL_GHOST_CHAT_MAX_LENGTH = 26;
+	private static final String KERBOL_GHOST_CHAT_CHARS = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
+	private static final int KERBOL_GHOST_ACHIEVEMENT_MIN_SYMBOLS = 1;
+	private static final int KERBOL_GHOST_ACHIEVEMENT_MAX_SYMBOLS = 12;
+	private static final String KERBOL_GHOST_ACHIEVEMENT_DESCRIPTION = ": )";
+	private static final String KERBOL_GHOST_ACHIEVEMENT_NBT_ROOT = "hbmKerbolGhostAchievement";
+	private static final String KERBOL_GHOST_ACHIEVEMENT_NBT_SEEN_PREFIX = "seen_";
 	private static final String HOSTNAME = resolveHostnameSafe();
 	private static final String[] KERBOL_STAR_STARE_TEXT_OPTIONS = new String[] {
 		"I T   W A T C H E S",
@@ -194,6 +212,8 @@ public class ModEventHandlerClient {
 	private static ResourceLocation voidStareBlurTexture;
 	private static int kerbolDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
+	private static Method kerbolGhostAchievementToastMethod;
+	private static KerbolGhostAchievement kerbolGhostAchievement;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -975,14 +995,48 @@ public class ModEventHandlerClient {
 		GL11.glPopMatrix();
 	}
 
+	private static class KerbolGhostAchievement extends Achievement {
+		private IChatComponent ghostTitle = new ChatComponentText("");
+		private String ghostDescription = KERBOL_GHOST_ACHIEVEMENT_DESCRIPTION;
+
+		private KerbolGhostAchievement() {
+			super("achievement.kerbolGhostFake", "kerbolGhostFake", -128, -128, Items.nether_star, null);
+			this.initIndependentStat();
+		}
+
+		private void setGhostText(String title, String description) {
+			this.ghostTitle = new ChatComponentText(title);
+			this.ghostDescription = description;
+			try {
+				ReflectionHelper.setPrivateValue(net.minecraft.stats.StatBase.class, this, this.ghostTitle, new String[] { "statName", "field_75975_e" });
+			} catch(Exception ignored) { }
+			try {
+				ReflectionHelper.setPrivateValue(Achievement.class, this, this.ghostDescription, new String[] { "achievementDescription", "field_75992_c" });
+			} catch(Exception ignored) { }
+		}
+
+		public IChatComponent func_150951_e() {
+			return this.ghostTitle;
+		}
+
+		public String getDescription() {
+			return this.ghostDescription;
+		}
+	}
+
 	private static final String[] CAM_ROLL_FIELDS = new String[] { "camRoll", "field_78495_O", "O" };
 
 	private static void resetKerbolCameraEffects(Minecraft mc) {
 		kerbolStarStareIntensity = 0.0F;
 		updateKerbolStarStareTextState(false);
+		stopKerbolStarStareSound();
 		if(mc != null && mc.entityRenderer != null) {
 			ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, 0.0F, CAM_ROLL_FIELDS);
 		}
+	}
+
+	private static float getKerbolStarStareCloseness() {
+		return MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
 	}
 
 	@SubscribeEvent
@@ -1496,6 +1550,8 @@ public class ModEventHandlerClient {
 
 			maybeSpawnKerbolRedRain(mc);
 			maybePlayKerbolDialogue(mc);
+			maybeSpawnKerbolGhostChat(mc);
+			maybeSpawnKerbolGhostAchievement(mc);
 			updateKerbolStarStare(mc, 0.0F);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
@@ -1773,6 +1829,160 @@ public class ModEventHandlerClient {
 		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue1", 1.0F, 1.0F);
 	}
 
+	private void maybeSpawnKerbolGhostChat(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null || mc.ingameGUI == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return;
+		}
+
+		long tick = mc.theWorld.getTotalWorldTime();
+		if(tick % KERBOL_GHOST_CHAT_INTERVAL_TICKS != 0L) {
+			return;
+		}
+		if(mc.theWorld.rand.nextFloat() >= KERBOL_GHOST_CHAT_CHANCE) {
+			return;
+		}
+
+		String sender = pickRandomKerbolGhostSender(mc);
+		if(sender == null || sender.isEmpty()) {
+			return;
+		}
+
+		String message = createKerbolGhostMessage(mc.theWorld.rand);
+		if(message.isEmpty()) {
+			return;
+		}
+
+		mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("<" + sender + "> " + message));
+	}
+
+	private void maybeSpawnKerbolGhostAchievement(Minecraft mc) {
+		if(mc.theWorld == null || mc.thePlayer == null || mc.guiAchievement == null) {
+			return;
+		}
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+			return;
+		}
+		String playerName = mc.thePlayer.getCommandSenderName();
+		if(playerName == null || playerName.isEmpty() || hasSeenKerbolGhostAchievement(mc.thePlayer, playerName)) {
+			return;
+		}
+
+		long tick = mc.theWorld.getTotalWorldTime();
+		if(tick % KERBOL_GHOST_CHAT_INTERVAL_TICKS != 0L) {
+			return;
+		}
+		if(mc.theWorld.rand.nextFloat() >= KERBOL_GHOST_CHAT_CHANCE) {
+			return;
+		}
+
+		KerbolGhostAchievement achievement = getOrCreateKerbolGhostAchievement();
+		achievement.setGhostText(createKerbolGhostAchievementName(mc.theWorld.rand), KERBOL_GHOST_ACHIEVEMENT_DESCRIPTION);
+		showKerbolGhostAchievement(mc, achievement);
+		markKerbolGhostAchievementSeen(mc.thePlayer, playerName);
+	}
+
+	private boolean hasSeenKerbolGhostAchievement(EntityPlayer player, String playerName) {
+		if(player == null || playerName == null || playerName.isEmpty()) {
+			return true;
+		}
+		NBTTagCompound persisted = player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
+		NBTTagCompound ghostData = persisted.getCompoundTag(KERBOL_GHOST_ACHIEVEMENT_NBT_ROOT);
+		return ghostData.getBoolean(getKerbolGhostAchievementSeenKey(playerName));
+	}
+
+	private void markKerbolGhostAchievementSeen(EntityPlayer player, String playerName) {
+		if(player == null || playerName == null || playerName.isEmpty()) {
+			return;
+		}
+		NBTTagCompound entityData = player.getEntityData();
+		NBTTagCompound persisted = entityData.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
+		NBTTagCompound ghostData = persisted.getCompoundTag(KERBOL_GHOST_ACHIEVEMENT_NBT_ROOT);
+		ghostData.setBoolean(getKerbolGhostAchievementSeenKey(playerName), true);
+		persisted.setTag(KERBOL_GHOST_ACHIEVEMENT_NBT_ROOT, ghostData);
+		entityData.setTag(EntityPlayer.PERSISTED_NBT_TAG, persisted);
+	}
+
+	private String getKerbolGhostAchievementSeenKey(String playerName) {
+		return KERBOL_GHOST_ACHIEVEMENT_NBT_SEEN_PREFIX + playerName.toLowerCase(Locale.ROOT);
+	}
+
+	private KerbolGhostAchievement getOrCreateKerbolGhostAchievement() {
+		if(kerbolGhostAchievement == null) {
+			kerbolGhostAchievement = new KerbolGhostAchievement();
+		}
+		return kerbolGhostAchievement;
+	}
+
+	private void showKerbolGhostAchievement(Minecraft mc, Achievement achievement) {
+		if(mc == null || mc.guiAchievement == null || achievement == null) {
+			return;
+		}
+		try {
+			if(kerbolGhostAchievementToastMethod == null) {
+				kerbolGhostAchievementToastMethod = ReflectionHelper.findMethod(
+					net.minecraft.client.gui.achievement.GuiAchievement.class,
+					mc.guiAchievement,
+					new String[] { "displayAchievement", "func_146256_a" },
+					Achievement.class
+				);
+				kerbolGhostAchievementToastMethod.setAccessible(true);
+			}
+			kerbolGhostAchievementToastMethod.invoke(mc.guiAchievement, achievement);
+		} catch(Exception ignored) { }
+	}
+
+	private String createKerbolGhostAchievementName(Random rand) {
+		int symbolCount = KERBOL_GHOST_ACHIEVEMENT_MIN_SYMBOLS
+			+ rand.nextInt(KERBOL_GHOST_ACHIEVEMENT_MAX_SYMBOLS - KERBOL_GHOST_ACHIEVEMENT_MIN_SYMBOLS + 1);
+		StringBuilder raw = new StringBuilder(symbolCount + 1);
+		for(int i = 0; i < symbolCount; i++) {
+			raw.append(KERBOL_GHOST_CHAT_CHARS.charAt(rand.nextInt(KERBOL_GHOST_CHAT_CHARS.length())));
+		}
+		if(symbolCount > 1 && rand.nextBoolean()) {
+			int spacePos = 1 + rand.nextInt(symbolCount - 1);
+			raw.insert(spacePos, ' ');
+		}
+		return EnumChatFormatting.OBFUSCATED + raw.toString() + EnumChatFormatting.RESET;
+	}
+
+	private String pickRandomKerbolGhostSender(Minecraft mc) {
+		if(mc.theWorld == null || mc.theWorld.playerEntities == null || mc.theWorld.playerEntities.isEmpty()) {
+			return null;
+		}
+
+		List<String> names = new ArrayList<String>();
+		for(Object entry : mc.theWorld.playerEntities) {
+			if(!(entry instanceof EntityPlayer)) {
+				continue;
+			}
+			String name = ((EntityPlayer)entry).getCommandSenderName();
+			if(name != null && !name.isEmpty()) {
+				names.add(name);
+			}
+		}
+
+		if(names.isEmpty()) {
+			return null;
+		}
+
+		return names.get(mc.theWorld.rand.nextInt(names.size()));
+	}
+
+	private String createKerbolGhostMessage(Random rand) {
+		int length = KERBOL_GHOST_CHAT_MIN_LENGTH + rand.nextInt(KERBOL_GHOST_CHAT_MAX_LENGTH - KERBOL_GHOST_CHAT_MIN_LENGTH + 1);
+		StringBuilder builder = new StringBuilder(length + 4);
+		for(int i = 0; i < length; i++) {
+			builder.append(KERBOL_GHOST_CHAT_CHARS.charAt(rand.nextInt(KERBOL_GHOST_CHAT_CHARS.length())));
+			if(i > 2 && i < length - 2 && rand.nextInt(12) == 0) {
+				builder.append(' ');
+			}
+		}
+		return builder.toString().trim();
+	}
+
 	private void maybeSpawnKerbolRedRain(Minecraft mc) {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
@@ -1852,7 +2062,20 @@ public class ModEventHandlerClient {
 
 	private static AudioWrapper shipHum;
 	private static AudioWrapper kerbolWind;
+	private static AudioWrapper kerbolStarStareSound;
+	private static AudioWrapper kerbolStarStareBackSound;
 	private static AudioWrapper sunDecayHum;
+
+	private static void stopKerbolStarStareSound() {
+		if(kerbolStarStareSound != null) {
+			kerbolStarStareSound.stopSound();
+			kerbolStarStareSound = null;
+		}
+		if(kerbolStarStareBackSound != null) {
+			kerbolStarStareBackSound.stopSound();
+			kerbolStarStareBackSound = null;
+		}
+	}
 
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent(priority = EventPriority.LOWEST)
@@ -1914,6 +2137,30 @@ public class ModEventHandlerClient {
 			} else if(kerbolWind != null) {
 				kerbolWind.stopSound();
 				kerbolWind = null;
+			}
+
+			float stareCloseness = 0.0F;
+			if(player != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				stareCloseness = getKerbolStarStareCloseness();
+			}
+			float stareVolume = stareCloseness * KERBOL_STAR_STARE_SOUND_MAX_VOLUME;
+			float stareBackVolume = stareCloseness * KERBOL_STAR_STARE_BACK_SOUND_MAX_VOLUME;
+			if(stareVolume > KERBOL_STAR_STARE_SOUND_MIN_TRIGGER) {
+				if(kerbolStarStareSound == null || !kerbolStarStareSound.isPlaying()) {
+					kerbolStarStareSound = MainRegistry.proxy.getLoopedSound(KERBOL_STAR_STARE_SOUND_EVENT, player, stareVolume, KERBOL_STAR_STARE_SOUND_RANGE, 1.0F, 10);
+					kerbolStarStareSound.startSound();
+				}
+				if(kerbolStarStareBackSound == null || !kerbolStarStareBackSound.isPlaying()) {
+					kerbolStarStareBackSound = MainRegistry.proxy.getLoopedSound(KERBOL_STAR_STARE_BACK_SOUND_EVENT, player, stareBackVolume, KERBOL_STAR_STARE_SOUND_RANGE, 1.0F, 10);
+					kerbolStarStareBackSound.startSound();
+				}
+
+				kerbolStarStareSound.updateVolume(stareVolume);
+				kerbolStarStareSound.keepAlive();
+				kerbolStarStareBackSound.updateVolume(stareBackVolume);
+				kerbolStarStareBackSound.keepAlive();
+			} else {
+				stopKerbolStarStareSound();
 			}
 
 			if(player != null && world.provider != null) {

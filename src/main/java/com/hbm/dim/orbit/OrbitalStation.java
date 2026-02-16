@@ -562,7 +562,7 @@ public class OrbitalStation {
 		int coreX = getCoreX();
 		int coreZ = getCoreZ();
 		int groundY = targetWorld.getTopSolidOrLiquidBlock(coreX, coreZ);
-		int yOffset = Math.max(1, groundY) - bounds.minY;
+		int yOffset = Math.max(1, groundY - 1) - bounds.minY;
 
 		copyStation(world, targetWorld, bounds, yOffset);
 		teleportStationEntities(world, targetWorld, bounds, yOffset);
@@ -651,18 +651,6 @@ public class OrbitalStation {
 
 	private void copyStation(World sourceWorld, World targetWorld, StationBounds bounds, int yOffset) {
 		BlockDummyable.safeRem = true;
-		for(long column : bounds.columns) {
-			int x = unpackX(column);
-			int z = unpackZ(column);
-			for(int y = bounds.minY; y <= bounds.maxY; y++) {
-				int targetY = y + yOffset;
-				Block block = targetWorld.getBlock(x, targetY, z);
-				if(block != Blocks.air) {
-					targetWorld.setBlock(x, targetY, z, Blocks.air, 0, 2);
-				}
-			}
-		}
-
 		for(long column : bounds.columns) {
 			int x = unpackX(column);
 			int z = unpackZ(column);

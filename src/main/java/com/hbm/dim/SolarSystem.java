@@ -309,7 +309,7 @@ public class SolarSystem {
 			);
 
 		for(CelestialBody body : CelestialBody.getAllBodies()) {
-			if(body.dimensionId == SpaceConfig.kerbolDimension) {
+			if(body.name == "kerbol" || body.name == "sarnus" || body.name == "jool") {
 				continue;
 			}
 			body.removeTrait(CBT_Atmosphere.class);

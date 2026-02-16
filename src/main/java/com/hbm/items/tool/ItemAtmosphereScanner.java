@@ -1,5 +1,7 @@
 package com.hbm.items.tool;
 
+import com.hbm.dim.CelestialBody;
+import com.hbm.dim.SolarSystem;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
@@ -25,6 +27,7 @@ public class ItemAtmosphereScanner extends Item {
 		EntityPlayerMP player = (EntityPlayerMP) entity;
 
 		CBT_Atmosphere atmosphere = ChunkAtmosphereManager.proxy.getAtmosphere(entity);
+		EnumChatFormatting fluidColor = CelestialBody.getStar(world) == SolarSystem.kerbol ? EnumChatFormatting.RED : EnumChatFormatting.AQUA;
 
 		boolean hasAtmosphere = false;
 		if(atmosphere != null) {
@@ -32,7 +35,7 @@ public class ItemAtmosphereScanner extends Item {
 				FluidEntry entry = atmosphere.fluids.get(i);
 				if(entry.pressure > 0.001) {
 					double pressure = BobMathUtil.roundDecimal(entry.pressure, 3);
-					PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.startTranslation(entry.fluid.getUnlocalizedName()).color(EnumChatFormatting.AQUA).next(": ").next(pressure + "atm").color(EnumChatFormatting.RESET).flush(), 969 + i, 4000), player);
+					PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.startTranslation(entry.fluid.getUnlocalizedName()).color(fluidColor).next(": ").next(pressure + "atm").color(EnumChatFormatting.RESET).flush(), 969 + i, 4000), player);
 					hasAtmosphere = true;
 				}
 			}

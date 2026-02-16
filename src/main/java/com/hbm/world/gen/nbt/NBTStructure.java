@@ -590,10 +590,11 @@ public class NBTStructure {
 		int rotMinZ = unrotateZ(absMinX, absMinZ, coordBaseMode);
 		int rotMaxZ = unrotateZ(absMaxX, absMaxZ, coordBaseMode);
 
-		int minX = Math.min(rotMinX, rotMaxX);
-		int maxX = Math.max(rotMinX, rotMaxX);
-		int minZ = Math.min(rotMinZ, rotMaxZ);
-		int maxZ = Math.max(rotMinZ, rotMaxZ);
+		int minX = Math.max(Math.min(rotMinX, rotMaxX), 0);
+		int maxX = Math.min(Math.max(rotMinX, rotMaxX), size.x - 1);
+		int minZ = Math.max(Math.min(rotMinZ, rotMaxZ), 0);
+		int maxZ = Math.min(Math.max(rotMinZ, rotMaxZ), size.z - 1);
+		if(minX > maxX || minZ > maxZ) return true;
 
 		if(piece.blockTable != null || piece.platform != null) {
 			BiomeGenBase biome = world.getWorldChunkManager().getBiomeGenAt(generatingBounds.getCenterX(), generatingBounds.getCenterZ());
