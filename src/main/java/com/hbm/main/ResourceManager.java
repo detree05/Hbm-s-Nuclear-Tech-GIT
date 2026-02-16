@@ -244,6 +244,7 @@ public class ResourceManager {
 	public static final IModelCustom dfc_emitter = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_emitter.obj"));
 	public static final IModelCustom dfc_receiver = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_receiver.obj"));
 	public static final IModelCustom dfc_injector = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_injector.obj"));
+	public static final IModelCustom star_core_energy_emitter = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/machines/star_core_energy_emitter.obj"));
 
 	//Fan
 	public static final IModelCustom fan = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/machines/fan.obj"));
@@ -756,6 +757,7 @@ public class ResourceManager {
 	public static final ResourceLocation dfc_receiver_tex = new ResourceLocation(RefStrings.MODID, "textures/models/core_receiver.png");
 	public static final ResourceLocation dfc_injector_tex = new ResourceLocation(RefStrings.MODID, "textures/models/core_injector.png");
 	public static final ResourceLocation dfc_stabilizer_tex = new ResourceLocation(RefStrings.MODID, "textures/models/core_stabilizer.png");
+	public static final ResourceLocation star_core_energy_emitter_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/star_core_energy_emitter.png");
 
 	//Fan
 	public static final ResourceLocation fan_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/fan.png");

@@ -17,8 +17,10 @@ import com.hbm.util.i18n.I18nUtil;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.BlockContainer;
+import net.minecraft.block.BlockPistonBase;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -62,6 +64,12 @@ public class MachineStarCoreEnergyEmitter extends BlockContainer implements ILoo
 	}
 
 	@Override
+	public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase player, ItemStack stack) {
+		int l = BlockPistonBase.determineOrientation(world, x, y, z, player);
+		world.setBlockMetadataWithNotify(x, y, z, l, 2);
+	}
+
+	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ) {
 		return true;
 	}
@@ -97,7 +105,7 @@ public class MachineStarCoreEnergyEmitter extends BlockContainer implements ILoo
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.BLACKHOLE || state == CBT_SkyState.SkyState.NOTHING) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
-			text.add(color + "Nothing to shoot laser at... yet.");
+			text.add(color + "Nothing to emit beam at.");
 		} else {
 			long emitterPerSecond = emitter.getThroughputPerFiveTicks() * 4L;
 			long totalPerSecond = StarcoreThroughputTracker.getLastFiveTickTotal(world) * 4L;
