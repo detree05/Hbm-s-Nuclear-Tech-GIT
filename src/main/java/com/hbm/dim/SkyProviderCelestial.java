@@ -1161,6 +1161,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 					} else {
 
+						renderAtmosphereGlow(tessellator, mc, metric.body, size, bodyVisibility);
+
 						GL11.glDisable(GL11.GL_BLEND);
 						GL11.glColor4f((float)bodyTextureTint.xCoord * bodyVisibility, (float)bodyTextureTint.yCoord * bodyVisibility, (float)bodyTextureTint.zCoord * bodyVisibility, bodyVisibility);
 						mc.renderEngine.bindTexture(metric.body.texture);
@@ -1480,6 +1482,97 @@ public class SkyProviderCelestial extends IRenderHandler {
 		double driftPeriod = bodyPeriod > 1.0D ? MathHelper.clamp_double(bodyPeriod * 0.35D, 4000.0D, 360000.0D) : 24000.0D;
 		double phaseOffset = (Math.abs(body.name.hashCode()) % 2048) / 2048.0D;
 		return (time / driftPeriod + phaseOffset) % 1.0D;
+	}
+
+	private void renderAtmosphereGlow(Tessellator tessellator, Minecraft mc, CelestialBody body, double size, float visibility) {
+		float glowAlpha = getAtmosphereGlowAlpha(body) * visibility;
+		if(glowAlpha <= 0.001F) {
+			return;
+		}
+
+		Vec3 atmo = getBodyAtmosphereColor(body);
+		float r = MathHelper.clamp_float((float)atmo.xCoord * 1.15F, 0.0F, 1.0F);
+		float g = MathHelper.clamp_float((float)atmo.yCoord * 1.15F, 0.0F, 1.0F);
+		float b = MathHelper.clamp_float((float)atmo.zCoord * 1.15F, 0.0F, 1.0F);
+
+		double innerSize = size * 0.98D;
+		double outerSize = size * 1.2D;
+
+		GL11.glEnable(GL11.GL_BLEND);
+		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glDisable(GL11.GL_CULL_FACE);
+		GL11.glShadeModel(GL11.GL_SMOOTH);
+
+		tessellator.startDrawingQuads();
+
+		// Top band
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(-outerSize, 100.0D, -outerSize);
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(outerSize, 100.0D, -outerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(innerSize, 100.0D, -innerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(-innerSize, 100.0D, -innerSize);
+
+		// Right band
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(outerSize, 100.0D, -outerSize);
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(outerSize, 100.0D, outerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(innerSize, 100.0D, innerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(innerSize, 100.0D, -innerSize);
+
+		// Bottom band
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(outerSize, 100.0D, outerSize);
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(-outerSize, 100.0D, outerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(-innerSize, 100.0D, innerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(innerSize, 100.0D, innerSize);
+
+		// Left band
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(-outerSize, 100.0D, outerSize);
+		tessellator.setColorRGBA_F(r, g, b, 0.0F);
+		tessellator.addVertex(-outerSize, 100.0D, -outerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(-innerSize, 100.0D, -innerSize);
+		tessellator.setColorRGBA_F(r, g, b, glowAlpha);
+		tessellator.addVertex(-innerSize, 100.0D, innerSize);
+
+		tessellator.draw();
+
+		GL11.glShadeModel(GL11.GL_FLAT);
+		GL11.glEnable(GL11.GL_CULL_FACE);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+	}
+
+	private float getAtmosphereGlowAlpha(CelestialBody body) {
+		if(body == null) {
+			return 0.0F;
+		}
+
+		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
+		if(atmosphere != null) {
+			float pressure = MathHelper.clamp_float((float)atmosphere.getPressure(), 0.0F, 3.0F);
+			if(pressure <= 0.02F) {
+				return 0.0F;
+			}
+			return MathHelper.clamp_float(0.08F + pressure * 0.16F, 0.08F, 0.5F);
+		}
+
+		if(body.gas != null) {
+			return 0.28F;
+		}
+
+		return 0.0F;
 	}
 
 	private void renderInjectorLines(Tessellator tessellator, AstroMetric metric, float axialTilt, int count, float visibility, float lineWidth, float time, float spinAngle) {

@@ -535,6 +535,11 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 	}
 
 	@SideOnly(Side.CLIENT)
+	public float getBurnAmount() {
+		return MathHelper.clamp_float(burnSoundtime / 20F, 0F, 1F);
+	}
+
+	@SideOnly(Side.CLIENT)
 	public float getSpinAngle(float interp) {
 		float delta = MathHelper.wrapAngleTo180_float(spinAngle - prevSpinAngle);
 		return prevSpinAngle + delta * interp;
