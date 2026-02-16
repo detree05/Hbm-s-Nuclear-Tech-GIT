@@ -15,7 +15,7 @@ import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.common.util.ForgeDirection;
 
-public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase implements IEnergyReceiverMK2 {
+public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase implements IEnergyReceiverMK2 {
 
 	public static final long MAX_POWER = 1_000_000_000_000_000L;
 	private static final long STEEL_INJECTOR_MAX_HE_PER_TICK = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
@@ -29,13 +29,13 @@ public class TileEntityStarCoreEnergyInjector extends TileEntityMachineBase impl
 	private long throughputLastFiveTicks;
 	private boolean registered;
 
-	public TileEntityStarCoreEnergyInjector() {
+	public TileEntityStarCoreEnergyEmitter() {
 		super(0);
 	}
 
 	@Override
 	public String getName() {
-		return "container.starCorePowerInjector";
+		return "container.starCorePowerEmitter";
 	}
 
 	@Override

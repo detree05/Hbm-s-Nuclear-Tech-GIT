@@ -10,7 +10,7 @@ import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.config.SpaceConfig;
 import com.hbm.lib.RefStrings;
-import com.hbm.tileentity.machine.TileEntityStarCoreEnergyInjector;
+import com.hbm.tileentity.machine.TileEntityStarCoreEnergyEmitter;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.i18n.I18nUtil;
 
@@ -28,16 +28,16 @@ import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.client.event.RenderGameOverlayEvent.Pre;
 
-public class MachineStarCoreEnergyInjector extends BlockContainer implements ILookOverlay, ITooltipProvider {
+public class MachineStarCoreEnergyEmitter extends BlockContainer implements ILookOverlay, ITooltipProvider {
 
-	public MachineStarCoreEnergyInjector(Material mat) {
+	public MachineStarCoreEnergyEmitter(Material mat) {
 		super(mat);
 		this.setLightOpacity(0);
 	}
 
 	@Override
 	public TileEntity createNewTileEntity(World world, int meta) {
-		return new TileEntityStarCoreEnergyInjector();
+		return new TileEntityStarCoreEnergyEmitter();
 	}
 
 	@Override
@@ -69,9 +69,9 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 	@Override
 	public void printHook(Pre event, World world, int x, int y, int z) {
 		TileEntity te = world.getTileEntity(x, y, z);
-		if(!(te instanceof TileEntityStarCoreEnergyInjector)) return;
+		if(!(te instanceof TileEntityStarCoreEnergyEmitter)) return;
 
-		TileEntityStarCoreEnergyInjector injector = (TileEntityStarCoreEnergyInjector) te;
+		TileEntityStarCoreEnergyEmitter emitter = (TileEntityStarCoreEnergyEmitter) te;
 		List<String> text = new ArrayList<>();
 
 		if(world.provider != null && world.provider.dimensionId == SpaceConfig.orbitDimension) {
@@ -99,10 +99,10 @@ public class MachineStarCoreEnergyInjector extends BlockContainer implements ILo
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
 			text.add(color + "Nothing to shoot laser at... yet.");
 		} else {
-			long injectorPerSecond = injector.getThroughputPerFiveTicks() * 4L;
+			long emitterPerSecond = emitter.getThroughputPerFiveTicks() * 4L;
 			long totalPerSecond = StarcoreThroughputTracker.getLastFiveTickTotal(world) * 4L;
-			text.add("Current power: " + BobMathUtil.getShortNumber(injectorPerSecond) + "HE/s");
-			text.add("Injectors: " + StarcoreThroughputTracker.getLastFiveTickInjectorCount(world) + " injectors");
+			text.add("Current power: " + BobMathUtil.getShortNumber(emitterPerSecond) + "HE/s");
+			text.add("Emitters: " + StarcoreThroughputTracker.getLastFiveTickInjectorCount(world) + " emitters");
 			text.add("Total power: " + BobMathUtil.getShortNumber(totalPerSecond) + "HE/s");
 			text.add("Star charge: " + BobMathUtil.getShortNumber(skyState.getSunCharge()) + "HE");
 		}

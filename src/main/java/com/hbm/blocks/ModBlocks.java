@@ -1431,7 +1431,7 @@ public class ModBlocks {
 	public static Block dyson_converter_tu;
 	public static Block dyson_converter_he;
 	public static Block dyson_converter_anatmogenesis;
-	public static Block star_core_energy_injector;
+	public static Block star_core_energy_emitter;
 
 	public static Block orrery;
 
@@ -2781,7 +2781,7 @@ public class ModBlocks {
 		dyson_converter_tu = new MachineDysonConverterTU(Material.iron).setBlockName("dyson_converter_tu").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 		dyson_converter_he = new MachineDysonConverterHE(Material.iron).setBlockName("dyson_converter_he").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 		dyson_converter_anatmogenesis = new MachineDysonConverterAnatmogenesis(Material.iron).setBlockName("dyson_converter_anatmogenesis").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
-		star_core_energy_injector = new MachineStarCoreEnergyInjector(Material.iron).setBlockName("star_core_energy_injector").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":air");
+		star_core_energy_emitter = new MachineStarCoreEnergyEmitter(Material.iron).setBlockName("star_core_energy_emitter").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":air");
 
 		orrery = new BlockOrrery(Material.iron).setBlockName("orrery").setHardness(10.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 
@@ -4110,7 +4110,7 @@ public class ModBlocks {
 		register(dyson_converter_tu);
 		register(dyson_converter_he);
 		register(dyson_converter_anatmogenesis);
-		register(star_core_energy_injector);
+		register(star_core_energy_emitter);
 
 		register(orrery);
 
