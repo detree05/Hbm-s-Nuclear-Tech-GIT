@@ -5,14 +5,9 @@ import java.net.UnknownHostException;
 
 import com.hbm.main.MainRegistry;
 import com.hbm.sound.AudioWrapper;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiDisconnected;
-import net.minecraft.client.gui.GuiMainMenu;
-import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.ChatComponentText;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumChatFormatting;
@@ -86,15 +81,6 @@ public class EntityVoidStaresBack extends EntityLiving {
 		this.dataWatcher.updateObject(DW_RECT_HEIGHT, Float.valueOf(height));
 	}
 
-	private void returnToMainMenu(String message) {
-		Minecraft mc = Minecraft.getMinecraft();
-		if(mc.theWorld != null) {
-			mc.theWorld.sendQuittingDisconnectingPacket();
-		}
-		mc.loadWorld((WorldClient) null);
-		mc.displayGuiScreen(new GuiDisconnected(new GuiMainMenu(), "disconnect.disconnected", new ChatComponentText(message)));
-	}
-
     public float getRectWidth() {
         return this.dataWatcher.getWatchableObjectFloat(DW_RECT_WIDTH);
     }
@@ -139,7 +125,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 							host = InetAddress.getLocalHost().getHostName();
 						} catch (UnknownHostException ignored) {
 						}
-						returnToMainMenu(
+						MainRegistry.proxy.showDisconnectedScreen(
 							EnumChatFormatting.RED + "[Server thread/ERROR]: Encountered an unexpected exception at com.hbm.entity." +
 							EnumChatFormatting.DARK_RED + EnumChatFormatting.OBFUSCATED + "VOIDSTARESBACK" +
 							EnumChatFormatting.RED + ".func_70636_d:160 FATAL -- [" +

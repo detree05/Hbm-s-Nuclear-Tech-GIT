@@ -108,7 +108,10 @@ import cpw.mods.fml.relauncher.ReflectionHelper;
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
+import net.minecraft.client.gui.GuiDisconnected;
+import net.minecraft.client.gui.GuiMainMenu;
 import net.minecraft.client.model.ModelChicken;
+import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.particle.EntityCloudFX;
 import net.minecraft.client.particle.*;
 import net.minecraft.client.renderer.entity.RenderMinecart;
@@ -126,6 +129,7 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemBlock;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.util.ResourceLocation;
@@ -2319,6 +2323,16 @@ public class ClientProxy extends ServerProxy {
 	@Override
 	public EntityPlayer me() {
 		return Minecraft.getMinecraft().thePlayer;
+	}
+
+	@Override
+	public void showDisconnectedScreen(String message) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc.theWorld != null) {
+			mc.theWorld.sendQuittingDisconnectingPacket();
+		}
+		mc.loadWorld((WorldClient) null);
+		mc.displayGuiScreen(new GuiDisconnected(new GuiMainMenu(), "disconnect.disconnected", new ChatComponentText(message)));
 	}
 
 	@Override
