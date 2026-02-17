@@ -244,7 +244,7 @@ public class ResourceManager {
 	public static final IModelCustom dfc_emitter = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_emitter.obj"));
 	public static final IModelCustom dfc_receiver = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_receiver.obj"));
 	public static final IModelCustom dfc_injector = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/core_injector.obj"));
-	public static final IModelCustom star_core_energy_emitter = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/machines/star_core_energy_emitter.obj"));
+	public static final IModelCustom star_core_energy_emitter = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/star_core_energy_emitter.obj")).asVBO();
 
 	//Fan
 	public static final IModelCustom fan = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/machines/fan.obj"));
