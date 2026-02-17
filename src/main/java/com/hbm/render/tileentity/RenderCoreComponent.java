@@ -12,7 +12,6 @@ import com.hbm.tileentity.machine.TileEntityCoreEmitter;
 import com.hbm.tileentity.machine.TileEntityCoreInjector;
 import com.hbm.tileentity.machine.TileEntityCoreReceiver;
 import com.hbm.tileentity.machine.TileEntityCoreStabilizer;
-import com.hbm.tileentity.machine.TileEntityStarCoreEnergyEmitter;
 
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.Item;
@@ -105,14 +104,6 @@ public class RenderCoreComponent extends TileEntitySpecialRenderer implements II
 	        }
         }
 
-		if(tileEntity instanceof TileEntityStarCoreEnergyEmitter) {
-			GL11.glTranslated(0.0D, 0.5D, 0.0D);
-			GL11.glRotatef(0F, 0F, 0F, 0F);
-			GL11.glTranslated(0.0D, -0.5D, 0.0D);
-			bindTexture(ResourceManager.star_core_energy_emitter_tex);
-			ResourceManager.star_core_energy_emitter.renderAll();
-		}
-        
         GL11.glEnable(GL11.GL_LIGHTING);
 
         GL11.glPopMatrix();
@@ -127,8 +118,7 @@ public class RenderCoreComponent extends TileEntitySpecialRenderer implements II
 				Item.getItemFromBlock(ModBlocks.dfc_emitter),
 				Item.getItemFromBlock(ModBlocks.dfc_receiver),
 				Item.getItemFromBlock(ModBlocks.dfc_injector),
-				Item.getItemFromBlock(ModBlocks.dfc_stabilizer),
-				Item.getItemFromBlock(ModBlocks.star_core_energy_emitter)
+				Item.getItemFromBlock(ModBlocks.dfc_stabilizer)
 		};
 	}
 
@@ -158,12 +148,6 @@ public class RenderCoreComponent extends TileEntitySpecialRenderer implements II
 				if(item.getItem() == Item.getItemFromBlock(ModBlocks.dfc_stabilizer)) {
 					bindTexture(ResourceManager.dfc_stabilizer_tex);
 					ResourceManager.dfc_injector.renderAll();
-				}
-				if(item.getItem() == Item.getItemFromBlock(ModBlocks.star_core_energy_emitter)) {
-					GL11.glScaled(0.25D, 0.25D, 0.25D);
-					GL11.glRotatef(0F, 0F, 0F, 0F);
-					bindTexture(ResourceManager.star_core_energy_emitter_tex);
-					ResourceManager.star_core_energy_emitter.renderAll();
 				}
 			}};
 	}

@@ -118,7 +118,7 @@ public class SolarSystem {
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/eve_stone_2.png", RefStrings.MODID + ":textures/blocks/eve_silt.png")
 					.withMinProcessingLevel(3)
 					.withAxialTilt(0F)
-					.withTraits(new CBT_Atmosphere(Fluids.EVEAIR, 5D), new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
+					.withTraits(new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
 					.withSatellites(
 
 						new CelestialBody("gilly")
@@ -135,7 +135,7 @@ public class SolarSystem {
 					.withOrbitalParameters(13_599_840, 0.0F, 0.0F, 0.0F, 0.0F)
 					.withRotationalPeriod(21_549)
 					.withColor(0.608F, 0.914F, 1.0F)
-					.withTraits(new CBT_Atmosphere(Fluids.EARTHAIR, 1D), new CBT_Water())
+					.withTraits(new CBT_Water())
 					.withAxialTilt(65F)
 					.withBlockTextures("textures/blocks/stone.png", "textures/blocks/dirt.png")
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_mask.png"))
@@ -168,7 +168,6 @@ public class SolarSystem {
 					.withTidalLockingTo("ike")
 					.withColor(0.6471f, 0.2824f, 0.1608f)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/duna_rock.png", RefStrings.MODID + ":textures/blocks/duna_sands.png")
-					.withTraits(new CBT_Atmosphere(Fluids.DUNAAIR, 0.1D))
 					.withAxialTilt(0F)
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/duna_mask.png"))
 					.withIce(true)
@@ -211,7 +210,7 @@ public class SolarSystem {
 							.withRotationalPeriod(52_981)
 							.withAxialTilt(0F)
 							.withMinProcessingLevel(3)
-							.withTraits(new CBT_Atmosphere(Fluids.EARTHAIR, 0.45D).and(Fluids.XENON, 0.15D), new CBT_Water())
+							.withTraits(new CBT_Water())
 							.withBlockTextures("textures/blocks/stone.png", RefStrings.MODID + ":textures/blocks/laythe_silt.png")
 							.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/laythe_mask.png")),
 
@@ -281,7 +280,7 @@ public class SolarSystem {
 						.withRotationalPeriod(57_915)
 						.withAxialTilt(25F)
 						.withMinProcessingLevel(3)
-						.withTraits(new CBT_Atmosphere(Fluids.TEKTOAIR, 1.5F), new CBT_Water(Fluids.CCL)) // :)
+						.withTraits(new CBT_Water(Fluids.CCL)) // :)
 						.withBlockTextures(RefStrings.MODID + ":textures/blocks/basalt.png", RefStrings.MODID + ":textures/blocks/rubber_silt.png")
 
 				),
@@ -297,7 +296,7 @@ public class SolarSystem {
 						.withMassRadius(2.788e21F, 286)
 						.withOrbitalParameters(32_301, 0.0534F, 0.0F, 4.02F, 284.0F)
 						.withRotationalPeriod(306_443)
-						.withTraits(new CBT_Atmosphere(Fluids.NITROGEN, 0.005F), new CBT_BATTLEFIELD())
+						.withTraits(new CBT_BATTLEFIELD())
 						.withIce(true),
 
 					new CelestialBody("nissee") // words cannot express how much i actually fear this moon whenever im passing by it when playing opm. theres more that meets the eye and no one is brave enough to admit that
@@ -307,13 +306,6 @@ public class SolarSystem {
 						.withMinProcessingLevel(3)
 					)
 			);
-
-		for(CelestialBody body : CelestialBody.getAllBodies()) {
-			if(body.name == "kerbol" || body.name == "sarnus" || body.name == "jool") {
-				continue;
-			}
-			body.removeTrait(CBT_Atmosphere.class);
-		}
 
 		runTests();
 	}

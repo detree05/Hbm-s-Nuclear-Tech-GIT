@@ -10,6 +10,7 @@ import com.hbm.tileentity.TileEntityMachineBase;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
@@ -233,7 +234,45 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		throughputLastFiveTicks = Math.max(0, buf.readLong());
 	}
 
+	@Override
+	public boolean canConnect(ForgeDirection side) {
+		return canConnectFrom(this.xCoord, this.yCoord, this.zCoord, side);
+	}
+
+	public boolean canConnectFrom(int blockX, int blockY, int blockZ, ForgeDirection side) {
+		if(side == ForgeDirection.UNKNOWN) return false;
+
+		int relX = blockX - this.xCoord;
+		int relY = blockY - this.yCoord;
+		int relZ = blockZ - this.zCoord;
+
+		// Core intake.
+		if(relX == 0 && relY == 0 && relZ == 0) return side == ForgeDirection.DOWN;
+		if(relY != 0) return false;
+
+		// Shell intake points.
+		if(relX == 2 && (relZ == 1 || relZ == -1)) return side == ForgeDirection.EAST;
+		if(relZ == -2 && (relX == 1 || relX == -1)) return side == ForgeDirection.NORTH;
+		if(relX == -2 && (relZ == -1 || relZ == 1)) return side == ForgeDirection.WEST;
+		if(relZ == 2 && (relX == -1 || relX == 1)) return side == ForgeDirection.SOUTH;
+
+		return false;
+	}
+
 	@Override public long getPower() { return power; }
 	@Override public void setPower(long power) { this.power = power; }
 	@Override public long getMaxPower() { return MAX_POWER; }
+
+	@Override
+	public AxisAlignedBB getRenderBoundingBox() {
+		return AxisAlignedBB.getBoundingBox(
+			xCoord - 3, yCoord, zCoord - 3,
+			xCoord + 4, yCoord + 4, zCoord + 4
+		);
+	}
+
+	@Override
+	public double getMaxRenderDistanceSquared() {
+		return 65536.0D;
+	}
 }

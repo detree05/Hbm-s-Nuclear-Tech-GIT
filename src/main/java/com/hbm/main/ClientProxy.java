@@ -423,7 +423,7 @@ public class ClientProxy extends ServerProxy {
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCoreReceiver.class, new RenderCoreComponent());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCoreInjector.class, new RenderCoreComponent());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCoreStabilizer.class, new RenderCoreComponent());
-		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityStarCoreEnergyEmitter.class, new RenderCoreComponent());
+		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityStarCoreEnergyEmitter.class, new RenderStarCoreEnergyEmitter());
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCore.class, new RenderCore());
 		//missile blocks
 		ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLaunchPad.class, new RenderLaunchPad());
