@@ -2289,7 +2289,7 @@ public class ModEventHandler {
 		int y = event.y;
 		int z = event.z;
 		World world = event.world;
-		
+
 		if(GeneralConfig.enable528ExplosiveEnergistics && !world.isRemote && event.action == Action.RIGHT_CLICK_BLOCK) {
 			Block b = world.getBlock(x, y, z);
 			String name = Block.blockRegistry.getNameForObject(b);

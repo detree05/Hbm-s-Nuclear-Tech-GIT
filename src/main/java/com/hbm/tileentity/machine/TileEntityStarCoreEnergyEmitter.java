@@ -5,13 +5,19 @@ import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.blocks.BlockDummyable;
 import com.hbm.config.SpaceConfig;
+import com.hbm.lib.Library;
+import com.hbm.main.MainRegistry;
+import com.hbm.sound.AudioWrapper;
 import com.hbm.tileentity.TileEntityMachineBase;
+import com.hbm.util.fauxpointtwelve.DirPos;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.Vec3;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -20,6 +26,12 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	public static final long MAX_POWER = 1_000_000_000_000_000L;
 	private static final long STEEL_INJECTOR_MAX_HE_PER_TICK = CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK;
+	private static final float GUN_PITCH_MAX_UP = 90.0F;
+	private static final float GUN_PITCH_MAX_DOWN = -35.0F;
+	private static final float TABLE_YAW_SPEED_DEG_PER_TICK = 2.0F;
+	private static final float GUN_PITCH_SPEED_DEG_PER_TICK = 2.0F;
+	private static final float AIM_LOCK_TOLERANCE_DEG = 0.75F;
+	private static final int RENDER_RADIUS = 130;
 
 	private long power;
 	private long receivedThisTick;
@@ -29,6 +41,11 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	private long throughputThisFiveTicks;
 	private long throughputLastFiveTicks;
 	private boolean registered;
+	private AudioWrapper audio;
+	private float clientTableYaw;
+	private float clientGunPitch;
+	private boolean clientAimInitialized;
+	private boolean clientAimLocked;
 
 	public TileEntityStarCoreEnergyEmitter() {
 		super(0);
@@ -41,9 +58,11 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	@Override
 	public void updateEntity() {
+		updateClientAimLock();
+
 		if(!worldObj.isRemote) {
-			for(ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
-				trySubscribe(worldObj, xCoord + dir.offsetX, yCoord + dir.offsetY, zCoord + dir.offsetZ, dir);
+			for(DirPos pos : getPowerConPos()) {
+				trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
 			}
 
 			long sentThisTick = receivedThisTick;
@@ -67,7 +86,36 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 			power = 0;
 			networkPackNT(20);
+		} else {
+			if(getThroughputPerFiveTicks() > 0L && canOperate() && clientAimLocked) {
+				if(audio == null) {
+					audio = MainRegistry.proxy.getLoopedSound("hbm:block.dysonBeam", xCoord + 0.5F, yCoord + 1.0F, zCoord + 0.5F, 0.375F, 20F, 1.0F, 20);
+					audio.startSound();
+				}
+
+				audio.keepAlive();
+				audio.updatePitch(0.85F);
+			} else if(audio != null) {
+				audio.stopSound();
+				audio = null;
+			}
 		}
+	}
+
+	private DirPos[] getPowerConPos() {
+		return new DirPos[] {
+			// Core bottom intake.
+			new DirPos(xCoord, yCoord - 1, zCoord, Library.NEG_Y),
+			// Shell intake points: subscribe to conductors OUTSIDE the side-locked shell ports.
+			new DirPos(xCoord + 3, yCoord, zCoord + 1, Library.POS_X),
+			new DirPos(xCoord + 3, yCoord, zCoord - 1, Library.POS_X),
+			new DirPos(xCoord + 1, yCoord, zCoord - 3, Library.NEG_Z),
+			new DirPos(xCoord - 1, yCoord, zCoord - 3, Library.NEG_Z),
+			new DirPos(xCoord - 3, yCoord, zCoord - 1, Library.NEG_X),
+			new DirPos(xCoord - 3, yCoord, zCoord + 1, Library.NEG_X),
+			new DirPos(xCoord - 1, yCoord, zCoord + 3, Library.POS_Z),
+			new DirPos(xCoord + 1, yCoord, zCoord + 3, Library.POS_Z)
+		};
 	}
 
 	@Override
@@ -79,6 +127,10 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 			return power;
 		}
 		if(!canOperate()) {
+			return power;
+		}
+		updateClientAimLock();
+		if(!clientAimLocked) {
 			return power;
 		}
 		long supportRequirement = getSupportRequirementPerTick(state, skyState);
@@ -118,6 +170,10 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		return throughputLastFiveTicks;
 	}
 
+	public boolean isClientAimLocked() {
+		return clientAimLocked;
+	}
+
 	private boolean canOperate() {
 		if(worldObj == null) return false;
 		if(worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.orbitDimension) {
@@ -127,10 +183,6 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 			|| worldObj.provider instanceof WorldProviderEnd
 			|| worldObj.provider instanceof WorldProviderKerbol) {
 			return false;
-		}
-		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-		if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
-			return true;
 		}
 		return isWorldDaytime();
 	}
@@ -172,11 +224,135 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		return current >= ninetyNinePct;
 	}
 
+	private static class AimAngles {
+		final float tableYaw;
+		final float gunPitch;
+
+		AimAngles(float tableYaw, float gunPitch) {
+			this.tableYaw = tableYaw;
+			this.gunPitch = gunPitch;
+		}
+	}
+
+	private void updateClientAimLock() {
+		AimAngles target = getClientTargetAimAngles();
+
+		if(!clientAimInitialized) {
+			clientTableYaw = target.tableYaw;
+			clientGunPitch = target.gunPitch;
+			clientAimInitialized = true;
+		} else {
+			float yawDiff = MathHelper.wrapAngleTo180_float(target.tableYaw - clientTableYaw);
+			yawDiff = MathHelper.clamp_float(yawDiff, -TABLE_YAW_SPEED_DEG_PER_TICK, TABLE_YAW_SPEED_DEG_PER_TICK);
+			clientTableYaw = MathHelper.wrapAngleTo180_float(clientTableYaw + yawDiff);
+
+			float pitchDiff = target.gunPitch - clientGunPitch;
+			pitchDiff = MathHelper.clamp_float(pitchDiff, -GUN_PITCH_SPEED_DEG_PER_TICK, GUN_PITCH_SPEED_DEG_PER_TICK);
+			clientGunPitch = MathHelper.clamp_float(clientGunPitch + pitchDiff, GUN_PITCH_MAX_DOWN, GUN_PITCH_MAX_UP);
+		}
+
+		float yawErr = Math.abs(MathHelper.wrapAngleTo180_float(target.tableYaw - clientTableYaw));
+		float pitchErr = Math.abs(target.gunPitch - clientGunPitch);
+		clientAimLocked = yawErr <= AIM_LOCK_TOLERANCE_DEG && pitchErr <= AIM_LOCK_TOLERANCE_DEG;
+	}
+
+	private AimAngles getClientTargetAimAngles() {
+		if(worldObj == null) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+		CBT_SkyState.SkyState state = skyState.getState();
+		if((state != CBT_SkyState.SkyState.STARCORE && state != CBT_SkyState.SkyState.SUN) || !isWorldDaytime()) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
+
+		Vec3 sunDirWorld = getSunDirectionWorld();
+		if(sunDirWorld == null || sunDirWorld.lengthVector() <= 1.0E-6D) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
+
+		Vec3 sunDirLocal = toEmitterLocal(sunDirWorld.normalize(), normalizeMeta(getBlockMetadata()));
+		if(sunDirLocal.lengthVector() <= 1.0E-6D) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
+
+		sunDirLocal = sunDirLocal.normalize();
+		float tableYaw = (float) Math.toDegrees(Math.atan2(-sunDirLocal.zCoord, sunDirLocal.xCoord));
+		float gunPitch = (float) Math.toDegrees(Math.asin(MathHelper.clamp_double(sunDirLocal.yCoord, -1.0D, 1.0D)));
+		gunPitch = MathHelper.clamp_float(gunPitch, GUN_PITCH_MAX_DOWN, GUN_PITCH_MAX_UP);
+
+		return new AimAngles(MathHelper.wrapAngleTo180_float(tableYaw), gunPitch);
+	}
+
+	private Vec3 getSunDirectionWorld() {
+		float solarAngle = worldObj.getCelestialAngle(0.0F);
+		float axialTilt = 0.0F;
+
+		if(worldObj.provider instanceof WorldProviderCelestial) {
+			axialTilt = CelestialBody.getBody(worldObj).axialTilt;
+		}
+
+		Vec3 dir = Vec3.createVectorHelper(0.0D, 1.0D, 0.0D);
+		dir = rotateX(dir, solarAngle * 360.0F);
+		dir = rotateY(dir, -90.0F);
+		if(axialTilt != 0.0F) {
+			dir = rotateX(dir, axialTilt);
+		}
+		return dir.normalize();
+	}
+
+	private static Vec3 toEmitterLocal(Vec3 worldDir, int meta) {
+		Vec3 local = rotateY(worldDir, -90.0F);
+
+		switch(meta) {
+		case 0:
+			return rotateX(local, -90.0F);
+		case 1:
+			return rotateX(local, 90.0F);
+		case 2:
+			return rotateY(local, -90.0F);
+		case 4:
+			return rotateY(local, -180.0F);
+		case 3:
+			return rotateY(local, -270.0F);
+		case 5:
+		default:
+			return local;
+		}
+	}
+
+	private static Vec3 rotateX(Vec3 vec, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double y = vec.yCoord * cos - vec.zCoord * sin;
+		double z = vec.yCoord * sin + vec.zCoord * cos;
+		return Vec3.createVectorHelper(vec.xCoord, y, z);
+	}
+
+	private static Vec3 rotateY(Vec3 vec, float degrees) {
+		double rad = Math.toRadians(degrees);
+		double cos = Math.cos(rad);
+		double sin = Math.sin(rad);
+		double x = vec.xCoord * cos + vec.zCoord * sin;
+		double z = -vec.xCoord * sin + vec.zCoord * cos;
+		return Vec3.createVectorHelper(x, vec.yCoord, z);
+	}
+
+	private static int normalizeMeta(int meta) {
+		return meta >= BlockDummyable.offset ? meta - BlockDummyable.offset : meta;
+	}
+
 	@Override
 	public void invalidate() {
 		if(!worldObj.isRemote) {
 			unregisterInjector();
 			resetStarcoreThroughputOnRemoval();
+		}
+		if(audio != null) {
+			audio.stopSound();
+			audio = null;
 		}
 		super.invalidate();
 	}
@@ -186,6 +362,10 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		if(!worldObj.isRemote) {
 			unregisterInjector();
 			resetStarcoreThroughputOnRemoval();
+		}
+		if(audio != null) {
+			audio.stopSound();
+			audio = null;
 		}
 		super.onChunkUnload();
 	}
@@ -266,8 +446,8 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	@Override
 	public AxisAlignedBB getRenderBoundingBox() {
 		return AxisAlignedBB.getBoundingBox(
-			xCoord - 3, yCoord, zCoord - 3,
-			xCoord + 4, yCoord + 4, zCoord + 4
+			xCoord - RENDER_RADIUS, yCoord - RENDER_RADIUS, zCoord - RENDER_RADIUS,
+			xCoord + RENDER_RADIUS + 1, yCoord + RENDER_RADIUS + 1, zCoord + RENDER_RADIUS + 1
 		);
 	}
 
