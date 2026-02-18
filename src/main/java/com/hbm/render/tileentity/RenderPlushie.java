@@ -32,6 +32,7 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 
 	public static final IModelCustom yomiModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/yomi.obj"), false).asVBO();
 	public static final IModelCustom hundunModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/hundun.obj"), false).asVBO();
+	public static final IModelCustom dergModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/derg.obj"), false).asVBO();
 	public static final ResourceLocation yomiTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/yomi.png");
 	public static final ResourceLocation numbernineTex = new ResourceLocation(RefStrings.MODID, "textures/models/horse/numbernine.png");
 	public static final ResourceLocation hundunTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/hundun.png");
@@ -53,6 +54,8 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 	public static final IModelCustom neruModel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/trinkets/neru.obj")).asVBO();
 	public static final ResourceLocation neruTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/neru.png");
 	public static final ResourceLocation neruBlush = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/neru_squished.png");
+
+	public static final ResourceLocation dergTex = new ResourceLocation(RefStrings.MODID, "textures/models/trinkets/derg.png");
 
 	@Override
 	public void renderTileEntityAt(TileEntity tile, double x, double y, double z, float interp) {
@@ -79,6 +82,7 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 		case NERU: GL11.glScaled(0.5, 0.5, 0.5); break;
 		case FICKLE: GL11.glScaled(0.5, 0.5, 0.5); break;
 		case HUNDUN: GL11.glScaled(1, 1, 1); break;
+		case DERG: break;
 		}
 		renderPlushie(te.type, te.squishTimer);
 
@@ -155,6 +159,11 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 			Minecraft.getMinecraft().getTextureManager().bindTexture(squishTimer > 6 ? fickleBlush : fickleTex);
 			fickleModel.renderAll();
 			break;
+		case DERG:
+			Minecraft.getMinecraft().getTextureManager().bindTexture(dergTex);
+			dergModel.renderPart("Derg");
+			dergModel.renderPart(squishTimer > 0 ? "Blep" : "ColonThree");
+			break;
 		}
 	}
 
@@ -184,6 +193,7 @@ public class RenderPlushie extends TileEntitySpecialRenderer implements IItemRen
 				case MIKU: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
 				case NERU: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
 				case FICKLE: GL11.glTranslated(0, 0.25, 0); GL11.glScaled(1.5, 1.5, 1.5); break;
+				case DERG: GL11.glScaled(1.5, 1.5, 1.5); break;
 				}
 				renderPlushie(type, 0);
 			}};

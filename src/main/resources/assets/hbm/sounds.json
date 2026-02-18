@@ -13,6 +13,7 @@
 	"misc.lpwstart": {"category": "block", "sounds": [{"name": "misc/lpw2start", "stream": false}]},
 	"misc.lpwstop": {"category": "block", "sounds": [{"name": "misc/lpwstop", "stream": false}]},
 	"misc.lpwloop": {"category": "block", "sounds": [{"name": "misc/lpwloop", "stream": false}]},
+<<<<<<< HEAD
 	"misc.htrstart": {"category": "block", "sounds": [{"name": "misc/htr3start", "stream": false}]},
 	"misc.htrstop": {"category": "block", "sounds": [{"name": "misc/htrstop", "stream": false}]},
 	"misc.htrloop": {"category": "block", "sounds": [{"name": "misc/htrloop", "stream": false}]},
@@ -80,7 +81,7 @@
 	"block.largeTurbineRunning": {"category": "block", "sounds": [{"name": "block/largeTurbine", "stream": false}]},
 	"block.damage": {"category": "block", "sounds": ["block/dam1", "block/dam2", "block/dam3", "block/dam4"]},
 	"block.electricHum": {"category": "block", "sounds": [{"name": "block/electricHum", "stream": false}]},
-    "block.fensuHum": {"category": "block", "sounds": [{"name": "block/fensuHum", "stream": false}]},
+	"block.fensuHum": {"category": "block", "sounds": [{"name": "block/fensuHum", "stream": false}]},
 	"block.boiler": {"category": "block", "sounds": [{"name": "block/boiler", "stream": false}]},
 	"block.hornNearSingle": {"category": "block", "sounds": [{"name": "block/hornNearSingle", "stream": false}]},
 	"block.hornNearDual": {"category": "block", "sounds": [{"name": "block/hornNearDual", "stream": false}]},
@@ -345,6 +346,11 @@
 	"weapon.reload.screw": {"category": "player", "sounds": ["weapon/reload/screw"]},
 
 	"weapon.foley.gunWhack": {"category": "player", "sounds": ["weapon/foley/gunWhack", "weapon/foley/gunWhack2"]},
+	
+	"weapon.casing.small": {"category": "player", "sounds": ["weapon/casing/small1", "weapon/casing/small2", "weapon/casing/small3"]},
+	"weapon.casing.medium": {"category": "player", "sounds": ["weapon/casing/medium1", "weapon/casing/medium2", "weapon/casing/medium3"]},
+	"weapon.casing.large": {"category": "player", "sounds": ["weapon/casing/large1", "weapon/casing/large2", "weapon/casing/large3"]},
+	"weapon.casing.shell": {"category": "player", "sounds": ["weapon/casing/shell1", "weapon/casing/shell2", "weapon/casing/shell3"]},
 
 	"turret.chekhov_fire": {"category": "block", "sounds": [{"name": "turret/chekhov_fire", "stream": false}]},
 	"turret.jeremy_fire": {"category": "block", "sounds": ["turret/jeremy_fire1", "turret/jeremy_fire2", "turret/jeremy_fire3", "turret/jeremy_fire4", "turret/jeremy_fire5"]},
@@ -441,6 +447,6 @@
 
 	"alarm.singer": {"category": "player", "sounds": ["alarm/singer1", "alarm/singer2", "alarm/singer3", "alarm/singer4"]},
 	"alarm.ducc": {"category": "record", "sounds": [{"name": "alarm/ducc", "stream": false}]},
-	"alarm.mama": {"category": "record", "sounds": [{"name": "alarm/mama", "stream": false}]}
-
+	"alarm.mama": {"category": "record", "sounds": [{"name": "alarm/mama", "stream": false}]},
+	"alarm.ping": {"category": "player", "sounds": [{"name": "alarm/alarmping", "stream": false}]}
 }

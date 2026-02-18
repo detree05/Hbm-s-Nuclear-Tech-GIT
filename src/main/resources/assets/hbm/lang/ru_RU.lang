@@ -7035,7 +7035,7 @@ tile.machine_milk_reformer.name=Молочный реформер
 tile.machine_lpw2.name=Ракетный двигатель LPW-2
 tile.machine_htr3.name=Ракетный двигатель LPW-3N
 tile.machine_xenon_thruster.name=Ракетный двигатель XNM-1
-tile.machine_htrf4.name=Ракетный двигатель HTR-F4
+tile.machine_htrf4.name=Ракетный двигатель HTR-F4 (LEGACY)
 tile.nuke_antimatter.name=Антиматериальная бомба
 container.nukeAntimatter=Антиматериальная бомба
 tile.rbmk_burner.name=Жидкостный прогреватель РБМК
@@ -7066,6 +7066,9 @@ tile.machine_stardar.name=Радиотелескоп "StarDar"
 tile.orrery.name=Планетарий
 tile.orbital_station_launcher.name=Орбитальный космодром
 tile.orbital_station_launcher.desc=Позволяет создать и затем запустить ракету прямо со станции на орбите!
+tile.machine_atmo_emitter.name=Атмосферный источник
+tile.machine_htrf4neo.name=Ракетный двигатель HTR-F4
+tile.machine_htrf4neo.desc=Используется для орбитальных перелётов.$Для работы подключите к работающему$термоядерному реактору.$Требуются энергия и охлаждение!
 
 // Items
 item.atmosphere_scanner.name=Анализатор атмосферы
@@ -7219,6 +7222,8 @@ item.circuit.hfchip.name=Гафниевый микрочип
 item.circuit.avionics.name=Блок авионики
 item.hard_drive.name=Пустой жёсткий диск
 item.hard_drive_full.name=Жёсткий диск
+item.hard_drive_full.orbit.desc=Может быть использован по блоку для$установки точки посадки десантной капсулы$с орбитальной станции.
+item.hard_drive_full.surface.desc=Может использован по блоку для$изменения координат посадки.
 item.circuit.processt1.name=Процессор обработки 1-го уровня
 item.circuit.processt2.name=Процессор обработки 2-го уровня
 item.circuit.processt3.name=Процессор обработки 3-го уровня
@@ -7279,6 +7284,8 @@ item.flask_infusion.nitan.name=Амброзия NITANÂ©
 item.flask_infusion.nitan.desc=Болеутоляющее исключительно для медицинского или развлекательного использования.
 item.laser_crystal_iron.name=Железо-Арсенидовый жар-кристалл
 item.laser_crystal_iron.desc=Железное ядро с жар-сердцевиной, обёрнутое арсенидом галлия.
+item.ingot_australium_greater.name=Слиток высшего австралия
+item.ingot_australium_lesser.name=Слиток низшего австралия
 
 // Fluids //
 hbmfluid.air=Сжатый воздух
@@ -7353,6 +7360,8 @@ hbmfluid.vinyl=Винилхлорид
 hbmpseudofluid.minsol=Тяжёлый минеральный шлам
 hbmpseudofluid.minsolsep=Отделённый минеральный шлам
 hbmfluid.earthair=Насыщенный кислородом сжатый воздух
+hbmfluid.lithydro=Гидроксид лития
+hbmfluid.lithcarbonate=Бикарбонат лития
 
 // Ores //
 tile.ore_iron.name=Железная руда
@@ -7473,7 +7482,7 @@ crucible.hsss=Альтернативное производство высоко
 geiger.playerAct=Радиоактивность игрока:
 
 armor.canSeal=Обеспечивает герметичность (требуется PLSS)
-armor.mustSeal=Необходимо использовать$с полностью герметичным набором брони!
+armor.mustSeal=Использовать с полностью герметичным набором брони!
 
 atmosphere.name=Статус атмосферы
 atmosphere.noSeal=КОМНАТА НЕГЕРМЕТИЧНА
@@ -7553,4 +7562,4 @@ desc.util.warhead=Боеголовка
 desc.util.chip_inaccuracy=Неточность чипа
 desc.util.fin_inaccuracy=Неточность стабилизатора
 
-// last updated november 29th, 2025 by KimiKimi //
+// last updated february 6th, 2025 by KimiKimi //
