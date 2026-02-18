@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 import com.hbm.dim.SolarSystem.AstroMetric;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
+import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -981,7 +982,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
 		final CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
-		final boolean noDirectSunlight = sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE;
+		final boolean noDirectSunlight = world.provider instanceof WorldProviderOrbit
+			&& (sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE);
 		final float directLight = noDirectSunlight ? 0.15F : 1.0F;
 		float blendDarken = 0.1F;
 		final float redOverlayAlpha = 0.0F;
