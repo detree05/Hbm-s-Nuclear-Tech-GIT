@@ -194,7 +194,5 @@ public class MachineStarCoreEnergyEmitter extends BlockDummyable implements ILoo
 
 	@SuppressWarnings("rawtypes")
 	@Override
-	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean ext) {
-		addStandardInfo(stack, player, list, ext);
-	}
+	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean ext) { }
 }
