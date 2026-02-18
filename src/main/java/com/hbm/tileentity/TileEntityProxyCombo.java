@@ -16,6 +16,7 @@ import api.hbm.redstoneoverradio.IRORInteractive;
 import api.hbm.redstoneoverradio.IRORValueProvider;
 import api.hbm.tile.IHeatSource;
 import com.hbm.inventory.material.Mats;
+import com.hbm.util.Compat;
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.Optional;
 import li.cil.oc.api.machine.Arguments;
@@ -518,10 +519,22 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	@Override
 	@Optional.Method(modid = "OpenComputers")
 	public boolean canConnectNode(ForgeDirection side) {
-		if(this.getCoreObject() instanceof OCComponent)
+		if(this.getCoreObject() instanceof OCComponent) {
+			boolean isComponent = false;
+			if (this.worldObj != null) {
+				Object nodeTE = Compat.getTileStandard(this.worldObj, this.xCoord + side.offsetX, this.yCoord + side.offsetY, this.zCoord + side.offsetZ);
+				if (nodeTE instanceof TileEntityProxyCombo) {
+					TileEntityProxyCombo proxy = (TileEntityProxyCombo)nodeTE;
+					if (proxy.getCoreObject() == this.getCoreObject()) isComponent = true;
+				} else if (nodeTE == this.getCoreObject()) {
+					isComponent = true;
+				}
+			}
 			return (this.getBlockMetadata() >= 6 && this.getBlockMetadata() <= 11)
 					&& (power || fluid) &&
-					((OCComponent) this.getCoreObject()).canConnectNode(side);
+					((OCComponent) this.getCoreObject()).canConnectNode(side) &&
+					!isComponent;
+		}
 		return OCComponent.super.canConnectNode(null);
 	}
 

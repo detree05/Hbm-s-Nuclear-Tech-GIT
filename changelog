@@ -1,5 +1,20 @@
-Includes all changes and bugfixes from the latest upstream NTMain update - [X5572 - i have contracted rabies](https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5572)
+Includes all changes and bugfixes from the latest upstream NTMain update - [X5593 - i have cured my rabies](https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5593)
+
+## Added
+* HTR-F4 NEO Station Thruster added
+    * Connect to the new fusion reactor to provide thrust for your space stations!
+* Lithium hydroxide terraforming
+    * Can convert CO2 in an atmosphere into breathable oxygen, great for terraforming Duna well before Dyson anatmogenesis becomes available
+    * A new machine - the Atmospheric Emitter - has been added to emit huge amounts of gases quickly
+* QMAW for the Rocket Launch Pad and the Vehicle Assembly Base
+* Dusty + airless celestial bodies now exhibit a faint particulate glow at sunset/sunrise due to charged particles
 
 ## Changed
-* Station drives can now be used to recall docked & fueled drop pods to your current location
-* Stations now show up in the sky of the orbited planet
+* LPW-3N now shows a hint on how to operate it
+* Acidizer partitioner can now accept up to 96 different input items, greatly enhancing its ability to process all the bedrock ores available in space
+* Tektite is now deleted by the mining laser nullifier upgrade
+* Lesser/Greater Australium can now be cast into ingots
+
+## Fixed
+* Crash on mob spawning due to forge enum extensions
+* Orbital rocket assembly allows stacks larger than 8

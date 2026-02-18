@@ -387,4 +387,9 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 		return tanks;
 	}
 
+	@Override
+	public int getInventoryStackLimit() {
+		return 8;
+	}
+
 }

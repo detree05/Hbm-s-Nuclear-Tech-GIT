@@ -40,12 +40,14 @@ import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_Invasion;
 import com.hbm.dim.trait.CBT_Lights;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.entity.missile.EntityRideableRocket;
 import com.hbm.entity.missile.EntityRideableRocket.RocketState;
 import com.hbm.entity.mob.EntityCreeperTainted;
 import com.hbm.entity.mob.EntityCyberCrab;
+import com.hbm.entity.mob.siege.EntitySiegeCraft;
 import com.hbm.entity.projectile.EntityBulletBaseMK4;
 import com.hbm.entity.projectile.EntityBurningFOEQ;
 import com.hbm.entity.projectile.EntityKerbolMeteor;
@@ -83,7 +85,6 @@ import com.hbm.items.armor.ItemArmorMod;
 import com.hbm.items.armor.ItemModDefuser;
 import com.hbm.items.armor.ItemModRevive;
 import com.hbm.items.armor.ItemModShackles;
-import com.hbm.items.food.ItemConserve.EnumFoodType;
 import com.hbm.items.tool.ItemGuideBook.BookType;
 import com.hbm.items.weapon.sedna.BulletConfig;
 import com.hbm.items.weapon.sedna.ItemGunBaseNT;
@@ -600,6 +601,16 @@ public class ModEventHandler {
 			}
 		}
 
+		if(event.entity instanceof EntitySiegeCraft) {
+
+			CelestialBody body = CelestialBody.getBody(event.entity.worldObj);
+			CBT_Invasion alien = body.getTrait(CBT_Invasion.class);
+
+			if(alien == null) return;
+			alien.Increment();
+
+			body.modifyTraits(alien);
+		}
 		if(!event.entityLiving.worldObj.isRemote) {
 
 			if(event.source==ModDamageSource.eve)
@@ -963,10 +974,10 @@ public class ModEventHandler {
 
 		ItemStack[] prevArmor = event.entityLiving.previousEquipment;
 
-		if(event.entityLiving instanceof EntityPlayer && prevArmor != null && event.entityLiving.getHeldItem() != null
+		if(event.entityLiving instanceof EntityPlayerMP && prevArmor != null && event.entityLiving.getHeldItem() != null
 				&& (prevArmor[0] == null || prevArmor[0].getItem() != event.entityLiving.getHeldItem().getItem())
 				&& event.entityLiving.getHeldItem().getItem() instanceof IEquipReceiver) {
-
+			
 			((IEquipReceiver)event.entityLiving.getHeldItem().getItem()).onEquip((EntityPlayer) event.entityLiving, event.entityLiving.getHeldItem());
 		}
 
@@ -1334,6 +1345,16 @@ public class ModEventHandler {
 				}
 			}
 		}
+		if(event.phase == Phase.END) {
+			CelestialBody body = CelestialBody.getBody(event.world);
+			CBT_Invasion alien = body.getTrait(CBT_Invasion.class);
+
+			if(alien == null) return;
+			alien.SpawnAttempt(event.world);
+
+			body.modifyTraits(alien);
+		}
+
 	}
 
 	private void updateWaterOpacity(World world) {
@@ -2154,6 +2175,21 @@ public class ModEventHandler {
 				event.getChunk().func_150807_a(x, y, z, Blocks.air, 0);
 			}
 		}*/
+
+		for(int x = 0; x < 16; x++) for(int y = 0; y < 255; y++) for(int z = 0; z < 16; z++) {
+			if(event.getChunk().getBlock(x, y, z) == ModBlocks.absorber) {
+				event.getChunk().func_150807_a(x, y, z, ModBlocks.rad_absorber, 0);
+			}
+			else if(event.getChunk().getBlock(x, y, z) == ModBlocks.absorber_red) {
+				event.getChunk().func_150807_a(x, y, z, ModBlocks.rad_absorber, 1);
+			}
+			else if(event.getChunk().getBlock(x, y, z) == ModBlocks.absorber_green) {
+				event.getChunk().func_150807_a(x, y, z, ModBlocks.rad_absorber, 2);
+			}
+			else if(event.getChunk().getBlock(x, y, z) == ModBlocks.absorber_pink) {
+				event.getChunk().func_150807_a(x, y, z, ModBlocks.rad_absorber, 3);
+			}
+		}
 	}
 
 	@SubscribeEvent
@@ -2193,8 +2229,6 @@ public class ModEventHandler {
 
 	@SubscribeEvent
 	public void onItemPickup(PlayerEvent.ItemPickupEvent event) {
-		if(event.pickedUp.getEntityItem().getItem() == ModItems.canned_conserve && EnumUtil.grabEnumSafely((EnumFoodType.class), event.pickedUp.getEntityItem().getItemDamage())== EnumFoodType.JIZZ)
-			event.player.triggerAchievement(MainRegistry.achC20_5);
 		if(event.pickedUp.getEntityItem().getItem() == Items.slime_ball)
 			event.player.triggerAchievement(MainRegistry.achSlimeball);
 		if(event.pickedUp.getEntityItem().getItem() == ModItems.egg_balefire)

@@ -11,6 +11,7 @@ import com.hbm.main.ResourceManager;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 
 public class RendererObjTester extends TileEntitySpecialRenderer {
 
@@ -24,16 +25,17 @@ public class RendererObjTester extends TileEntitySpecialRenderer {
 		double sin3 = Math.sin(time * 0.05 + Math.PI * 0.5) * 15;
 		double sin2 = Math.sin(time * 0.05 + Math.PI);
 		double insine = Math.sin(time * 0.05) * -15;
-		double cy0 = Math.sin(time % (Math.PI * 2));
-		double cy1 = Math.sin(time % (Math.PI * 2) - Math.PI * 0.2);
-		double cy2 = Math.sin(time % (Math.PI * 2) - Math.PI * 0.4);
+		double cy0 = Math.sin(time * 0.08 % (Math.PI * 2));
+		double cy1 = Math.sin(time * 0.07 % (Math.PI * 2) - Math.PI * 0.2);
+		double cy2 = Math.sin(time* 0.06 % (Math.PI * 2) - Math.PI * 0.4);
 		double cy3 = Math.sin(time % (Math.PI * 2) - Math.PI * 0.6);
 
 		GL11.glTranslatef(0, 0.5F, 0);
-		bindTexture(ResourceManager.eel_tex);
+		bindTexture(ResourceManager.bfangel_tex);
 
 
-		ResourceManager.sifter_eel.renderPart("jaw");
+		ResourceManager.bfangel.renderPart("eye");
+		ResourceManager.bfangel.renderPart("body");
 
 
 
@@ -44,24 +46,69 @@ public class RendererObjTester extends TileEntitySpecialRenderer {
 		{
 			GL11.glRotatef(1 * 0.5F, -1, 0, 0);
 			GL11.glRotatef(0, 0, 0, 0);
-			ResourceManager.sifter_eel.renderPart("head");
-		}
+
+			}
 		GL11.glPopMatrix();
 
 		// Side fins
 		GL11.glPushMatrix();
 		{
+			GL11.glRotated(cy0 * 2, 0, 0, 1);
+
 			GL11.glRotated(cy0 * 20, 0, 1, 0);
-			ResourceManager.sifter_eel.renderPart("finL");
-		}
+			ResourceManager.bfangel.renderPart("wingL1");
+	
+			}
 		GL11.glPopMatrix();
 		GL11.glPushMatrix();
 		{
+			GL11.glRotated(cy0 * -2, 0, 0, 1);
+
 			GL11.glRotated(cy0 * -20, 0, 1, 0);
-			ResourceManager.sifter_eel.renderPart("finR");
+
+			ResourceManager.bfangel.renderPart("wingR1");
 		}
 		GL11.glPopMatrix();
 
+		
+		GL11.glPushMatrix();
+		{
+			GL11.glRotated(cy1 * 5, 0, 0, 1);
+			GL11.glRotated(cy1 * 20, 0, 1, 0);
+			ResourceManager.bfangel.renderPart("wingL2");
+	
+			}
+		GL11.glPopMatrix();
+		GL11.glPushMatrix();
+		{
+			GL11.glRotated(cy1 * -5, 0, 0, 1);
+			GL11.glRotated(cy1 * -20, 0, 1, 0);
+			ResourceManager.bfangel.renderPart("wingR2");
+		}
+		GL11.glPopMatrix();
+		
+		
+		GL11.glPushMatrix();
+		{
+			GL11.glRotated(cy1 * 5, 1, 0, 0);
+
+			GL11.glRotated(cy2 * 20, 0, 1, 0);
+			ResourceManager.bfangel.renderPart("wingL3");	
+	
+			}
+		GL11.glPopMatrix();
+		GL11.glPushMatrix();
+		{
+			GL11.glRotated(cy1 * -5, 1, 0, 0);
+
+			GL11.glRotated(cy2 * -20, 0, 1, 0);
+			ResourceManager.bfangel.renderPart("wingR3");	
+		}
+		GL11.glPopMatrix();
+		
+		GL11.glPopMatrix();
+
+		/*
 		// Tail fin
 		GL11.glPushMatrix();
 		{

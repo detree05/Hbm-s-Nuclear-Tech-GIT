@@ -364,6 +364,15 @@ public class ModEventHandlerClient {
 					/*List<String> text = new ArrayList();
 					text.add("Meta: " + world.getBlockMetadata(mop.blockX, mop.blockY, mop.blockZ));
 					ILookOverlay.printGeneric(event, "DEBUG", 0xffff00, 0x4040000, text);*/
+					
+					if(ClientConfig.SHOW_BLOCK_META_OVERLAY.get()) {
+						Block b = world.getBlock(mop.blockX, mop.blockY, mop.blockZ);
+						int i = world.getBlockMetadata(mop.blockX, mop.blockY, mop.blockZ);
+						List<String> text = new ArrayList();
+						text.add(b.getUnlocalizedName());
+						text.add("Meta: " + i);
+						ILookOverlay.printGeneric(event, "DEBUG", 0xffff00, 0x4040000, text);
+					}
 
 				} else if(mop.typeOfHit == MovingObjectType.ENTITY) {
 					Entity entity = mop.entityHit;
@@ -1574,6 +1583,13 @@ public class ModEventHandlerClient {
 
 			if(ArmorUtil.isWearingEmptyMask(mc.thePlayer)) {
 				MainRegistry.proxy.displayTooltip(EnumChatFormatting.RED + "Your mask has no filter!", ServerProxy.ID_FILTER);
+			}
+			
+			//prune other entities' muzzle flashes
+			if(mc.theWorld.getTotalWorldTime() % 30 == 0) {
+				long millis = System.currentTimeMillis();
+				//dead entities may have later insertion order than actively firing ones, so we be safe
+				ItemRenderWeaponBase.flashMap.values().removeIf(entry -> millis - entry.longValue() >= 150);
 			}
 		}
 
