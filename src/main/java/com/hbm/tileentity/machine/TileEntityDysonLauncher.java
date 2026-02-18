@@ -253,7 +253,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
 		if(slots[0] != null) {
-			if(slots[0].getItem() == ModItems.singularity_spark) return;
+			if(slots[0].getItem() == ModItems.star_core) return;
 			if(slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
 		}
 
@@ -355,7 +355,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 	private Item getPayloadItem() {
 		if(isBlackholeSky()) return ModItems.pellet_antimatter;
-		if(isNothingSky()) return ModItems.singularity_spark;
+		if(isNothingSky()) return ModItems.star_core;
 		if(isDfcSky()) return null;
 		return ModItems.swarm_member;
 	}

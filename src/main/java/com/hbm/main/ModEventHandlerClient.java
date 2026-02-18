@@ -128,6 +128,7 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.Potion;
 import net.minecraft.potion.PotionEffect;
 import net.minecraft.stats.Achievement;
+import net.minecraft.event.HoverEvent;
 	import net.minecraft.util.*;
 	import net.minecraft.block.material.Material;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
@@ -1020,7 +1021,13 @@ public class ModEventHandlerClient {
 		}
 
 		private void setGhostText(String title, String description) {
-			this.ghostTitle = new ChatComponentText(title);
+			ChatStyle style = new ChatStyle()
+				.setColor(EnumChatFormatting.GREEN)
+				.setChatHoverEvent(new HoverEvent(
+					HoverEvent.Action.SHOW_TEXT,
+					new ChatComponentText(EnumChatFormatting.OBFUSCATED + "Achievement\n" + EnumChatFormatting.RESET + " : )")
+				));
+			this.ghostTitle = new ChatComponentText(title).setChatStyle(style);
 			this.ghostDescription = description;
 			try {
 				ReflectionHelper.setPrivateValue(net.minecraft.stats.StatBase.class, this, this.ghostTitle, new String[] { "statName", "field_75975_e" });
@@ -1989,7 +1996,7 @@ public class ModEventHandlerClient {
 			int spacePos = 1 + rand.nextInt(symbolCount - 1);
 			raw.insert(spacePos, ' ');
 		}
-		return EnumChatFormatting.OBFUSCATED + raw.toString() + EnumChatFormatting.RESET;
+		return "[" + EnumChatFormatting.OBFUSCATED + raw.toString() + EnumChatFormatting.RESET + EnumChatFormatting.GREEN + "]";
 	}
 
 	private String pickRandomKerbolGhostSender(Minecraft mc) {

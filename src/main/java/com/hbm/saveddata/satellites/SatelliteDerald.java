@@ -3,7 +3,9 @@ package com.hbm.saveddata.satellites;
 import com.hbm.commands.CommandNovae;
 import com.hbm.entity.missile.EntitySoyuzCapsule;
 import com.hbm.items.ModItems;
+import com.hbm.main.MainRegistry;
 import com.hbm.saveddata.SatelliteSavedData;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.World;
 import net.minecraft.world.chunk.IChunkProvider;
@@ -19,6 +21,9 @@ public class SatelliteDerald extends Satellite {
 	@Override
 	public void onOrbit(World world, double x, double y, double z) {
 		if(world.isRemote) return;
+
+		for(Object p : world.playerEntities)
+			((EntityPlayer)p).triggerAchievement(MainRegistry.fallingStar);
 
 		CommandNovae.triggerNovaeAcrossDimensions();
 		dropCapsule(world, (int)Math.floor(x), (int)Math.floor(z));

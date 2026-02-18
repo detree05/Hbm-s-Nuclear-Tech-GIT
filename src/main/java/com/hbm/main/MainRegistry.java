@@ -200,6 +200,7 @@ public class MainRegistry {
 	public static Achievement horizonsStart;
 	public static Achievement horizonsEnd;
 	public static Achievement horizonsBonus;
+	public static Achievement fallingStar;
 	public static Achievement bossCreeper;
 	public static Achievement bossMeltdown;
 	public static Achievement bossMaskman;
@@ -406,7 +407,7 @@ public class MainRegistry {
 		achFiend2 = new Achievement("achievement.fiend2", "fiend2", -4, 9, ModItems.shimmer_axe, null).initIndependentStat().setSpecial().registerStat();
 		achStratum = new Achievement("achievement.stratum", "stratum", -4, -2, new ItemStack(ModBlocks.stone_gneiss), null).initIndependentStat().setSpecial().registerStat();
 		achOmega12 = new Achievement("achievement.omega12", "omega12", 17, -1, ModItems.particle_digamma, null).initIndependentStat().setSpecial().registerStat();
-		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 19, -1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal()), achOmega12).initIndependentStat().registerStat();
+		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal()), achOmega12).initIndependentStat().registerStat();
 
 		achNo9 = new Achievement("achievement.no9", "no9", -8, 12, ModItems.no9, null).initIndependentStat().registerStat();
 		achSlimeball = new Achievement("achievement.slimeball", "slimeball", -10, 6, DictFrame.fromOne(ModItems.achievement_icon, EnumAchievementType.ACID), null).initIndependentStat().registerStat();
@@ -419,6 +420,7 @@ public class MainRegistry {
 		horizonsStart = new Achievement("achievement.horizonsStart", "horizonsStart", -5, 4, ModItems.sat_gerald, null).initIndependentStat().registerStat();
 		horizonsEnd = new Achievement("achievement.horizonsEnd", "horizonsEnd", -3, 4, ModItems.sat_gerald, horizonsStart).initIndependentStat().registerStat();
 		horizonsBonus = new Achievement("achievement.horizonsBonus", "horizonsBonus", -1, 4, ModItems.sat_gerald, horizonsEnd).initIndependentStat().registerStat().setSpecial();
+		fallingStar = new Achievement("achievement.fallingStar", "fallingStar", -5, 6, ModItems.sat_derald, null).initIndependentStat().setSpecial().registerStat();
 
 		bossCreeper = new Achievement("achievement.bossCreeper", "bossCreeper", -7, 1, ModItems.coin_creeper, null).initIndependentStat().registerStat();
 		bossMeltdown = new Achievement("achievement.bossMeltdown", "bossMeltdown", -8, 3, ModItems.coin_radiation, bossCreeper).initIndependentStat().registerStat();
@@ -487,6 +489,7 @@ public class MainRegistry {
 			horizonsStart,
 			horizonsEnd,
 			horizonsBonus,
+			fallingStar,
 			achRadPoison,
 			achRadDeath,
 			achNo9,

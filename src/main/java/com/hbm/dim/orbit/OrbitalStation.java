@@ -24,6 +24,7 @@ import com.hbm.util.BufferUtil;
 import api.hbm.tile.IPropulsion;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
+import net.minecraft.block.material.Material;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.nbt.NBTTagCompound;
@@ -33,6 +34,8 @@ import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
+import net.minecraftforge.common.BiomeDictionary;
+import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.common.util.ForgeDirection;
 
 public class OrbitalStation {
@@ -561,11 +564,15 @@ public class OrbitalStation {
 
 		int coreX = getCoreX();
 		int coreZ = getCoreZ();
-		int groundY = targetWorld.getTopSolidOrLiquidBlock(coreX, coreZ);
+		int[] landing = findLandingColumn(targetWorld, coreX, coreZ);
+		int xOffset = landing[0] - coreX;
+		int zOffset = landing[1] - coreZ;
+		int groundY = targetWorld.getTopSolidOrLiquidBlock(landing[0], landing[1]);
 		int yOffset = Math.max(1, groundY - 1) - bounds.minY;
 
-		copyStation(world, targetWorld, bounds, yOffset);
-		teleportStationEntities(world, targetWorld, bounds, yOffset);
+		loadChunks(targetWorld, bounds, xOffset, zOffset);
+		copyStation(world, targetWorld, bounds, xOffset, yOffset, zOffset);
+		teleportStationEntities(world, targetWorld, bounds, xOffset, yOffset, zOffset);
 		clearStation(world, bounds);
 
 		SolarSystemWorldSavedData.get(world).removeStationForce(this);
@@ -649,35 +656,37 @@ public class OrbitalStation {
 		return new StationBounds(minX, maxX, minY, maxY, minZ, maxZ, visited);
 	}
 
-	private void copyStation(World sourceWorld, World targetWorld, StationBounds bounds, int yOffset) {
+	private void copyStation(World sourceWorld, World targetWorld, StationBounds bounds, int xOffset, int yOffset, int zOffset) {
 		BlockDummyable.safeRem = true;
 		for(long column : bounds.columns) {
 			int x = unpackX(column);
 			int z = unpackZ(column);
+			int targetX = x + xOffset;
+			int targetZ = z + zOffset;
 			for(int y = bounds.minY; y <= bounds.maxY; y++) {
 				Block block = sourceWorld.getBlock(x, y, z);
 				if(block == Blocks.air) continue;
 
 				int meta = sourceWorld.getBlockMetadata(x, y, z);
 				int targetY = y + yOffset;
-				targetWorld.setBlock(x, targetY, z, block, meta, 2);
+				targetWorld.setBlock(targetX, targetY, targetZ, block, meta, 2);
 
 				TileEntity sourceTe = sourceWorld.getTileEntity(x, y, z);
 				if(sourceTe != null) {
 					NBTTagCompound nbt = new NBTTagCompound();
 					sourceTe.writeToNBT(nbt);
-					nbt.setInteger("x", x);
+					nbt.setInteger("x", targetX);
 					nbt.setInteger("y", targetY);
-					nbt.setInteger("z", z);
+					nbt.setInteger("z", targetZ);
 
-					TileEntity targetTe = targetWorld.getTileEntity(x, targetY, z);
+					TileEntity targetTe = targetWorld.getTileEntity(targetX, targetY, targetZ);
 					if(targetTe != null) {
 						targetTe.readFromNBT(nbt);
 						targetTe.markDirty();
 					} else {
 						TileEntity created = TileEntity.createAndLoadEntity(nbt);
 						if(created != null) {
-							targetWorld.setTileEntity(x, targetY, z, created);
+							targetWorld.setTileEntity(targetX, targetY, targetZ, created);
 						}
 					}
 				}
@@ -686,7 +695,7 @@ public class OrbitalStation {
 		BlockDummyable.safeRem = false;
 	}
 
-	private void teleportStationEntities(World sourceWorld, World targetWorld, StationBounds bounds, int yOffset) {
+	private void teleportStationEntities(World sourceWorld, World targetWorld, StationBounds bounds, int xOffset, int yOffset, int zOffset) {
 		AxisAlignedBB box = AxisAlignedBB.getBoundingBox(
 			bounds.minX, bounds.minY, bounds.minZ,
 			bounds.maxX + 1, bounds.maxY + 1, bounds.maxZ + 1
@@ -694,12 +703,12 @@ public class OrbitalStation {
 
 		List<EntityPlayer> players = sourceWorld.getEntitiesWithinAABB(EntityPlayer.class, box);
 		for(EntityPlayer player : players) {
-			CelestialTeleporter.teleport(player, targetWorld.provider.dimensionId, player.posX, player.posY + yOffset, player.posZ, false);
+			CelestialTeleporter.teleport(player, targetWorld.provider.dimensionId, player.posX + xOffset, player.posY + yOffset, player.posZ + zOffset, false);
 		}
 
 		List<EntityRideableRocket> rockets = sourceWorld.getEntitiesWithinAABB(EntityRideableRocket.class, box);
 		for(EntityRideableRocket rocket : rockets) {
-			CelestialTeleporter.teleport(rocket, targetWorld.provider.dimensionId, rocket.posX, rocket.posY + yOffset, rocket.posZ, false);
+			CelestialTeleporter.teleport(rocket, targetWorld.provider.dimensionId, rocket.posX + xOffset, rocket.posY + yOffset, rocket.posZ + zOffset, false);
 		}
 	}
 
@@ -718,8 +727,12 @@ public class OrbitalStation {
 	}
 
 	private void loadChunks(World world, StationBounds bounds) {
-		for(int x = bounds.minX; x <= bounds.maxX; x += 16) {
-			for(int z = bounds.minZ; z <= bounds.maxZ; z += 16) {
+		loadChunks(world, bounds, 0, 0);
+	}
+
+	private void loadChunks(World world, StationBounds bounds, int xOffset, int zOffset) {
+		for(int x = bounds.minX + xOffset; x <= bounds.maxX + xOffset; x += 16) {
+			for(int z = bounds.minZ + zOffset; z <= bounds.maxZ + zOffset; z += 16) {
 				world.getChunkFromBlockCoords(x, z);
 			}
 		}
@@ -775,6 +788,56 @@ public class OrbitalStation {
 
 	private int unpackZ(long packed) {
 		return (int) packed;
+	}
+
+	private int[] findLandingColumn(WorldServer world, int preferredX, int preferredZ) {
+		if(isValidLandingColumn(world, preferredX, preferredZ)) {
+			return new int[] { preferredX, preferredZ };
+		}
+
+		final int step = 16;
+		final int maxRadiusChunks = 96;
+
+		for(int radius = 1; radius <= maxRadiusChunks; radius++) {
+			int min = -radius;
+			int max = radius;
+
+			for(int dx = min; dx <= max; dx++) {
+				int x = preferredX + dx * step;
+
+				int zMin = preferredZ + min * step;
+				if(isValidLandingColumn(world, x, zMin)) return new int[] { x, zMin };
+
+				int zMax = preferredZ + max * step;
+				if(isValidLandingColumn(world, x, zMax)) return new int[] { x, zMax };
+			}
+
+			for(int dz = min + 1; dz <= max - 1; dz++) {
+				int z = preferredZ + dz * step;
+
+				int xMin = preferredX + min * step;
+				if(isValidLandingColumn(world, xMin, z)) return new int[] { xMin, z };
+
+				int xMax = preferredX + max * step;
+				if(isValidLandingColumn(world, xMax, z)) return new int[] { xMax, z };
+			}
+		}
+
+		return new int[] { preferredX, preferredZ };
+	}
+
+	private boolean isValidLandingColumn(WorldServer world, int x, int z) {
+		world.getChunkFromBlockCoords(x, z);
+
+		if(BiomeDictionary.isBiomeOfType(world.getBiomeGenForCoords(x, z), Type.OCEAN)) {
+			return false;
+		}
+
+		int topY = world.getTopSolidOrLiquidBlock(x, z);
+		if(topY <= 1) return false;
+
+		Material topMaterial = world.getBlock(x, topY - 1, z).getMaterial();
+		return !topMaterial.isLiquid();
 	}
 
 }

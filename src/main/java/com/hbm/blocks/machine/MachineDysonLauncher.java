@@ -227,8 +227,8 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 
 		if(skyState.isNothing()) {
-			boolean hasCore = launcher.slots[0] != null && launcher.slots[0].getItem() == ModItems.singularity_spark;
-			text.add("Spark Singularity: " + (hasCore ? "Loaded" : "Missing"));
+			boolean hasCore = launcher.slots[0] != null && launcher.slots[0].getItem() == ModItems.star_core;
+			text.add("Star Core: " + (hasCore ? "Loaded" : "Missing"));
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
 		} else if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.YELLOW : EnumChatFormatting.RED;
