@@ -980,6 +980,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize, CBT_SkyState skyState) {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
+		final CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
+		final boolean noDirectSunlight = sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE;
+		final float directLight = noDirectSunlight ? 0.15F : 1.0F;
 		float blendDarken = 0.1F;
 		final float redOverlayAlpha = 0.0F;
 
@@ -1164,7 +1167,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 						renderAtmosphereGlow(tessellator, mc, metric.body, size, bodyVisibility);
 
 						GL11.glDisable(GL11.GL_BLEND);
-						GL11.glColor4f((float)bodyTextureTint.xCoord * bodyVisibility, (float)bodyTextureTint.yCoord * bodyVisibility, (float)bodyTextureTint.zCoord * bodyVisibility, bodyVisibility);
+						GL11.glColor4f(
+							(float)bodyTextureTint.xCoord * bodyVisibility * directLight,
+							(float)bodyTextureTint.yCoord * bodyVisibility * directLight,
+							(float)bodyTextureTint.zCoord * bodyVisibility * directLight,
+							bodyVisibility
+						);
 						mc.renderEngine.bindTexture(metric.body.texture);
 
 						tessellator.startDrawingQuads();
@@ -1174,7 +1182,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 						tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D + uvOffset, 1.0D);
 						tessellator.draw();
 
-						float cloudAlpha = getCloudAlpha(metric.body) * bodyVisibility;
+						float cloudAlpha = getCloudAlpha(metric.body) * bodyVisibility * directLight;
 						if(cloudAlpha > 0.001F) {
 							double cloudUvOffset = uvOffset + getCloudUvOffset(world, partialTicks, metric.body);
 
@@ -1207,36 +1215,38 @@ public class SkyProviderCelestial extends IRenderHandler {
 						int activeBlackouts = Math.min((int)(impactTime / blackoutInterval), maxBlackouts);
 
 						GL11.glEnable(GL11.GL_BLEND);
-						// Draw a shader on top to render celestial phase
-						OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
+						if(!noDirectSunlight) {
+							// Draw a shader on top to render celestial phase
+							OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
 
-						GL11.glColor4f(1.0F, 1.0F, 1.0F, bodyVisibility);
+							GL11.glColor4f(1.0F, 1.0F, 1.0F, bodyVisibility);
 
-						planetShader.use();
-						planetShader.setUniform1f("phase", (float)-metric.phase);
-						planetShader.setUniform1f("offset", (float)uvOffset);
-						planetShader.setUniform1i("lights", 0);
-						planetShader.setUniform1i("cityMask", 1);
-						planetShader.setUniform1i("blackouts", activeBlackouts);
+							planetShader.use();
+							planetShader.setUniform1f("phase", (float)-metric.phase);
+							planetShader.setUniform1f("offset", (float)uvOffset);
+							planetShader.setUniform1i("lights", 0);
+							planetShader.setUniform1i("cityMask", 1);
+							planetShader.setUniform1i("blackouts", activeBlackouts);
 
-						mc.renderEngine.bindTexture(citylights[lightIntensity]);
-						if(gl13) {
-							GL13.glActiveTexture(GL13.GL_TEXTURE1);
-							mc.renderEngine.bindTexture(metric.body.cityMask != null ? metric.body.cityMask : defaultMask);
-							GL13.glActiveTexture(GL13.GL_TEXTURE0);
+							mc.renderEngine.bindTexture(citylights[lightIntensity]);
+							if(gl13) {
+								GL13.glActiveTexture(GL13.GL_TEXTURE1);
+								mc.renderEngine.bindTexture(metric.body.cityMask != null ? metric.body.cityMask : defaultMask);
+								GL13.glActiveTexture(GL13.GL_TEXTURE0);
+							}
+
+							tessellator.startDrawingQuads();
+							tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
+							tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
+							tessellator.addVertexWithUV(size, 100.0D, size, 1.0D, 1.0D);
+							tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D, 1.0D);
+							tessellator.draw();
+
+							GL11.glEnable(GL11.GL_TEXTURE_2D);
+
+							planetShader.stop();
+
 						}
-
-						tessellator.startDrawingQuads();
-						tessellator.addVertexWithUV(-size, 100.0D, -size, 0.0D, 0.0D);
-						tessellator.addVertexWithUV(size, 100.0D, -size, 1.0D, 0.0D);
-						tessellator.addVertexWithUV(size, 100.0D, size, 1.0D, 1.0D);
-						tessellator.addVertexWithUV(-size, 100.0D, size, 0.0D, 1.0D);
-						tessellator.draw();
-
-						GL11.glEnable(GL11.GL_TEXTURE_2D);
-
-						planetShader.stop();
-
 						OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 
 						if(impact != null) {

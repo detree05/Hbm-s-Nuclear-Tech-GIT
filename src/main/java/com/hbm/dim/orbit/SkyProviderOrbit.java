@@ -23,6 +23,7 @@ import net.minecraft.util.Vec3;
 public class SkyProviderOrbit extends SkyProviderCelestial {
 
 	private static CelestialBody lastBody;
+	private static int lastBrightestPixel = 0;
 
 	@Override
 	public void render(float partialTicks, WorldClient world, Minecraft mc) {
@@ -30,6 +31,14 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 		OrbitalStation station = OrbitalStation.clientStation;
 		double progress = station.getTransferProgress(partialTicks);
 		float orbitalTilt = 80;
+
+		// Keep orbit lightmap dimming in sync with sky-state transitions.
+		if(lastBrightestPixel != mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250]) {
+			if(provider.updateLightmap(mc.entityRenderer.lightmapColors)) {
+				mc.entityRenderer.lightmapTexture.updateDynamicTexture();
+			}
+			lastBrightestPixel = mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250];
+		}
 
 		GL11.glDepthMask(false);
 		GL11.glDisable(GL11.GL_FOG);

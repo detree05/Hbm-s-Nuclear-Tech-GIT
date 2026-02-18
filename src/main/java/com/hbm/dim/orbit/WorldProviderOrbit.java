@@ -9,6 +9,7 @@ import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Destroyed;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
 import com.hbm.config.SpaceConfig;
 import com.hbm.util.AstronomyUtil;
@@ -167,6 +168,87 @@ public class WorldProviderOrbit extends WorldProvider {
 			return 0;
 
 		return 1.0F - (float)eclipseAmount;
+	}
+
+	/**
+	 * Matches celestial lightmap dimming so orbit reflects NONE/STARCORE/SUN sky-state brightness.
+	 */
+	@SideOnly(Side.CLIENT)
+	public boolean updateLightmap(int[] lightmap) {
+		boolean changed = false;
+		final int redBoost = 0;
+		final float greenBlueScale = 0.95F;
+		final float skyDim = getSkyLightDimmer();
+
+		for(int i = 0; i < lightmap.length; i++) {
+			int[] colors = unpackColor(lightmap[i]);
+			int r = colors[0];
+			int g = colors[1];
+			int b = colors[2];
+
+			if(skyDim < 1.0F) {
+				r = (int)(r * skyDim);
+				g = (int)(g * skyDim);
+				b = (int)(b * skyDim);
+			}
+
+			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
+			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
+			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
+
+			if(nr != r || ng != g || nb != b) {
+				lightmap[i] = packColor(nr, ng, nb);
+				changed = true;
+			}
+		}
+
+		return changed;
+	}
+
+	@SideOnly(Side.CLIENT)
+	private float getSkyLightDimmer() {
+		if(worldObj == null || worldObj.provider == null) {
+			return 1.0F;
+		}
+		try {
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			if(skyState.isBlackhole() || skyState.isNothing()) {
+				return skyState.isNothing() ? 0.45F : 0.0F;
+			}
+			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
+				float ratio = MathHelper.clamp_float(
+					(float)((double)skyState.getStarcoreThroughput() / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK),
+					0.0F,
+					1.0F
+				);
+				return 0.45F + (1.0F - 0.45F) * ratio;
+			}
+			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
+				float ratio = MathHelper.clamp_float(
+					(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
+					0.0F,
+					1.0F
+				);
+				return 0.45F + (1.0F - 0.45F) * ratio;
+			}
+			return 1.0F;
+		} catch(Exception ignored) {
+			return 1.0F;
+		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	private int packColor(final int r, final int g, final int b) {
+		return 255 << 24 | r << 16 | g << 8 | b;
+	}
+
+	@SideOnly(Side.CLIENT)
+	private int[] unpackColor(final int color) {
+		final int[] colors = new int[3];
+		colors[0] = color >> 16 & 255;
+		colors[1] = color >> 8 & 255;
+		colors[2] = color & 255;
+		return colors;
 	}
 
 	@Override
