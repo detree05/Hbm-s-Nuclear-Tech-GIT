@@ -17,6 +17,7 @@ import api.hbm.energymk2.IEnergyReceiverMK2;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
+import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.Vec3;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
@@ -32,6 +33,8 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	private static final float GUN_PITCH_SPEED_DEG_PER_TICK = 2.0F;
 	private static final float AIM_LOCK_TOLERANCE_DEG = 0.75F;
 	private static final int RENDER_RADIUS = 130;
+	private static final double LASER_OBSTRUCTION_CHECK_START_OFFSET = 4.0D;
+	private static final double LASER_OBSTRUCTION_CHECK_MAX_DISTANCE = 512.0D;
 
 	private long power;
 	private long receivedThisTick;
@@ -46,6 +49,8 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	private float clientGunPitch;
 	private boolean clientAimInitialized;
 	private boolean clientAimLocked;
+	private long obstructionCacheTick = Long.MIN_VALUE;
+	private boolean obstructionCached;
 
 	public TileEntityStarCoreEnergyEmitter() {
 		super(0);
@@ -133,6 +138,9 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		if(!clientAimLocked) {
 			return power;
 		}
+		if(isLaserObstructed()) {
+			return power;
+		}
 		long supportRequirement = getSupportRequirementPerTick(state, skyState);
 		long globalPerTickCap = getPerTickCap(state, skyState, supportRequirement);
 		long perInjectorCap = Math.min(globalPerTickCap, STEEL_INJECTOR_MAX_HE_PER_TICK);
@@ -172,6 +180,46 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	public boolean isClientAimLocked() {
 		return clientAimLocked;
+	}
+
+	public boolean isLaserObstructed() {
+		if(worldObj == null) return false;
+		long worldTick = worldObj.getTotalWorldTime();
+		if(obstructionCacheTick != worldTick) {
+			obstructionCached = computeLaserObstructed();
+			obstructionCacheTick = worldTick;
+		}
+		return obstructionCached;
+	}
+
+	private boolean computeLaserObstructed() {
+		if(worldObj == null || !canOperate()) return false;
+
+		CBT_SkyState.SkyState state = CBT_SkyState.get(worldObj).getState();
+		if(state != CBT_SkyState.SkyState.STARCORE && state != CBT_SkyState.SkyState.SUN) {
+			return false;
+		}
+
+		Vec3 sunDir = getSunDirectionWorld();
+		if(sunDir == null || sunDir.lengthVector() <= 1.0E-6D) return false;
+		sunDir = sunDir.normalize();
+
+		double baseX = xCoord + 0.5D;
+		double baseY = yCoord + 1.5D;
+		double baseZ = zCoord + 0.5D;
+		Vec3 start = Vec3.createVectorHelper(
+			baseX + sunDir.xCoord * LASER_OBSTRUCTION_CHECK_START_OFFSET,
+			baseY + sunDir.yCoord * LASER_OBSTRUCTION_CHECK_START_OFFSET,
+			baseZ + sunDir.zCoord * LASER_OBSTRUCTION_CHECK_START_OFFSET
+		);
+		Vec3 end = Vec3.createVectorHelper(
+			baseX + sunDir.xCoord * LASER_OBSTRUCTION_CHECK_MAX_DISTANCE,
+			baseY + sunDir.yCoord * LASER_OBSTRUCTION_CHECK_MAX_DISTANCE,
+			baseZ + sunDir.zCoord * LASER_OBSTRUCTION_CHECK_MAX_DISTANCE
+		);
+
+		MovingObjectPosition hit = worldObj.func_147447_a(start, end, false, true, false);
+		return hit != null && hit.typeOfHit == MovingObjectPosition.MovingObjectType.BLOCK;
 	}
 
 	private boolean canOperate() {
@@ -258,6 +306,9 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	private AimAngles getClientTargetAimAngles() {
 		if(worldObj == null) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
+		if(worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.orbitDimension) {
 			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
 		}
 

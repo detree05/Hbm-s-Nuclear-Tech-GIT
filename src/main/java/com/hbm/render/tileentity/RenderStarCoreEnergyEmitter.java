@@ -9,6 +9,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.trait.CBT_SkyState;
@@ -200,6 +201,9 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		if(te == null || te.getWorldObj() == null) {
 			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
 		}
+		if(te.getWorldObj().provider != null && te.getWorldObj().provider.dimensionId == SpaceConfig.orbitDimension) {
+			return new AimAngles(0.0F, GUN_PITCH_MAX_UP);
+		}
 
 		CBT_SkyState skyState = CBT_SkyState.get(te.getWorldObj());
 		CBT_SkyState.SkyState state = skyState.getState();
@@ -300,6 +304,9 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 
 		TileEntityStarCoreEnergyEmitter emitter = (TileEntityStarCoreEnergyEmitter) te;
 		if(emitter.getThroughputPerFiveTicks() <= 0L) {
+			return false;
+		}
+		if(emitter.isLaserObstructed()) {
 			return false;
 		}
 

@@ -152,7 +152,7 @@ public class MachineStarCoreEnergyEmitter extends BlockDummyable implements ILoo
 		if(world.provider != null && world.provider.dimensionId == SpaceConfig.orbitDimension) {
 			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.RED : EnumChatFormatting.YELLOW;
 			text.add(color + "! ! ! Unstable angle ! ! !");
-			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x404000, text);
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 			return;
 		}
 
@@ -165,6 +165,13 @@ public class MachineStarCoreEnergyEmitter extends BlockDummyable implements ILoo
 		if(world.provider instanceof WorldProviderKerbol) {
 			text.add(EnumChatFormatting.RED + "never.");
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
+			return;
+		}
+
+		if(emitter.isLaserObstructed()) {
+			EnumChatFormatting color = BobMathUtil.getBlink() ? EnumChatFormatting.RED : EnumChatFormatting.YELLOW;
+			text.add(color + "! ! ! Laser is obstructed ! ! !");
+			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 			return;
 		}
 
