@@ -63,7 +63,6 @@ import com.hbm.handler.ArmorModHandler;
 import com.hbm.handler.BobmazonOfferFactory;
 import com.hbm.handler.BossSpawnHandler;
 import com.hbm.handler.EntityEffectHandler;
-import com.hbm.handler.packet.PacketOptimizationHandler;
 import com.hbm.handler.HTTPHandler;
 import com.hbm.handler.HbmKeybinds.EnumKeybind;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
@@ -978,7 +977,7 @@ public class ModEventHandler {
 		if(event.entityLiving instanceof EntityPlayerMP && prevArmor != null && event.entityLiving.getHeldItem() != null
 				&& (prevArmor[0] == null || prevArmor[0].getItem() != event.entityLiving.getHeldItem().getItem())
 				&& event.entityLiving.getHeldItem().getItem() instanceof IEquipReceiver) {
-
+			
 			((IEquipReceiver)event.entityLiving.getHeldItem().getItem()).onEquip((EntityPlayer) event.entityLiving, event.entityLiving.getHeldItem());
 		}
 
@@ -2164,8 +2163,6 @@ public class ModEventHandler {
 		if(evt.entity instanceof EntityMissileCustom) {
 			((EntityMissileCustom) evt.entity).loadNeighboringChunks(evt.newChunkX, evt.newChunkZ);
 		}*/
-
-		PacketOptimizationHandler.onChunkEntered(evt);
 	}
 
 	@SubscribeEvent

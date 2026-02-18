@@ -69,8 +69,6 @@ public class TileEntityMachineBattery extends TileEntityMachineBase implements I
 
 	private String customName;
 
-	public boolean isIndirectlyPowered;
-
 	public TileEntityMachineBattery() {
 		super(2);
 		slots = new ItemStack[2];
@@ -118,7 +116,6 @@ public class TileEntityMachineBattery extends TileEntityMachineBase implements I
 		this.redHigh = nbt.getShort("redHigh");
 		this.lastRedstone = nbt.getByte("lastRedstone");
 		this.priority = ConnectionPriority.values()[nbt.getByte("priority")];
-		this.isIndirectlyPowered = nbt.getBoolean("redstone");
 
 		customName = nbt.getString("name");
 	}
@@ -132,7 +129,6 @@ public class TileEntityMachineBattery extends TileEntityMachineBase implements I
 		nbt.setShort("redHigh", redHigh);
 		nbt.setByte("lastRedstone", lastRedstone);
 		nbt.setByte("priority", (byte)this.priority.ordinal());
-		nbt.setBoolean("redstone", this.isIndirectlyPowered);
 
 		if (customName != null) {
 			nbt.setString("name", customName);
@@ -300,7 +296,7 @@ public class TileEntityMachineBattery extends TileEntityMachineBase implements I
 	private short modeCache = 0;
 	public short getRelevantMode(boolean useCache) {
 		if(useCache) return this.modeCache;
-		this.modeCache = isIndirectlyPowered ? this.redHigh : this.redLow;
+		this.modeCache = worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord) ? this.redHigh : this.redLow;
 		return this.modeCache;
 	}
 

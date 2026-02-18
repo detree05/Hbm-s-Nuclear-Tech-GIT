@@ -47,7 +47,6 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	// due to some issues with OC deciding that it's gonna call the component name function before the worldObj is loaded
 	// the component name must be cached to prevent it from shitting itself
 	String componentName = CompatHandler.nullComponent;
-	boolean supportsOC;
 
 	public TileEntityProxyCombo() { }
 
@@ -88,7 +87,6 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	public TileEntity getTile() {
 		if(tile == null || tile.isInvalid() || (tile instanceof TileEntityLoadedBase && !((TileEntityLoadedBase) tile).isLoaded)) {
 			tile = this.getTE();
-			supportsOC = tile instanceof OCComponent;
 		}
 		return tile;
 	}
@@ -507,9 +505,9 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	@Override // please work
 	@Optional.Method(modid = "OpenComputers")
 	public String getComponentName() {
-		if (this.worldObj == null) // OC is going too fast, grab from NBT!
+		if(this.worldObj == null) // OC is going too fast, grab from NBT!
 			return componentName;
-		if (supportsOC) {
+		if(this.getCoreObject() instanceof OCComponent) {
 			if (componentName == null || componentName.equals(OCComponent.super.getComponentName())) {
 				componentName = ((OCComponent) this.getCoreObject()).getComponentName();
 			}
@@ -521,7 +519,7 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	@Override
 	@Optional.Method(modid = "OpenComputers")
 	public boolean canConnectNode(ForgeDirection side) {
-		if (supportsOC) {
+		if(this.getCoreObject() instanceof OCComponent) {
 			boolean isComponent = false;
 			if (this.worldObj != null) {
 				Object nodeTE = Compat.getTileStandard(this.worldObj, this.xCoord + side.offsetX, this.yCoord + side.offsetY, this.zCoord + side.offsetZ);
@@ -543,7 +541,7 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	@Override
 	@Optional.Method(modid = "OpenComputers")
 	public String[] methods() {
-		if(supportsOC)
+		if(this.getCoreObject() instanceof OCComponent)
 			return ((OCComponent) this.getCoreObject()).methods();
 		return OCComponent.super.methods();
 	}
@@ -551,7 +549,7 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 	@Override
 	@Optional.Method(modid = "OpenComputers")
 	public Object[] invoke(String method, Context context, Arguments args) throws Exception {
-		if(supportsOC)
+		if(this.getCoreObject() instanceof OCComponent)
 			return ((OCComponent) this.getCoreObject()).invoke(method, context, args);
 		return OCComponent.super.invoke(null, null, null);
 	}

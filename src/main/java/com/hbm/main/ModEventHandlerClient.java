@@ -30,7 +30,6 @@ import com.hbm.handler.HTTPHandler;
 import com.hbm.handler.HazmatRegistry;
 import com.hbm.handler.HbmKeybinds;
 import com.hbm.handler.ImpactWorldHandler;
-import com.hbm.handler.packet.PacketOptimizationHandler;
 import com.hbm.hazard.HazardRegistry;
 import com.hbm.hazard.HazardSystem;
 import com.hbm.hazard.type.HazardTypeNeutron;
@@ -143,7 +142,6 @@ import net.minecraftforge.client.event.RenderGameOverlayEvent.ElementType;
 import net.minecraftforge.client.event.sound.PlaySoundEvent17;
 import net.minecraftforge.common.ForgeHooks;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.event.world.ChunkEvent;
 import net.minecraftforge.oredict.OreDictionary;
 
 import org.lwjgl.input.Keyboard;
@@ -1593,7 +1591,7 @@ public class ModEventHandlerClient {
 			if(ArmorUtil.isWearingEmptyMask(mc.thePlayer)) {
 				MainRegistry.proxy.displayTooltip(EnumChatFormatting.RED + "Your mask has no filter!", ServerProxy.ID_FILTER);
 			}
-
+			
 			//prune other entities' muzzle flashes
 			if(mc.theWorld.getTotalWorldTime() % 30 == 0) {
 				long millis = System.currentTimeMillis();
@@ -2613,10 +2611,5 @@ public class ModEventHandlerClient {
 			double d = Math.random();
 			if(d < 0.1) main.splashText = "Redditors aren't people!";
 		}
-	}
-
-	@SubscribeEvent
-	public void onChunkLoad(ChunkEvent.Load event) {
-		PacketOptimizationHandler.onChunkLoad(event);
 	}
 }

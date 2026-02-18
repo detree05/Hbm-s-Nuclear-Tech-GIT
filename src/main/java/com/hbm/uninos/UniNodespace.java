@@ -1,6 +1,10 @@
 package com.hbm.uninos;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.Map.Entry;
 
 import com.hbm.util.Tuple.Pair;
@@ -20,8 +24,8 @@ import net.minecraft.world.World;
  */
 public class UniNodespace {
 
-	public static Map<World, UniNodeWorld> worlds = new HashMap<>();
-	public static Set<NodeNet> activeNodeNets = new LinkedHashSet<>();
+	public static Map<World, UniNodeWorld> worlds = new HashMap();
+	public static Set<NodeNet> activeNodeNets = new HashSet();
 
 	public static GenNode getNode(World world, int x, int y, int z, INetworkProvider type) {
 		UniNodeWorld nodeWorld = worlds.get(world);
@@ -75,27 +79,17 @@ public class UniNodespace {
 
 	private static void updateNetworks() {
 
-		List<NodeNet> nets = new ArrayList<>(activeNodeNets); // put into array list to increase speed of iteration
-
-		for(NodeNet net : nets) net.resetTrackers(); //reset has to be done before everything else
-		for(NodeNet net : nets) net.update();
-
-		// reap empty networks
-		List<NodeNet> toRemove = new ArrayList<>();
-
+		for(NodeNet net : activeNodeNets) net.resetTrackers(); //reset has to be done before everything else
+		for(NodeNet net : activeNodeNets) net.update();
+		
 		if(reapTimer <= 0) {
-			for (NodeNet net : nets) {
-				net.links.removeIf((link) -> ((GenNode) link).expired);
-				if (net.links.isEmpty()) toRemove.add(net);
-			}
+			activeNodeNets.forEach((net) -> { net.links.removeIf((link) -> { return ((GenNode) link).expired; }); });
+			activeNodeNets.removeIf((net) -> { return net.links.size() <= 0; }); // reap empty networks
 		}
-
-		for (NodeNet net : toRemove)
-			activeNodeNets.remove(net);
 	}
-
+	
 	private static void updateReapTimer() {
-		if(reapTimer <= 0) reapTimer = 5 * 60 * 20; // 5 minutes is more than plenty
+		if(reapTimer <= 0) reapTimer = 5 * 60 * 20; // 5 minutes is more than plenty 
 		else reapTimer--;
 	}
 

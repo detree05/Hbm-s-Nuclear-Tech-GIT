@@ -117,8 +117,6 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 	public int casingDelay;
 	protected SpentCasing cachedCasingConfig = null;
 
-	protected List<String> cachedWhitelist = null;
-
 	/**
 	 * 		 X
 	 *
@@ -343,14 +341,6 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 		return null;
 	}
 
-	@Override
-	public void setInventorySlotContents(int slot, ItemStack itemStack) {
-		super.setInventorySlotContents(slot, itemStack);
-
-		if (slot == 0) // Clear the whitelist cache when the AI chip is potentially changed.
-			cachedWhitelist = null;
-	}
-
 	public void spawnBullet(BulletConfig bullet, float baseDamage) {
 
 		Vec3 pos = this.getTurretPos();
@@ -391,9 +381,6 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 	 */
 	public List<String> getWhitelist() {
 
-		if (cachedWhitelist != null)
-			return cachedWhitelist;
-
 		if(slots[0] != null && slots[0].getItem() == ModItems.turret_chip) {
 
 			String[] array = ItemTurretBiometry.getNames(slots[0]);
@@ -401,7 +388,7 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 			if(array == null)
 				return null;
 
-			return cachedWhitelist = Arrays.asList(ItemTurretBiometry.getNames(slots[0]));
+			return Arrays.asList(ItemTurretBiometry.getNames(slots[0]));
 		}
 
 		return null;
@@ -415,7 +402,6 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 
 		if(slots[0] != null && slots[0].getItem() == ModItems.turret_chip) {
 			ItemTurretBiometry.addName(slots[0], name);
-			cachedWhitelist.add(name);
 		}
 	}
 
@@ -439,8 +425,6 @@ public abstract class TileEntityTurretBaseNT extends TileEntityMachineBase imple
 
 			for(String name : names)
 				ItemTurretBiometry.addName(slots[0], name);
-
-			cachedWhitelist.remove(index);
 		}
 	}
 

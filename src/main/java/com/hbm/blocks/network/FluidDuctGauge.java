@@ -11,7 +11,6 @@ import com.hbm.inventory.fluid.Fluids;
 import com.hbm.lib.RefStrings;
 import com.hbm.render.block.RenderBlockMultipass;
 import com.hbm.tileentity.network.TileEntityPipeBaseNT;
-import com.hbm.util.ExponentialMovingAverage;
 import com.hbm.util.i18n.I18nUtil;
 
 import com.hbm.world.gen.nbt.INBTBlockTransformable;
@@ -101,7 +100,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 		List<String> text = new ArrayList();
 		text.add("&[" + duct.getType().getColor() + "&]" + duct.getType().getLocalizedName());
 		text.add(String.format(Locale.US, "%,d", duct.deltaTick) + " mB/t");
-		text.add(String.format(Locale.US, "%,d", duct.lastSecond) + " mB/s");
+		text.add(String.format(Locale.US, "%,d", duct.deltaLastSecond) + " mB/s");
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 	}
 
@@ -120,8 +119,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 
 		private long deltaTick = 0;
 		private long deltaSecond = 0;
-		private long lastSecond = 0;
-		private final ExponentialMovingAverage secondEMA = new ExponentialMovingAverage(0.05);
+		private long deltaLastSecond = 0;
 
 		@Override
 		public void updateEntity() {
@@ -133,7 +131,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 
 					this.deltaTick = ((FluidNetMK2) this.node.net).fluidTracker;
 					if(worldObj.getTotalWorldTime() % 20 == 0) {
-						secondEMA.next(this.lastSecond = this.deltaSecond);
+						this.deltaLastSecond = this.deltaSecond;
 						this.deltaSecond = 0;
 					}
 					this.deltaSecond += deltaTick;
@@ -146,13 +144,13 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 		@Override
 		public void serialize(ByteBuf buf) {
 			buf.writeLong(deltaTick);
-			buf.writeLong(secondEMA.getValue());
+			buf.writeLong(deltaLastSecond);
 		}
 
 		@Override
 		public void deserialize(ByteBuf buf) {
 			this.deltaTick = Math.max(buf.readLong(), 0);
-			this.lastSecond = Math.max(buf.readLong(), 0);
+			this.deltaLastSecond = Math.max(buf.readLong(), 0);
 		}
 
 		@Optional.Method(modid = "OpenComputers")
@@ -163,7 +161,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 		@Callback(direct = true)
 		@Optional.Method(modid = "OpenComputers")
 		public Object[] getTransfer(Context context, Arguments args) {
-			return new Object[] {deltaTick, lastSecond};
+			return new Object[] {deltaTick, deltaLastSecond};
 		}
 
 		@Callback(direct = true)
@@ -175,7 +173,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 		@Callback(direct = true)
 		@Optional.Method(modid = "OpenComputers")
 		public Object[] getInfo(Context context, Arguments args) {
-			return new Object[] {deltaTick, lastSecond, getType().getName(), xCoord, yCoord, zCoord};
+			return new Object[] {deltaTick, deltaLastSecond, getType().getName(), xCoord, yCoord, zCoord};
 		}
 
 		@Override
@@ -189,7 +187,7 @@ public class FluidDuctGauge extends FluidDuctBase implements IBlockMultiPass, IN
 		@Override
 		public String provideRORValue(String name) {
 			if((PREFIX_VALUE + "deltatick").equals(name))	return "" + deltaTick;
-			if((PREFIX_VALUE + "deltasecond").equals(name))	return "" + lastSecond;
+			if((PREFIX_VALUE + "deltasecond").equals(name))	return "" + deltaLastSecond;
 			return null;
 		}
 	}
