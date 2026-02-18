@@ -1,6 +1,7 @@
 package com.hbm.util;
 
 import com.hbm.blocks.ModBlocks;
+import com.hbm.dim.SolarSystem;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
 import com.hbm.items.ModItems;
 import com.hbm.main.MainRegistry;
@@ -50,6 +51,7 @@ public class AchievementHandler {
 		craftingAchievements.put(new ComparableStack(ModBlocks.machine_assembly_machine), MainRegistry.achAssembly);
 		craftingAchievements.put(new ComparableStack(ModItems.billet_pu_mix), MainRegistry.achChicagoPile);
 		craftingAchievements.put(new ComparableStack(ModItems.particle_digamma), MainRegistry.achOmega12);
+		craftingAchievements.put(new ComparableStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL), MainRegistry.achFutileEscapism);
 	}
 
 	public static void fire(EntityPlayer player, ItemStack stack) {

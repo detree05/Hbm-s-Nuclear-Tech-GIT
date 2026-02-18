@@ -29,6 +29,13 @@ public class CryoRecipes extends SerializableRecipe {
 			new FluidStack(Fluids.CARBONDIOXIDE, 5)
 		));
 
+		recipes.put(Fluids.EARTHAIR, new Quartet<>(
+			new FluidStack(Fluids.NITROGEN, 60),
+			new FluidStack(Fluids.OXYGEN, 25),
+			new FluidStack(Fluids.KRYPTON, 10),
+			new FluidStack(Fluids.CARBONDIOXIDE, 5)
+		));
+
 		recipes.put(Fluids.TEKTOAIR, new Quartet<>(
 			new FluidStack(Fluids.CHLOROMETHANE, 55),
 			new FluidStack(Fluids.CHLORINE, 25),
