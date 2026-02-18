@@ -49,6 +49,7 @@ public class EntityVoidStaresBack extends EntityLiving {
         this.noClip = true;
         this.preventEntitySpawning = true;
         this.setSize(0.1F, 0.1F);
+        this.ignoreFrustumCheck = true;
 
         if(!world.isRemote) {
             setRandomRectSize();

@@ -1449,8 +1449,13 @@ public class SkyProviderCelestial extends IRenderHandler {
 		if(fluid == Fluids.EVEAIR) {
 			return Vec3.createVectorHelper(53F / 255F, 32F / 255F, 74F / 255F);
 		}
-		if(fluid == Fluids.DUNAAIR || fluid == Fluids.CARBONDIOXIDE) {
-			return Vec3.createVectorHelper(212F / 255F, 112F / 255F, 78F / 255F);
+		if(fluid == Fluids.DUNAAIR) {
+			// Slightly redder "red sand" tint for Duna-like atmospheres.
+			return Vec3.createVectorHelper(198F / 255F, 96F / 255F, 64F / 255F);
+		}
+		if(fluid == Fluids.CARBONDIOXIDE) {
+			// Neutral/desaturated CO2 tint.
+			return Vec3.createVectorHelper(188F / 255F, 192F / 255F, 198F / 255F);
 		}
 		if(fluid == Fluids.EARTHAIR || fluid == Fluids.OXYGEN || fluid == Fluids.NITROGEN) {
 			return Vec3.createVectorHelper(0.7529412F, 0.84705883F, 1.0F);
