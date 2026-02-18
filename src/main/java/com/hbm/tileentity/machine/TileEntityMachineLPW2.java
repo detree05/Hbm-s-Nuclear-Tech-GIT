@@ -247,7 +247,7 @@ public class TileEntityMachineLPW2 extends TileEntityMachineBase implements IPro
 	@Override
 	public void addErrors(List<String> errors) {
 		if(OrbitalStation.isMinmusAttempt(this)) {
-			errors.add(EnumChatFormatting.RED + "Its gone...");
+			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
 		if(OrbitalStation.isKerbolAttempt(this)) {

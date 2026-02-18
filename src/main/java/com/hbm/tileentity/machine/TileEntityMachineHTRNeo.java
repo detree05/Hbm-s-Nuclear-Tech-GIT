@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.SolarSystem;
+import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.handler.atmosphere.IBlockSealable;
 import com.hbm.inventory.recipes.FusionRecipe;
 import com.hbm.main.MainRegistry;
@@ -237,7 +238,7 @@ public class TileEntityMachineHTRNeo extends TileEntityCooledBase implements IPr
 	@Override
 	public void addErrors(List<String> errors) {
 		if(OrbitalStation.isMinmusAttempt(this)) {
-			errors.add(EnumChatFormatting.RED + "Its gone...");
+			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
 		if(OrbitalStation.isKerbolAttempt(this)) {

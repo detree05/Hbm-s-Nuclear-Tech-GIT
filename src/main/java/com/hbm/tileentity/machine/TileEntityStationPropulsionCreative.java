@@ -58,7 +58,7 @@ public class TileEntityStationPropulsionCreative extends TileEntity implements I
 	@Override
 	public void addErrors(List<String> errors) {
 		if(OrbitalStation.isMinmusAttempt(this)) {
-			errors.add(EnumChatFormatting.RED + "Its gone...");
+			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
 		if(OrbitalStation.isKerbolAttempt(this)) {

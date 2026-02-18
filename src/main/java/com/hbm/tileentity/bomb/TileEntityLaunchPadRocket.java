@@ -427,7 +427,7 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 
 	public static void findTravelIssues(List<String> issues, RocketStruct rocket, Target from, Target to) {
 		if(to.body != null && to.body.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
-			issues.add(EnumChatFormatting.RED + "Its gone...");
+			issues.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
 		if(to.body != null && to.body.getEnum() == SolarSystem.Body.KERBOL) {

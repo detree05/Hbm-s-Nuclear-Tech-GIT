@@ -139,7 +139,7 @@ public class RocketStruct {
 
 		if(from != null && to != null) {
 			if(to.getEnum() == SolarSystem.Body.MINMUS && SolarSystem.isMinmusDestroyed()) {
-				issues.add(EnumChatFormatting.RED + "Its gone...");
+				issues.add(EnumChatFormatting.RED + "It's gone...");
 				return issues;
 			}
 			if(to.getEnum() == SolarSystem.Body.KERBOL) {
