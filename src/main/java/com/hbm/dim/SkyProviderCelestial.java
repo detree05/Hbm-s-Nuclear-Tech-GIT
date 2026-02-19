@@ -324,11 +324,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 			// Scale sun size for rendering (texture is 4 times larger than actual, for glow)
 			double sunSize = SolarSystem.calculateSunSize(body) * SolarSystem.SUN_RENDER_SCALE;
 			double coronaSize = sunSize * (3 - MathHelper.clamp_float(pressure, 0.0F, 1.0F));
-
-			renderSun(partialTicks, world, mc, sun, sunSize, coronaSize, visibility, pressure);
-
 			float blendAmount = hasAtmosphere ? MathHelper.clamp_float(1 - world.getSunBrightnessFactor(partialTicks), 0.25F, 1F) : 1F;
 
+			// Render injector beams before the sun so the sun always draws above them.
+			renderInjectorLinesPass(partialTicks, world, celestialProvider.metrics, null, visibility, skyState);
+			renderSun(partialTicks, world, mc, sun, sunSize, coronaSize, visibility, pressure);
 			renderCelestials(partialTicks, world, mc, celestialProvider.metrics, solarAngle, null, planetTint, visibility, blendAmount, null, SolarSystem.MAX_APPARENT_SIZE_SURFACE, skyState);
 
 			GL11.glEnable(GL11.GL_BLEND);
@@ -979,6 +979,42 @@ public class SkyProviderCelestial extends IRenderHandler {
 		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ONE, GL11.GL_ZERO);
 	}
 
+	protected void renderInjectorLinesPass(float partialTicks, WorldClient world, List<AstroMetric> metrics, CelestialBody orbiting, float visibility, CBT_SkyState skyState) {
+		if(metrics == null || skyState == null || visibility <= 0.05F) {
+			return;
+		}
+
+		Tessellator tessellator = Tessellator.instance;
+		double maxDistance = 0.0D;
+		for(AstroMetric metric : metrics) {
+			if(metric.distance > maxDistance) {
+				maxDistance = metric.distance;
+			}
+		}
+		if(maxDistance <= 0.0D) {
+			maxDistance = 1.0D;
+		}
+
+		for(AstroMetric metric : metrics) {
+			if(metric.distance == 0 || metric.body == null || !metric.body.canLand) {
+				continue;
+			}
+
+			int injectorCount = skyState.getInjectorCount(metric.body.dimensionId);
+			if(injectorCount <= 0) {
+				continue;
+			}
+
+			boolean orbitingThis = metric.body == orbiting;
+			float axialTilt = orbitingThis ? 0.0F : metric.body.axialTilt;
+			float distanceFactor = (float)MathHelper.clamp_double(metric.distance / maxDistance, 0.0D, 1.0D);
+			float lineWidth = MathHelper.clamp_float((2.5F - 1.75F * distanceFactor) * 1.05F, 1.8F, 9.0F);
+			float time = (float)(world.getTotalWorldTime() + partialTicks);
+			float spinAngle = (float)(((world.getTotalWorldTime() + partialTicks) / 1024.0D) * Math.PI * 2.0D);
+			renderInjectorLines(tessellator, metric, axialTilt, injectorCount, visibility, lineWidth, time, spinAngle);
+		}
+	}
+
 	protected void renderCelestials(float partialTicks, WorldClient world, Minecraft mc, List<AstroMetric> metrics, float solarAngle, CelestialBody tidalLockedBody, Vec3 planetTint, float visibility, float blendAmount, CelestialBody orbiting, float maxSize, CBT_SkyState skyState) {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
@@ -1013,18 +1049,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 			double uvOffset = orbitingThis ? 1 - ((((double)world.getWorldTime() + partialTicks) / 1024) % 1) : 0;
 			float axialTilt = orbitingThis ? 0 : metric.body.axialTilt;
 			Vec3 bodyTextureTint = getBodyTextureTint(metric.body);
-
-			int injectorCount = 0;
-			if(skyState != null && metric.body != null && metric.body.canLand) {
-				injectorCount = skyState.getInjectorCount(metric.body.dimensionId);
-			}
-			if(injectorCount > 0 && bodyVisibility > 0.05F) {
-				float distanceFactor = (float)MathHelper.clamp_double(metric.distance / maxDistance, 0.0D, 1.0D);
-				float lineWidth = MathHelper.clamp_float((2.5F - 1.75F * distanceFactor) * 1.05F, 1.8F, 9.0F);
-				float time = (float)(world.getTotalWorldTime() + partialTicks);
-				float spinAngle = (float)(((world.getTotalWorldTime() + partialTicks) / 1024.0D) * Math.PI * 2.0D);
-				renderInjectorLines(tessellator, metric, axialTilt, injectorCount, bodyVisibility, lineWidth, time, spinAngle);
-			}
 
 			GL11.glPushMatrix();
 			{

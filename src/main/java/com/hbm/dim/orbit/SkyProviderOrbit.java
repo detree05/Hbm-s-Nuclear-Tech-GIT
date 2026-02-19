@@ -87,12 +87,13 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 			}
 			double coronaSize = sunSize * (3 - Library.smoothstep(Math.abs(celestialPhase), 0.7, 0.8));
 
-			renderSun(partialTicks, world, mc, station.orbiting.getStar(), sunSize, coronaSize, 1, 0);
-
 			CelestialBody orbiting = station.orbiting;
 			if(station.state != StationState.ORBIT && progress > 0.5) orbiting = station.target;
 
 			CBT_SkyState skyState = station.orbiting != null ? station.orbiting.getStar().getTrait(CBT_SkyState.class) : null;
+			renderInjectorLinesPass(partialTicks, world, provider.metrics, orbiting, 1.0F, skyState);
+			renderSun(partialTicks, world, mc, station.orbiting.getStar(), sunSize, coronaSize, 1, 0);
+
 			renderCelestials(partialTicks, world, mc, provider.metrics, solarAngle, null, Vec3.createVectorHelper(0, 0, 0), 1, 1, orbiting, SolarSystem.MAX_APPARENT_SIZE_ORBIT, skyState);
 
 		}
