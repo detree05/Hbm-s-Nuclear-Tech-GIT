@@ -170,6 +170,10 @@ public class OreDictManager {
 	public static final DictFrame GH336 = new DictFrame("Ghiorsium336", "Gh336");
 	public static final DictFrame MUD = new DictFrame("WatzMud");
 	public static final DictFrame CN989 = new DictFrame("Chinesium989", "Cn989");
+	public static final DictFrame MC45 = new DictFrame("Moscovium45", "Mc45");
+	public static final DictFrame ETHYROITE = new DictFrame("Ethyroite");
+	public static final DictFrame RIFT = new DictFrame("Rift");
+	public static final DictFrame ABYSS = new DictFrame("Abyss");
 	/*
 	 * STABLE
 	 */
@@ -427,6 +431,7 @@ public class OreDictManager {
 		GH336	.rad(HazardRegistry.gh336)							.nugget(nugget_gh336)		.billet(billet_gh336)		.ingot(ingot_gh336);
 		MUD		.rad(HazardRegistry.mud)																					.ingot(ingot_mud);
 		CN989   .rad(HazardRegistry.cn989)  .hot(4F)                .nugget(nugget_cn989)       .billet(billet_cn989)       .ingot(ingot_cn989)         .dust(powder_cn989)         .plate(plate_cn989);
+		MC45	.rad(HazardRegistry.mc45)																					.ingot(ingot_mc45);
 
 		/*
 		 * STABLE
@@ -488,6 +493,9 @@ public class OreDictManager {
 		GAAS		.nugget(nugget_gaas)									.ingot(ingot_gaas)													.billet(billet_gaas);
 		HAFNIUM		.nugget(nugget_hafnium)									.ingot(ingot_hafnium);
 		IRIDIUM		.ingot(ingot_iridium);
+		ETHYROITE	.ingot(ingot_ethyroite);
+		RIFT		.ingot(ingot_rift);
+		ABYSS		.ingot(ingot_abyss);
 
 
 		OSMIRIDIUM	.nugget(nugget_osmiridium)								.ingot(ingot_osmiridium);
@@ -566,6 +574,10 @@ public class OreDictManager {
 		XE135	.rad(HazardRegistry.xe135)	.hot(10F)				.dustSmall(powder_xe135_tiny)	.dust(powder_xe135);
 		CS137	.rad(HazardRegistry.cs137)	.hot(3F)	.hydro(3F)	.dustSmall(powder_cs137_tiny)	.dust(powder_cs137);
 		AT209	.rad(HazardRegistry.at209)	.hot(20F)												.dust(powder_at209);
+		OreDictionary.registerOre("Moscovium45", ingot_mc45);
+		OreDictionary.registerOre("Mc45", ingot_mc45);
+		OreDictionary.registerOre("Ethyroite", ingot_ethyroite);
+		OreDictionary.registerOre("Abyss", ingot_abyss);
 
 		/*
 		 * COLLECTIONS

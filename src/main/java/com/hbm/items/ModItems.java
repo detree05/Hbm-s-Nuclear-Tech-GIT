@@ -187,6 +187,10 @@ public class ModItems {
 	public static Item ingot_magnetized_tungsten;
 	public static Item ingot_combine_steel;
 	public static Item ingot_solinium;
+	public static Item ingot_mc45;
+	public static Item ingot_ethyroite;
+	public static Item ingot_rift;
+	public static Item ingot_abyss;
 	public static Item nugget_solinium;
 	public static Item ingot_phosphorus;
 	public static Item ingot_semtex;
@@ -2536,6 +2540,10 @@ public class ModItems {
 		plate_desh = new Item().setUnlocalizedName("plate_desh").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":plate_desh");
 		plate_bismuth = new ItemCustomLore().setUnlocalizedName("plate_bismuth").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":plate_bismuth");
 		ingot_solinium = new Item().setUnlocalizedName("ingot_solinium").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_solinium");
+		ingot_mc45 = new Item().setUnlocalizedName("ingot_mc45").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_mc45");
+		ingot_ethyroite = new Item().setUnlocalizedName("ingot_ethyroite").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_ethyroite");
+		ingot_rift = new ItemCustomLore().setUnlocalizedName("ingot_rift").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_rift");
+		ingot_abyss = new ItemCustomLore().setUnlocalizedName("ingot_abyss").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_abyss");
 		nugget_solinium = new Item().setUnlocalizedName("nugget_solinium").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":nugget_solinium");
 		photo_panel = new Item().setUnlocalizedName("photo_panel").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":photo_panel");
 		beryllium_mirror = new Item().setUnlocalizedName("beryllium_mirror").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":beryllium_mirror");
@@ -5479,6 +5487,7 @@ public class ModItems {
 		GameRegistry.registerItem(ingot_solinium, ingot_solinium.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_gh336, ingot_gh336.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_cn989, ingot_cn989.getUnlocalizedName());
+		GameRegistry.registerItem(ingot_mc45, ingot_mc45.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_uranium_fuel, ingot_uranium_fuel.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_thorium_fuel, ingot_thorium_fuel.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_plutonium_fuel, ingot_plutonium_fuel.getUnlocalizedName());
@@ -5506,6 +5515,9 @@ public class ModItems {
 		GameRegistry.registerItem(ingot_smore, ingot_smore.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_osmiridium, ingot_osmiridium.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_hafnium, ingot_hafnium.getUnlocalizedName());
+		GameRegistry.registerItem(ingot_ethyroite, ingot_ethyroite.getUnlocalizedName());
+		GameRegistry.registerItem(ingot_rift, ingot_rift.getUnlocalizedName());
+		GameRegistry.registerItem(ingot_abyss, ingot_abyss.getUnlocalizedName());
 
 
 		//Meteorite Ingots
