@@ -273,8 +273,8 @@ public class ItemBedrockOreNew extends Item {
 			);
 			register(
 				SolarSystem.Body.KERBOL,
-				T("rift", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_SATURN, 18),			o(MAT_SCHRABIDIUM, 9),		o(MAT_EUPHEMIUM, 6),		o(MAT_RIFT, 3)),
-				T("abyss", "heavy",		0xE8E8E8, 0xC8C8C8,	o(MAT_DESH, 18),			o(MAT_YHARONITE, 9),		o(MAT_ETHYROITE, 6),		o(MAT_ABYSS, 3))
+				T("rift", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_SATURN, 18),			o(MAT_SCHRABIDIUM, 4),		o(MAT_EUPHEMIUM, 2),		o(MAT_RIFT, 1)),
+				T("abyss", "heavy",		0xE8E8E8, 0xC8C8C8,	o(MAT_DESH, 18),			o(MAT_YHARONITE, 4),		o(MAT_ETHYROITE, 2),		o(MAT_ABYSS, 1))
 			);
 			/*
 			register(

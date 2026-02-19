@@ -189,6 +189,8 @@ public class MainRegistry {
 	public static Achievement achStratum;
 	public static Achievement achOmega12;
 	public static Achievement achFutileEscapism;
+	public static Achievement achItFeelsPain;
+	public static Achievement achItLives;
 	public static Achievement achSomeWounds;
 	public static Achievement achSlimeball;
 	public static Achievement achSulfuric;
@@ -408,6 +410,8 @@ public class MainRegistry {
 		achStratum = new Achievement("achievement.stratum", "stratum", -4, -2, new ItemStack(ModBlocks.stone_gneiss), null).initIndependentStat().setSpecial().registerStat();
 		achOmega12 = new Achievement("achievement.omega12", "omega12", 17, -1, ModItems.particle_digamma, null).initIndependentStat().setSpecial().registerStat();
 		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal()), achOmega12).initIndependentStat().registerStat();
+		achItFeelsPain = new Achievement("achievement.itFeelsPain", "itFeelsPain", 15, 1, ModItems.ingot_rift, achFutileEscapism).initIndependentStat().registerStat();
+		achItLives = new Achievement("achievement.itLives", "itLives", 19, 1, ModItems.ingot_abyss, achFutileEscapism).initIndependentStat().registerStat();
 
 		achNo9 = new Achievement("achievement.no9", "no9", -8, 12, ModItems.no9, null).initIndependentStat().registerStat();
 		achSlimeball = new Achievement("achievement.slimeball", "slimeball", -10, 6, DictFrame.fromOne(ModItems.achievement_icon, EnumAchievementType.ACID), null).initIndependentStat().registerStat();
@@ -485,6 +489,8 @@ public class MainRegistry {
 			achStratum,
 			achOmega12,
 			achFutileEscapism,
+			achItFeelsPain,
+			achItLives,
 			bobHidden,
 			horizonsStart,
 			horizonsEnd,
