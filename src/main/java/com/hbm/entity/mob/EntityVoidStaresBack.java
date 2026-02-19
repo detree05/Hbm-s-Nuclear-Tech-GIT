@@ -8,6 +8,7 @@ import com.hbm.sound.AudioWrapper;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.EnumChatFormatting;
@@ -182,6 +183,7 @@ public class EntityVoidStaresBack extends EntityLiving {
 				);
 				double dist = toTarget.lengthVector();
 				if(dist < 1.0D) {
+					forceDisconnectTarget(target);
 					this.setDead();
 					return;
 				}
@@ -280,6 +282,32 @@ public class EntityVoidStaresBack extends EntityLiving {
 			}
 		}
 		return worldObj.getClosestPlayerToEntity(this, 128.0D);
+	}
+
+	private void forceDisconnectTarget(EntityPlayer target) {
+		if(target == null) {
+			return;
+		}
+
+		String host = "p l  a y  e r";
+		try {
+			host = InetAddress.getLocalHost().getHostName();
+		} catch (UnknownHostException ignored) {
+		}
+
+		String message =
+			EnumChatFormatting.RED + "[Server thread/ERROR]: Encountered an unexpected exception at com.hbm.entity." +
+			EnumChatFormatting.DARK_RED + EnumChatFormatting.OBFUSCATED + "VOIDSTARESBACK" +
+			EnumChatFormatting.RED + ".func_70636_d:160 FATAL -- [" +
+			EnumChatFormatting.DARK_RED + host +
+			EnumChatFormatting.RED + "]";
+
+		if(target instanceof EntityPlayerMP) {
+			EntityPlayerMP mp = (EntityPlayerMP) target;
+			if(mp.playerNetServerHandler != null) {
+				mp.playerNetServerHandler.kickPlayerFromServer(message);
+			}
+		}
 	}
 
 	private EntityPlayer getWatchingPlayer() {

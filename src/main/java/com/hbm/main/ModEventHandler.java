@@ -1067,7 +1067,7 @@ public class ModEventHandler {
 			StarcoreThroughputTracker.tick(event.world);
 
 			if(event.world.provider.dimensionId == 0) {
-				SolarSystem.applyMinmusShatterState();
+				SolarSystem.applyMinmusShatterState(event.world);
 			}
 
 			if(reference != null) {

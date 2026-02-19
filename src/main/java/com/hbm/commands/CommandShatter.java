@@ -41,6 +41,8 @@ public class CommandShatter extends CommandBase {
 		}
 
 		boolean alreadyDestroyed = minmus.hasTrait(CBT_Destroyed.class);
+		WorldServer overworld = getOrLoadWorld(OVERWORLD_DIMENSION);
+		long shatterWorldTime = overworld != null ? overworld.getTotalWorldTime() : -1L;
 
 		SolarSystemWorldSavedData data = SolarSystemWorldSavedData.get();
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = data.getTraits(minmus.name);
@@ -48,9 +50,16 @@ public class CommandShatter extends CommandBase {
 			traits = new HashMap<>();
 			traits.putAll(minmus.getTraits());
 		}
-		traits.put(CBT_Destroyed.class, new CBT_Destroyed());
+		CBT_Destroyed destroyedTrait = (CBT_Destroyed) traits.get(CBT_Destroyed.class);
+		if(destroyedTrait == null) {
+			destroyedTrait = new CBT_Destroyed();
+		}
+		if(shatterWorldTime >= 0L && !destroyedTrait.hasMunRingTransitionStarted() && !destroyedTrait.areMunRingsEnabled()) {
+			destroyedTrait.beginMunRingTransition(shatterWorldTime);
+		}
+		traits.put(CBT_Destroyed.class, destroyedTrait);
 		data.setTraits(minmus.name, traits.values().toArray(new CelestialBodyTrait[traits.size()]));
-		SolarSystem.applyMinmusShatterState();
+		SolarSystem.applyMinmusShatterState(overworld);
 		scheduleOverworldSkyfall();
 
 		if(alreadyDestroyed) {
@@ -67,11 +76,7 @@ public class CommandShatter extends CommandBase {
 	}
 
 	private static void scheduleSkyfallForDimension(int dimensionId) {
-		WorldServer world = DimensionManager.getWorld(dimensionId);
-		if(world == null) {
-			DimensionManager.initDimension(dimensionId);
-			world = DimensionManager.getWorld(dimensionId);
-		}
+		WorldServer world = getOrLoadWorld(dimensionId);
 		if(world == null) {
 			return;
 		}
@@ -81,5 +86,14 @@ public class CommandShatter extends CommandBase {
 			new SkyfallSkyPacket(startTime, dimensionId, SKYFALL_DURATION_TICKS),
 			dimensionId
 		);
+	}
+
+	private static WorldServer getOrLoadWorld(int dimensionId) {
+		WorldServer world = DimensionManager.getWorld(dimensionId);
+		if(world == null) {
+			DimensionManager.initDimension(dimensionId);
+			world = DimensionManager.getWorld(dimensionId);
+		}
+		return world;
 	}
 }

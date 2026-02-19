@@ -100,6 +100,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static int skyfallDimension = Integer.MIN_VALUE;
 	private static long skyfallLastUpdateTick = Long.MIN_VALUE;
 	private static final Random skyfallRandom = new Random();
+	private static final float SKYFALL_FADE_TICKS = 10.0F * 20.0F;
 	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
@@ -400,7 +401,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			}
 		}
 
-		if(body.hasRings) {
+		if(shouldRenderRings(body, world)) {
 			GL11.glPushMatrix();
 			{
 
@@ -1038,7 +1039,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 				if(renderBody) {
 					// Draw the back half of the ring (obscured by body)
-					if(metric.body.hasRings) {
+					if(shouldRenderRings(metric.body, world)) {
 						GL11.glPushMatrix();
 						{
 
@@ -1191,7 +1192,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 							GL11.glEnable(GL11.GL_BLEND);
 							OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
 
-							GL11.glColor4f(1.0F, 1.0F, 1.0F, cloudAlpha);
+							Vec3 cloudTint = getBodyCloudTint(metric.body);
+							GL11.glColor4f((float)cloudTint.xCoord, (float)cloudTint.yCoord, (float)cloudTint.zCoord, cloudAlpha);
 							mc.renderEngine.bindTexture(cloudsTexture);
 
 							tessellator.startDrawingQuads();
@@ -1335,7 +1337,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 
 					// Draw the front half of the ring (unobscured)
-					if(metric.body.hasRings) {
+					if(shouldRenderRings(metric.body, world)) {
 						float ringVisibility = visibility * getRingFade(metric.body, world);
 						GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], ringVisibility);
 						mc.renderEngine.bindTexture(ringTexture);
@@ -1404,41 +1406,76 @@ public class SkyProviderCelestial extends IRenderHandler {
 		return Vec3.createVectorHelper(r, g, b);
 	}
 
+	private Vec3 getBodyCloudTint(CelestialBody body) {
+		if(body == null) {
+			return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+		}
+
+		if(body.type == SolarSystem.Body.EVE) {
+			return Vec3.createVectorHelper(0.85D, 0.55D, 1.0D);
+		}
+
+		Vec3 atmosphereColor = getBodyAtmosphereColor(body, true);
+		double r = MathHelper.clamp_double((1.0D + atmosphereColor.xCoord) * 0.5D, 0.0D, 1.0D);
+		double g = MathHelper.clamp_double((1.0D + atmosphereColor.yCoord) * 0.5D, 0.0D, 1.0D);
+		double b = MathHelper.clamp_double((1.0D + atmosphereColor.zCoord) * 0.5D, 0.0D, 1.0D);
+		return Vec3.createVectorHelper(r, g, b);
+	}
+
 	private Vec3 getBodyAtmosphereColor(CelestialBody body) {
+		return getBodyAtmosphereColor(body, false);
+	}
+
+	private Vec3 getBodyAtmosphereColor(CelestialBody body, boolean ignoreAirFluids) {
+		if(body == null) {
+			return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+		}
+
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 		if(atmosphere != null && !atmosphere.fluids.isEmpty()) {
-			double totalPressure = atmosphere.getPressure();
+			double totalPressure = 0.0D;
+			double r = 0.0D;
+			double g = 0.0D;
+			double b = 0.0D;
 
-			if(totalPressure > 0.0D) {
-				double r = 0.0D;
-				double g = 0.0D;
-				double b = 0.0D;
-
-				for(FluidEntry entry : atmosphere.fluids) {
-					if(entry == null || entry.fluid == null || entry.pressure <= 0.0D) {
-						continue;
-					}
-
-					Vec3 fluidColor = getAtmosphereFluidColor(entry.fluid);
-					double percentage = entry.pressure / totalPressure;
-					r += fluidColor.xCoord * percentage;
-					g += fluidColor.yCoord * percentage;
-					b += fluidColor.zCoord * percentage;
+			for(FluidEntry entry : atmosphere.fluids) {
+				if(entry == null || entry.fluid == null || entry.pressure <= 0.0D) {
+					continue;
+				}
+				if(ignoreAirFluids && isAirAtmosphereFluid(entry.fluid)) {
+					continue;
 				}
 
+				Vec3 fluidColor = getAtmosphereFluidColor(entry.fluid);
+				r += fluidColor.xCoord * entry.pressure;
+				g += fluidColor.yCoord * entry.pressure;
+				b += fluidColor.zCoord * entry.pressure;
+				totalPressure += entry.pressure;
+			}
+
+			if(totalPressure > 0.0D) {
 				return Vec3.createVectorHelper(
-					MathHelper.clamp_double(r, 0.0D, 1.0D),
-					MathHelper.clamp_double(g, 0.0D, 1.0D),
-					MathHelper.clamp_double(b, 0.0D, 1.0D)
+					MathHelper.clamp_double(r / totalPressure, 0.0D, 1.0D),
+					MathHelper.clamp_double(g / totalPressure, 0.0D, 1.0D),
+					MathHelper.clamp_double(b / totalPressure, 0.0D, 1.0D)
 				);
 			}
 		}
 
-		if(body.gas != null) {
+		if(body.gas != null && !(ignoreAirFluids && isAirAtmosphereFluid(body.gas))) {
 			return getAtmosphereFluidColor(body.gas);
 		}
 
 		return Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
+	}
+
+	private boolean isAirAtmosphereFluid(FluidType fluid) {
+		if(fluid == null) {
+			return false;
+		}
+
+		String fluidName = fluid.getName();
+		return fluid == Fluids.AIR || (fluidName != null && fluidName.toUpperCase().contains("AIR"));
 	}
 
 	private Vec3 getAtmosphereFluidColor(FluidType fluid) {
@@ -1724,6 +1761,13 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private float getRingFade(CelestialBody body, WorldClient world) {
 		if(body == null || world == null) return 1.0F;
 
+		float munTransitionFade = getMunRingTransitionFade(body, world);
+		if(munTransitionFade >= 0.0F) {
+			ringFade.put(body.name, munTransitionFade);
+			ringFadeTick.put(body.name, world.getTotalWorldTime());
+			return munTransitionFade;
+		}
+
 		// Only apply ring fade to moons (bodies with a planet parent).
 		// Planets keep rings fully visible.
 		boolean isMoon = body.parent != null && body.parent.parent != null;
@@ -1739,15 +1783,35 @@ public class SkyProviderCelestial extends IRenderHandler {
 		// First observation should reflect current ring state immediately.
 		float fade = ringFade.containsKey(key) ? ringFade.get(key) : (body.hasRings ? 1.0F : 0.0F);
 		if(body.hasRings) {
-			fade = Math.min(1.0F, fade + dt * (1.0F / (5.0F * 24000.0F)));
+			fade = Math.min(1.0F, fade + dt * (1.0F / (10.0F * 20.0F)));
 		} else {
-			fade = Math.max(0.0F, fade - dt * (1.0F / (5.0F * 24000.0F)));
+			fade = Math.max(0.0F, fade - dt * (1.0F / (10.0F * 20.0F)));
 		}
 
 		ringFade.put(key, fade);
 		ringFadeTick.put(key, tick);
 
 		return fade;
+	}
+
+	private boolean shouldRenderRings(CelestialBody body, WorldClient world) {
+		if(body == null) return false;
+		if(body.hasRings) return true;
+		return getMunRingTransitionFade(body, world) > 0.0F;
+	}
+
+	private float getMunRingTransitionFade(CelestialBody body, WorldClient world) {
+		if(body == null || world == null) return -1.0F;
+		if(!"mun".equals(body.name)) return -1.0F;
+
+		CelestialBody minmus = CelestialBody.getBody("minmus");
+		if(minmus == null) return -1.0F;
+
+		CBT_Destroyed destroyed = minmus.getTrait(CBT_Destroyed.class);
+		if(destroyed == null) return -1.0F;
+		if(destroyed.areMunRingsEnabled()) return 1.0F;
+
+		return destroyed.getMunRingTransitionProgress(world.getTotalWorldTime());
 	}
 
 	protected void renderDigamma(float partialTicks, WorldClient world, Minecraft mc, float solarAngle) {
@@ -1995,6 +2059,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			skyfallSmoke.clear();
 			return;
 		}
+		float skyfallVisibility = getSkyfallVisibility(ageTicks + partialTicks, skyfallDurationTicks);
 
 		long worldTick = world.getTotalWorldTime();
 		if(worldTick != skyfallLastUpdateTick) {
@@ -2007,16 +2072,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 				updateSkyfallMeteor(smoke);
 			}
 
-			SkyfallMeteor meteor = new SkyfallMeteor(
-				(mc.thePlayer.posX + skyfallRandom.nextInt(16000)) - 8000,
-				2017.0D,
-				(mc.thePlayer.posZ + skyfallRandom.nextInt(16000)) - 8000,
-				-31.2D,
-				-20.8D,
-				20.0D,
-				false
-			);
-			skyfallMeteors.add(meteor);
+			if(skyfallRandom.nextFloat() < getSkyfallVisibility(ageTicks, skyfallDurationTicks)) {
+				SkyfallMeteor meteor = new SkyfallMeteor(
+					(mc.thePlayer.posX + skyfallRandom.nextInt(16000)) - 8000,
+					2017.0D,
+					(mc.thePlayer.posZ + skyfallRandom.nextInt(16000)) - 8000,
+					-31.2D,
+					-20.8D,
+					20.0D,
+					false
+				);
+				skyfallMeteors.add(meteor);
+			}
 
 			skyfallMeteors.removeIf(m -> m.dead);
 			skyfallSmoke.removeIf(m -> m.dead);
@@ -2050,7 +2117,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			GL11.glScaled(scalar, scalar, scalar);
 
 			GL11.glColor4d(1, 1, 1, 1);
-			renderSkyfallGlow(shockFlareTexture);
+			renderSkyfallGlow(shockFlareTexture, skyfallVisibility);
 			GL11.glPopMatrix();
 		}
 
@@ -2073,12 +2140,23 @@ public class SkyProviderCelestial extends IRenderHandler {
 			float scalar = (float)(quadratic / safeLength);
 			GL11.glScaled(scalar, scalar, scalar);
 
-			renderSkyfallSmoke(particleBaseTexture, smoke.age);
+			renderSkyfallSmoke(particleBaseTexture, smoke.age, skyfallVisibility);
 			GL11.glPopMatrix();
 		}
 
 		GL11.glEnable(GL11.GL_FOG);
 		GL11.glPopAttrib();
+	}
+
+	private static float getSkyfallVisibility(float ageTicks, int durationTicks) {
+		float duration = Math.max(1.0F, durationTicks);
+		float fadeTicks = Math.min(SKYFALL_FADE_TICKS, duration * 0.5F);
+		if(fadeTicks <= 0.0F) {
+			return 1.0F;
+		}
+		float fadeIn = MathHelper.clamp_float(ageTicks / fadeTicks, 0.0F, 1.0F);
+		float fadeOut = MathHelper.clamp_float((duration - ageTicks) / fadeTicks, 0.0F, 1.0F);
+		return Math.min(fadeIn, fadeOut);
 	}
 
 	private static void updateSkyfallMeteor(SkyfallMeteor meteor) {
@@ -2114,7 +2192,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		meteor.posZ += meteor.motionZ;
 	}
 
-	private void renderSkyfallSmoke(ResourceLocation texture, long age) {
+	private void renderSkyfallSmoke(ResourceLocation texture, long age, float alphaMultiplier) {
 		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
 		float width = 1.0F;
@@ -2127,7 +2205,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		double b = (1.0 - tint) + (0.75 * tint);
 		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
 		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
-		GL11.glColor4d(r * dark, g * dark, b * dark, 1.0);
+		GL11.glColor4d(r * dark, g * dark, b * dark, alphaMultiplier);
 		Tessellator tess = Tessellator.instance;
 		tess.startDrawingQuads();
 		tess.setNormal(0.0F, 1.0F, 0.0F);
@@ -2141,7 +2219,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		GL11.glPopMatrix();
 	}
 
-	private void renderSkyfallGlow(ResourceLocation texture) {
+	private void renderSkyfallGlow(ResourceLocation texture, float alphaMultiplier) {
 		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
 		float width = 1.0F;
@@ -2149,7 +2227,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float yOffset = 0.25F;
 		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
 		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
-		GL11.glColor4d(1.0D, 1.0D, 1.0D, 1.0D);
+		GL11.glColor4d(1.0D, 1.0D, 1.0D, alphaMultiplier);
 		Tessellator tess = Tessellator.instance;
 		tess.startDrawingQuads();
 		tess.setNormal(0.0F, 1.0F, 0.0F);

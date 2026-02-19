@@ -46,30 +46,69 @@ public class SolarSystem {
 	private static final float MUN_SHATTER_RING_B = 209.0F / 255.0F;
 
 	public static void applyMinmusShatterState() {
+		applyMinmusShatterState(null);
+	}
+
+	public static void applyMinmusShatterState(World world) {
 		CelestialBody minmus = CelestialBody.getBody("minmus");
 		if(minmus == null || !"minmus".equals(minmus.name)) return;
 
 		CelestialBody mun = CelestialBody.getBody("mun");
 		if(mun == null || !"mun".equals(mun.name)) return;
 
-		boolean destroyed = minmus.hasTrait(CBT_Destroyed.class);
+		CBT_Destroyed destroyedTrait = minmus.getTrait(CBT_Destroyed.class);
+		boolean destroyed = destroyedTrait != null;
 		if(destroyed) {
-			if(!mun.hasRings || mun.ringTilt != MUN_SHATTER_RING_TILT || mun.ringSize != MUN_SHATTER_RING_SIZE) {
+			if(world != null && !world.isRemote) {
+				boolean dirty = false;
+				if(!destroyedTrait.hasMunRingTransitionStarted()) {
+					destroyedTrait.beginMunRingTransition(world.getTotalWorldTime());
+					dirty = true;
+				}
+				if(destroyedTrait.tryFinalizeMunRings(world.getTotalWorldTime())) {
+					dirty = true;
+				}
+				if(dirty) {
+					SolarSystemWorldSavedData.get(world).markDirty();
+				}
+			}
+			applyMunShatterRingVisuals(mun, destroyedTrait.areMunRingsEnabled());
+			return;
+		}
+
+		if(hasMunShatterRingVisuals(mun)) {
+			mun.clearRings();
+		}
+	}
+
+	private static void applyMunShatterRingVisuals(CelestialBody mun, boolean enabled) {
+		if(enabled) {
+			if(!mun.hasRings || !hasMunShatterRingVisuals(mun)) {
 				mun.withRings(MUN_SHATTER_RING_TILT, MUN_SHATTER_RING_SIZE, MUN_SHATTER_RING_R, MUN_SHATTER_RING_G, MUN_SHATTER_RING_B);
 			}
 			return;
 		}
 
-		if(mun.hasRings
-				&& mun.ringTilt == MUN_SHATTER_RING_TILT
+		mun.hasRings = false;
+		mun.ringTilt = MUN_SHATTER_RING_TILT;
+		mun.ringSize = MUN_SHATTER_RING_SIZE;
+		if(mun.ringColor == null
+				|| mun.ringColor.length < 3
+				|| mun.ringColor[0] != MUN_SHATTER_RING_R
+				|| mun.ringColor[1] != MUN_SHATTER_RING_G
+				|| mun.ringColor[2] != MUN_SHATTER_RING_B) {
+			mun.ringColor = new float[] { MUN_SHATTER_RING_R, MUN_SHATTER_RING_G, MUN_SHATTER_RING_B };
+		}
+	}
+
+	private static boolean hasMunShatterRingVisuals(CelestialBody mun) {
+		return mun.ringTilt == MUN_SHATTER_RING_TILT
 				&& mun.ringSize == MUN_SHATTER_RING_SIZE
 				&& mun.ringColor != null
 				&& mun.ringColor.length >= 3
 				&& mun.ringColor[0] == MUN_SHATTER_RING_R
 				&& mun.ringColor[1] == MUN_SHATTER_RING_G
-				&& mun.ringColor[2] == MUN_SHATTER_RING_B) {
-			mun.clearRings();
-		}
+				&& mun.ringColor[2] == MUN_SHATTER_RING_B;
 	}
 
 	public static boolean isMinmusDestroyed() {

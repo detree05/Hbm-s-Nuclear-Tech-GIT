@@ -169,6 +169,8 @@ public class ModEventHandlerClient {
 	private static Method setupCameraTransformMethod;
 	private static Method kerbolGhostAchievementToastMethod;
 	private static KerbolGhostAchievement kerbolGhostAchievement;
+	private static final Set<String> kerbolGhostAchievementSeenCache = new HashSet<String>();
+	private static boolean kerbolGhostAchievementSeenLoadedFromConfig = false;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -1021,13 +1023,7 @@ public class ModEventHandlerClient {
 		}
 
 		private void setGhostText(String title, String description) {
-			ChatStyle style = new ChatStyle()
-				.setColor(EnumChatFormatting.GREEN)
-				.setChatHoverEvent(new HoverEvent(
-					HoverEvent.Action.SHOW_TEXT,
-					new ChatComponentText(EnumChatFormatting.OBFUSCATED + "Achievement\n" + EnumChatFormatting.RESET + " : )")
-				));
-			this.ghostTitle = new ChatComponentText(title).setChatStyle(style);
+			this.ghostTitle = new ChatComponentText(title);
 			this.ghostDescription = description;
 			try {
 				ReflectionHelper.setPrivateValue(net.minecraft.stats.StatBase.class, this, this.ghostTitle, new String[] { "statName", "field_75975_e" });
@@ -1569,7 +1565,7 @@ public class ModEventHandlerClient {
 			resetKerbolCameraEffects(mc);
 		}
 
-		SolarSystem.applyMinmusShatterState();
+		SolarSystem.applyMinmusShatterState(mc.theWorld);
 
 		if(event.phase == Phase.START && event.side == Side.CLIENT) {
 
@@ -1924,7 +1920,8 @@ public class ModEventHandlerClient {
 		achievement.setGhostText(achievementName, ": )");
 		showKerbolGhostAchievement(mc, achievement);
 		if(mc.ingameGUI != null) {
-			mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentTranslation("chat.type.achievement", playerName, achievement.func_150951_e()));
+			IChatComponent chatDisplayName = createKerbolGhostAchievementChatTitle(achievementName);
+			mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentTranslation("chat.type.achievement", playerName, chatDisplayName));
 		}
 		markKerbolGhostAchievementSeen(mc.thePlayer, playerName);
 	}
@@ -1934,9 +1931,18 @@ public class ModEventHandlerClient {
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return true;
 		}
+		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
+		ensureKerbolGhostAchievementSeenCacheLoaded();
+		if(kerbolGhostAchievementSeenCache.contains(seenKey)) {
+			return true;
+		}
 		NBTTagCompound persisted = player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
 		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
-		return ghostData.getBoolean(getKerbolGhostAchievementSeenKey(playerName));
+		boolean seen = ghostData.getBoolean(seenKey) || ghostData.getBoolean(getKerbolGhostAchievementLegacySeenKey(playerName));
+		if(seen && kerbolGhostAchievementSeenCache.add(seenKey)) {
+			persistKerbolGhostAchievementSeenCache();
+		}
+		return seen;
 	}
 
 	private void markKerbolGhostAchievementSeen(EntityPlayer player, String playerName) {
@@ -1944,17 +1950,69 @@ public class ModEventHandlerClient {
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return;
 		}
+		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
+		ensureKerbolGhostAchievementSeenCacheLoaded();
+		boolean cacheChanged = kerbolGhostAchievementSeenCache.add(seenKey);
 		NBTTagCompound entityData = player.getEntityData();
 		NBTTagCompound persisted = entityData.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
 		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
-		ghostData.setBoolean(getKerbolGhostAchievementSeenKey(playerName), true);
+		ghostData.setBoolean(seenKey, true);
+		ghostData.setBoolean(getKerbolGhostAchievementLegacySeenKey(playerName), true);
 		persisted.setTag(kerbolGhostAchievementNbtRoot, ghostData);
 		entityData.setTag(EntityPlayer.PERSISTED_NBT_TAG, persisted);
+		if(cacheChanged) {
+			persistKerbolGhostAchievementSeenCache();
+		}
 	}
 
-	private String getKerbolGhostAchievementSeenKey(String playerName) {
+	private String getKerbolGhostAchievementSeenKey(EntityPlayer player, String playerName) {
+		if(player != null && player.getUniqueID() != null) {
+			return "seen_uuid_" + player.getUniqueID().toString().toLowerCase(Locale.ROOT);
+		}
+		return getKerbolGhostAchievementLegacySeenKey(playerName);
+	}
+
+	private String getKerbolGhostAchievementLegacySeenKey(String playerName) {
 		final String kerbolGhostAchievementNbtSeenPrefix = "seen_";
 		return kerbolGhostAchievementNbtSeenPrefix + playerName.toLowerCase(Locale.ROOT);
+	}
+
+	private void ensureKerbolGhostAchievementSeenCacheLoaded() {
+		if(kerbolGhostAchievementSeenLoadedFromConfig) {
+			return;
+		}
+		kerbolGhostAchievementSeenLoadedFromConfig = true;
+		String serialized = ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.get();
+		if(serialized == null || serialized.isEmpty()) {
+			return;
+		}
+		String[] keys = serialized.split(";");
+		for(String key : keys) {
+			if(key == null) {
+				continue;
+			}
+			String normalized = key.trim().toLowerCase(Locale.ROOT);
+			if(!normalized.isEmpty()) {
+				kerbolGhostAchievementSeenCache.add(normalized);
+			}
+		}
+	}
+
+	private void persistKerbolGhostAchievementSeenCache() {
+		if(!kerbolGhostAchievementSeenLoadedFromConfig) {
+			return;
+		}
+		List<String> sortedKeys = new ArrayList<String>(kerbolGhostAchievementSeenCache);
+		Collections.sort(sortedKeys);
+		StringBuilder serialized = new StringBuilder();
+		for(String key : sortedKeys) {
+			if(serialized.length() > 0) {
+				serialized.append(';');
+			}
+			serialized.append(key);
+		}
+		ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.set(serialized.toString());
+		ClientConfig.refresh();
 	}
 
 	private KerbolGhostAchievement getOrCreateKerbolGhostAchievement() {
@@ -1985,7 +2043,7 @@ public class ModEventHandlerClient {
 	private String createKerbolGhostAchievementName(Random rand) {
 		final int kerbolGhostAchievementMinSymbols = 1;
 		final int kerbolGhostAchievementMaxSymbols = 12;
-		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
+		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+{};:'\",.?/\\\\|";
 		int symbolCount = kerbolGhostAchievementMinSymbols
 			+ rand.nextInt(kerbolGhostAchievementMaxSymbols - kerbolGhostAchievementMinSymbols + 1);
 		StringBuilder raw = new StringBuilder(symbolCount + 1);
@@ -1996,7 +2054,21 @@ public class ModEventHandlerClient {
 			int spacePos = 1 + rand.nextInt(symbolCount - 1);
 			raw.insert(spacePos, ' ');
 		}
-		return "[" + EnumChatFormatting.OBFUSCATED + raw.toString() + EnumChatFormatting.RESET + EnumChatFormatting.GREEN + "]";
+		return raw.toString();
+	}
+
+	private IChatComponent createKerbolGhostAchievementChatTitle(String rawTitle) {
+		ChatStyle bracketStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN);
+		ChatStyle titleStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN).setObfuscated(true)
+			.setChatHoverEvent(new HoverEvent(
+				HoverEvent.Action.SHOW_TEXT,
+				new ChatComponentText(EnumChatFormatting.OBFUSCATED + "Achievement\n" + EnumChatFormatting.RESET + " : )")
+			));
+		ChatComponentText chatTitle = new ChatComponentText("");
+		chatTitle.appendSibling(new ChatComponentText("[").setChatStyle(bracketStyle));
+		chatTitle.appendSibling(new ChatComponentText(rawTitle).setChatStyle(titleStyle));
+		chatTitle.appendSibling(new ChatComponentText("]").setChatStyle(bracketStyle));
+		return chatTitle;
 	}
 
 	private String pickRandomKerbolGhostSender(Minecraft mc) {
