@@ -191,6 +191,7 @@ public class ModItems {
 	public static Item ingot_ethyroite;
 	public static Item ingot_rift;
 	public static Item ingot_abyss;
+	public static Item ingot_yharonite;
 	public static Item nugget_solinium;
 	public static Item ingot_phosphorus;
 	public static Item ingot_semtex;
@@ -2544,6 +2545,7 @@ public class ModItems {
 		ingot_ethyroite = new Item().setUnlocalizedName("ingot_ethyroite").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_ethyroite");
 		ingot_rift = new ItemCustomLore().setUnlocalizedName("ingot_rift").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_rift");
 		ingot_abyss = new ItemCustomLore().setUnlocalizedName("ingot_abyss").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_abyss");
+		ingot_yharonite = new Item().setUnlocalizedName("ingot_yharonite").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":ingot_yharonite");
 		nugget_solinium = new Item().setUnlocalizedName("nugget_solinium").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":nugget_solinium");
 		photo_panel = new Item().setUnlocalizedName("photo_panel").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":photo_panel");
 		beryllium_mirror = new Item().setUnlocalizedName("beryllium_mirror").setCreativeTab(MainRegistry.partsTab).setTextureName(RefStrings.MODID + ":beryllium_mirror");
@@ -5510,6 +5512,7 @@ public class ModItems {
 		GameRegistry.registerItem(ingot_saturnite, ingot_saturnite.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_euphemium, ingot_euphemium.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_dineutronium, ingot_dineutronium.getUnlocalizedName());
+		GameRegistry.registerItem(ingot_yharonite, ingot_yharonite.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_electronium, ingot_electronium.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_gwenium, ingot_gwenium.getUnlocalizedName());
 		GameRegistry.registerItem(ingot_smore, ingot_smore.getUnlocalizedName());

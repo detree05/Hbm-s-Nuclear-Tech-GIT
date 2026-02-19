@@ -174,6 +174,7 @@ public class OreDictManager {
 	public static final DictFrame ETHYROITE = new DictFrame("Ethyroite");
 	public static final DictFrame RIFT = new DictFrame("Rift");
 	public static final DictFrame ABYSS = new DictFrame("Abyss");
+	public static final DictFrame YHARONITE = new DictFrame("Yharonite");
 	/*
 	 * STABLE
 	 */
@@ -496,6 +497,7 @@ public class OreDictManager {
 		ETHYROITE	.ingot(ingot_ethyroite);
 		RIFT		.ingot(ingot_rift);
 		ABYSS		.ingot(ingot_abyss);
+		YHARONITE	.ingot(ingot_yharonite);
 
 
 		OSMIRIDIUM	.nugget(nugget_osmiridium)								.ingot(ingot_osmiridium);
@@ -578,6 +580,7 @@ public class OreDictManager {
 		OreDictionary.registerOre("Mc45", ingot_mc45);
 		OreDictionary.registerOre("Ethyroite", ingot_ethyroite);
 		OreDictionary.registerOre("Abyss", ingot_abyss);
+		OreDictionary.registerOre("Yharonite", ingot_yharonite);
 
 		/*
 		 * COLLECTIONS

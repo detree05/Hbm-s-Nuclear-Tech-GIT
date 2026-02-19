@@ -190,6 +190,7 @@ public class MineralRecipes {
 		addBillet(ModItems.billet_bismuth,				ModItems.ingot_bismuth,				ModItems.nugget_bismuth);
 		addBillet(ModItems.billet_silicon,				ModItems.ingot_silicon,				ModItems.nugget_silicon, SI.nugget());
 		addBillet(ModItems.billet_menthol,				ModItems.ingot_menthol,				ModItems.nugget_menthol);
+		GameRegistry.addRecipe(new ItemStack(ModItems.billet_yharonite, 1), new Object[] { "##", '#', ModItems.ingot_yharonite });
 
 
 		GameRegistry.addShapelessRecipe(new ItemStack(ModItems.billet_thorium_fuel, 6), new Object[] { ModItems.billet_th232, ModItems.billet_th232, ModItems.billet_th232, ModItems.billet_th232, ModItems.billet_th232, ModItems.billet_u233 });
