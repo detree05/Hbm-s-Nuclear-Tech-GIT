@@ -53,7 +53,7 @@ public class ItemBedrockOreNew extends Item {
 
 			for(int i = 0; i < BedrockOreGrade.values().length; i++) { BedrockOreGrade grade = BedrockOreGrade.values()[i];
 				for(int j = 0; j < CelestialBedrockOre.oreTypes.size(); j++) { CelestialBedrockOreType type = CelestialBedrockOre.oreTypes.get(j);
-					String placeholderName = RefStrings.MODID + ":bedrock_ore_" + grade.prefix + "_" + type.suffix + "-" + (i * CelestialBedrockOre.oreTypes.size() + j);
+					String placeholderName = RefStrings.MODID + ":bedrock_ore_" + grade.prefix + "_" + type.textureSuffix + "-" + (i * CelestialBedrockOre.oreTypes.size() + j);
 					TextureAtlasSpriteMutatable mutableIcon = new TextureAtlasSpriteMutatable(placeholderName, new RGBMutatorInterpolatedComponentRemap(0xFFFFFF, 0x505050, type.light, type.dark));
 					map.setTextureEntry(placeholderName, mutableIcon);
 					this.icons[i * CelestialBedrockOre.oreTypes.size() + j] = mutableIcon;
@@ -106,7 +106,8 @@ public class ItemBedrockOreNew extends Item {
 	public String getItemStackDisplayName(ItemStack stack) {
 		int meta = stack.getItemDamage();
 		String type = StatCollector.translateToLocalFormatted(this.getUnlocalizedNameInefficiently(stack) + ".type." + this.getType(meta).suffix + ".name");
-		String body = I18nUtil.resolveKey("body." + getType(meta).body.name);
+		CelestialBedrockOreType oreType = this.getType(meta);
+		String body = oreType.body == SolarSystem.Body.KERBOL ? "\u00A7kDmitriy\u00A7r" : I18nUtil.resolveKey("body." + oreType.body.name);
 		return StatCollector.translateToLocalFormatted(this.getUnlocalizedNameInefficiently(stack) + ".grade." + this.getGrade(meta).name().toLowerCase(Locale.US) + ".name", type) + " (" + body + ")";
 	}
 
@@ -167,6 +168,7 @@ public class ItemBedrockOreNew extends Item {
 		public int light;
 		public int dark;
 		public String suffix;
+		public String textureSuffix;
 		public BedrockOreOutput primary;
 		public BedrockOreOutput byproductAcid;
 		public BedrockOreOutput byproductSolvent;
@@ -269,7 +271,11 @@ public class ItemBedrockOreNew extends Item {
 				T("crystal",	o(MAT_EMERALD, 18),			o(MAT_SILICON, 9),			o(MAT_MOLYSITE, 6),			o(MAT_BORAX, 3)),
 				T("plastic",	o(MAT_POLYMER, 18),			o(MAT_RUBBER, 9),			o(MAT_SEMTEX, 6),			o(MAT_PVC, 3))
 			);
-			register(SolarSystem.Body.KERBOL);
+			register(
+				SolarSystem.Body.KERBOL,
+				T("rift", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_SATURN, 18),			o(MAT_SCHRABIDIUM, 9),		o(MAT_EUPHEMIUM, 6),		o(MAT_RIFT, 3)),
+				T("abyss", "heavy",		0xE8E8E8, 0xC8C8C8,	o(MAT_DESH, 18),			o(MAT_YHARONITE, 9),		o(MAT_ETHYROITE, 6),		o(MAT_ABYSS, 3))
+			);
 			/*
 			register(
 				SolarSystem.Body.THATMO,
@@ -313,10 +319,15 @@ public class ItemBedrockOreNew extends Item {
 		private static int index;
 
 		private static CelestialBedrockOreType T(String suffix, BedrockOreOutput primary, BedrockOreOutput byproductAcid, BedrockOreOutput byproductSolvent, BedrockOreOutput byproductRad) {
+			return T(suffix, suffix, primary, byproductAcid, byproductSolvent, byproductRad);
+		}
+
+		private static CelestialBedrockOreType T(String suffix, String textureSuffix, BedrockOreOutput primary, BedrockOreOutput byproductAcid, BedrockOreOutput byproductSolvent, BedrockOreOutput byproductRad) {
 			CelestialBedrockOreType type = new CelestialBedrockOreType();
 			type.index = index++;
 
 			type.suffix = suffix;
+			type.textureSuffix = textureSuffix;
 			type.primary = primary;
 			type.byproductAcid = byproductAcid;
 			type.byproductSolvent = byproductSolvent;
@@ -326,6 +337,13 @@ public class ItemBedrockOreNew extends Item {
 			type.light = getAverageColor(false, primary, byproductAcid, byproductSolvent, byproductRad);
 			type.dark = getAverageColor(true, primary, byproductAcid, byproductSolvent, byproductRad);
 
+			return type;
+		}
+
+		private static CelestialBedrockOreType T(String suffix, String textureSuffix, int light, int dark, BedrockOreOutput primary, BedrockOreOutput byproductAcid, BedrockOreOutput byproductSolvent, BedrockOreOutput byproductRad) {
+			CelestialBedrockOreType type = T(suffix, textureSuffix, primary, byproductAcid, byproductSolvent, byproductRad);
+			type.light = light;
+			type.dark = dark;
 			return type;
 		}
 
