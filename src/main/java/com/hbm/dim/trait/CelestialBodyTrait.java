@@ -38,6 +38,7 @@ public abstract class CelestialBodyTrait {
 		registerTrait("infected", CBT_COMPROMISED.class);
 		registerTrait("dyson", CBT_Dyson.class);
 		registerTrait("impact", CBT_Impact.class);
+		registerTrait("core", CBT_Core.class);
 		registerTrait("lights", CBT_Lights.class);
 		registerTrait("invasion", CBT_Invasion.class);
 		registerTrait("sky_state", CBT_SkyState.class);

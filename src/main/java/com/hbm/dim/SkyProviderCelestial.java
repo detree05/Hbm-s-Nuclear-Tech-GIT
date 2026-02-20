@@ -246,6 +246,15 @@ public class SkyProviderCelestial extends IRenderHandler {
 			skyB = anaglyphColor[2];
 		}
 
+		float skyDomeR = skyR;
+		float skyDomeG = skyG;
+		float skyDomeB = skyB;
+		if(skyDim < 1.0F) {
+			skyDomeR *= skyDim;
+			skyDomeG *= skyDim;
+			skyDomeB *= skyDim;
+		}
+
 		float planetR = skyR;
 		float planetG = skyG;
 		float planetB = skyB;
@@ -269,7 +278,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		GL11.glDepthMask(false);
 		GL11.glEnable(GL11.GL_FOG);
-		GL11.glColor3f(skyR, skyG, skyB);
+		GL11.glColor3f(skyDomeR, skyDomeG, skyDomeB);
 
 		// Set maximum sky fog distance to 12 chunks, works nicely with Celeritas/Distant Horizons
 		// and makes for a more consistent sky in vanilla too
@@ -498,9 +507,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 
 		if(world.provider.isSkyColored()) {
-			GL11.glColor3f(skyR * 0.2F + 0.04F, skyG * 0.2F + 0.04F, skyB * 0.6F + 0.1F);
+			GL11.glColor3f(skyDomeR * 0.2F + 0.04F, skyDomeG * 0.2F + 0.04F, skyDomeB * 0.6F + 0.1F);
 		} else {
-			GL11.glColor3f(skyR, skyG, skyB);
+			GL11.glColor3f(skyDomeR, skyDomeG, skyDomeB);
 		}
 
 		GL11.glPushMatrix();

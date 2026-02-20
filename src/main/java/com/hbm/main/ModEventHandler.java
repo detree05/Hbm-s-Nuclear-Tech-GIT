@@ -39,6 +39,7 @@ import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Core;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_Invasion;
 import com.hbm.dim.trait.CBT_Lights;
@@ -2103,9 +2104,16 @@ public class ModEventHandler {
 
 		if(event.phase == Phase.START) {
 				for(CelestialBody body : CelestialBody.getAllBodies()) {
-					List<CelestialBodyTrait> traits = new ArrayList<>(body.getTraits().values());
+					HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> bodyTraits = body.getTraits();
+					List<CelestialBodyTrait> traits = new ArrayList<>(bodyTraits.values());
 					for (CelestialBodyTrait trait : traits) {
 						trait.update(false);
+					}
+
+					CBT_Core core = (CBT_Core) bodyTraits.get(CBT_Core.class);
+					if(core != null) {
+						core.recalculateForRadius(body.radiusKm);
+						body.massKg = (float) core.computedMassKg;
 					}
 				}
 

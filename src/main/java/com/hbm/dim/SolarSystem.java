@@ -1,13 +1,16 @@
 package com.hbm.dim;
 
+import static com.hbm.dim.trait.CBT_Core.cat;
+import static com.hbm.dim.trait.CBT_Core.comp;
+import static com.hbm.inventory.OreDictManager.*;
+
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.lang3.NotImplementedException;
-
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Core;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_Temperature;
@@ -125,7 +128,351 @@ public class SolarSystem {
 		return skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE;
 	}
 
+	private static CBT_Core getKerbinCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(IRON.ingot(), 53F),
+				comp(CU.ingot(), 25F),
+				comp(AL.ingot(), 12F),
+				comp(NA.ingot(), 10F)),
+			cat("heavy",
+				comp(W.ingot(), 91F),
+				comp(ZI.ingot(), 9F)),
+			cat("nonmetal",
+				comp(COAL.gem(), 52F),
+				comp(LIGNITE.gem(), 26F),
+				comp(S.dust(), 13F),
+				comp(KNO.dust(), 9F)),
+			cat("crystal",
+				comp(REDSTONE.dust(), 51F),
+				comp(ASBESTOS.ingot(), 27F),
+				comp(DIAMOND.gem(), 13F),
+				comp(EMERALD.gem(), 9F))
+		);
+	}
+
+	private static CBT_Core getMunCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(LI.ingot(), 52F),
+				comp(IRON.ingot(), 26F),
+				comp(NA.ingot(), 13F),
+				comp(CHLOROCALCITE.dust(), 9F)),
+			cat("heavy",
+				comp(PB.ingot(), 53F),
+				comp(ZI.ingot(), 25F),
+				comp(GOLD.ingot(), 12F),
+				comp(BI.ingot(), 10F)),
+			cat("rare",
+				comp(CO.ingot(), 54F),
+				comp(RAREEARTH.ingot(), 24F),
+				comp(ND.dust(), 13F),
+				comp(ST.dust(), 9F)),
+			cat("nonmetal",
+				comp(S.dust(), 55F),
+				comp(F.dust(), 22F),
+				comp(KNO.dust(), 14F),
+				comp(SI.ingot(), 9F)),
+			cat("crystal",
+				comp(QUARTZ.gem(), 52F),
+				comp(SODALITE.gem(), 26F),
+				comp(EMERALD.gem(), 13F),
+				comp(CINNABAR.gem(), 9F))
+		);
+	}
+
+	private static CBT_Core getMinmusCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(CU.ingot(), 64F),
+				comp(TI.ingot(), 22F),
+				comp(CHLOROCALCITE.dust(), 14F)),
+			cat("heavy",
+				comp(PB.ingot(), 51F),
+				comp(GOLD.ingot(), 27F),
+				comp(W.ingot(), 13F),
+				comp(BI.ingot(), 9F)),
+			cat("rare",
+				comp(ZR.ingot(), 53F),
+				comp(B.ingot(), 25F),
+				comp(CO.ingot(), 12F),
+				comp(ST.dust(), 10F)),
+			cat("nonmetal",
+				comp(S.dust(), 54F),
+				comp(KNO.dust(), 24F),
+				comp(F.dust(), 13F),
+				comp(SI.ingot(), 9F)),
+			cat("crystal",
+				comp(EMERALD.gem(), 65F),
+				comp(SODALITE.gem(), 22F),
+				comp(DIAMOND.gem(), 13F))
+		);
+	}
+
+	private static CBT_Core getDunaCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(IRON.ingot(), 53F),
+				comp(NI.ingot(), 25F),
+				comp(TI.ingot(), 12F),
+				comp(CHLOROCALCITE.dust(), 10F)),
+			cat("heavy",
+				comp(BE.ingot(), 50F),
+				comp(W.ingot(), 28F),
+				comp(ZI.ingot(), 13F),
+				comp(BI.ingot(), 9F)),
+			cat("rare",
+				comp(RAREEARTH.ingot(), 54F),
+				comp(B.ingot(), 24F),
+				comp(ZR.ingot(), 13F),
+				comp(ST.dust(), 9F)),
+			cat("actinide",
+				comp(TH232.ingot(), 52F),
+				comp(RA226.ingot(), 26F),
+				comp(PO210.ingot(), 13F),
+				comp(U233.ingot(), 9F)),
+			cat("nonmetal",
+				comp(F.dust(), 53F),
+				comp(S.dust(), 25F),
+				comp(SI.ingot(), 12F),
+				comp(P_RED.dust(), 10F)),
+			cat("crystal",
+				comp(REDSTONE.dust(), 51F),
+				comp(CINNABAR.gem(), 27F),
+				comp(DIAMOND.gem(), 13F),
+				comp(MOLYSITE.gem(), 9F))
+		);
+	}
+
+	private static CBT_Core getMohoCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(TI.ingot(), 54F),
+				comp(CHLOROCALCITE.dust(), 24F),
+				comp(NI.ingot(), 13F),
+				comp(LI.ingot(), 9F)),
+			cat("heavy",
+				comp(GOLD.ingot(), 52F),
+				comp(ZI.ingot(), 26F),
+				comp(PB.ingot(), 13F),
+				comp(BI.ingot(), 9F)),
+			cat("rare",
+				comp(ND.dust(), 53F),
+				comp(ZR.ingot(), 25F),
+				comp(BR.dust(), 12F),
+				comp(ST.dust(), 10F)),
+			cat("actinide",
+				comp(AUSTRALIUM.ingot(), 77F),
+				comp(TASMANITE.ingot(), 14F),
+				comp(AYERITE.ingot(), 9F)),
+			cat("nonmetal",
+				comp(GLOWSTONE.dust(), 52F),
+				comp(P_RED.dust(), 26F),
+				comp(S.dust(), 13F),
+				comp(P_WHITE.ingot(), 9F)),
+			cat("crystal",
+				comp(CINNABAR.gem(), 53F),
+				comp(REDSTONE.dust(), 25F),
+				comp(QUARTZ.gem(), 12F),
+				comp(MOLYSITE.gem(), 10F))
+		);
+	}
+
+	private static CBT_Core getDresCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(NI.ingot(), 52F),
+				comp(TI.ingot(), 26F),
+				comp(CD.ingot(), 13F),
+				comp(GALLIUM.ingot(), 9F)),
+			cat("heavy",
+				comp(ZI.ingot(), 54F),
+				comp(GOLD.ingot(), 24F),
+				comp(BI.ingot(), 13F),
+				comp(AS.ingot(), 9F)),
+			cat("rare",
+				comp(TA.ingot(), 53F),
+				comp(LA.ingot(), 25F),
+				comp(NB.ingot(), 12F),
+				comp(ST.dust(), 10F)),
+			cat("actinide",
+				comp(U.ingot(), 52F),
+				comp(RA226.ingot(), 26F),
+				comp(TC99.ingot(), 13F),
+				comp(U238.ingot(), 9F)),
+			cat("nonmetal",
+				comp(SI.ingot(), 77F),
+				comp(F.dust(), 23F)),
+			cat("crystal",
+				comp(DIAMOND.gem(), 51F),
+				comp(BORAX.gem(), 27F),
+				comp(MOLYSITE.gem(), 22F))
+		);
+	}
+
+	private static CBT_Core getEveCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(NA.ingot(), 58F),
+				comp(CHLOROCALCITE.dust(), 28F),
+				comp(IRON.ingot(), 14F)),
+			cat("heavy",
+				comp(W.ingot(), 59F),
+				comp(PB.ingot(), 26F),
+				comp(AS.ingot(), 15F)),
+			cat("rare",
+				comp(NB.ingot(), 57F),
+				comp(ST.dust(), 29F),
+				comp(I.dust(), 14F)),
+			cat("actinide",
+				comp(PO210.ingot(), 39F),
+				comp(NP237.ingot(), 29F),
+				comp(PB209.ingot(), 17F),
+				comp(AU198.ingot(), 15F)),
+			cat("schrabidic",
+				comp(SA326.ingot(), 65F),
+				comp(SA327.ingot(), 22F),
+				comp(GH336.ingot(), 13F)),
+			cat("crystal",
+				comp(SODALITE.gem(), 52F),
+				comp(MOLYSITE.gem(), 26F),
+				comp(DIAMOND.gem(), 13F),
+				comp(BORAX.gem(), 9F))
+		);
+	}
+
+	private static CBT_Core getIkeCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(CU.ingot(), 53F),
+				comp(BAUXITE.gem(), 25F),
+				comp(NI.ingot(), 12F),
+				comp(NA.ingot(), 10F)),
+			cat("heavy",
+				comp(PB.ingot(), 54F),
+				comp(ZI.ingot(), 24F),
+				comp(GOLD.ingot(), 13F),
+				comp(AS.ingot(), 9F)),
+			cat("rare",
+				comp(B.ingot(), 52F),
+				comp(ND.dust(), 26F),
+				comp(ST.dust(), 13F),
+				comp(LA.ingot(), 9F)),
+			cat("actinide",
+				comp(U.ingot(), 53F),
+				comp(U238.ingot(), 25F),
+				comp(PU.ingot(), 12F),
+				comp(TC99.ingot(), 10F))
+		);
+	}
+
+	private static CBT_Core getLaytheCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(AL.ingot(), 54F),
+				comp(TI.ingot(), 24F),
+				comp(GALLIUM.ingot(), 13F),
+				comp(HAFNIUM.ingot(), 9F)),
+			cat("heavy",
+				comp(BE.ingot(), 52F),
+				comp(W.ingot(), 26F),
+				comp(PB.ingot(), 13F),
+				comp(AS.ingot(), 9F)),
+			cat("rare",
+				comp(RAREEARTH.ingot(), 53F),
+				comp(ND.dust(), 25F),
+				comp(ST.dust(), 12F),
+				comp(NB.ingot(), 10F)),
+			cat("actinide",
+				comp(U.ingot(), 52F),
+				comp(TH232.ingot(), 26F),
+				comp(PO210.ingot(), 13F),
+				comp(U235.ingot(), 9F)),
+			cat("nonmetal",
+				comp(CHLOROCALCITE.dust(), 55F),
+				comp(COAL.gem(), 22F),
+				comp(F.dust(), 14F),
+				comp(SI.ingot(), 9F)),
+			cat("crystal",
+				comp(ASBESTOS.ingot(), 51F),
+				comp(SODALITE.gem(), 36F),
+				comp(DIAMOND.gem(), 13F))
+		);
+	}
+
+	private static CBT_Core getTektoCoreTrait() {
+		return new CBT_Core(
+			cat("light",
+				comp(TI.ingot(), 53F),
+				comp(CU.ingot(), 25F),
+				comp(NI.ingot(), 12F),
+				comp(LI.ingot(), 10F)),
+			cat("heavy",
+				comp(BE.ingot(), 52F),
+				comp(PB.ingot(), 26F),
+				comp(ZI.ingot(), 22F)),
+			cat("rare",
+				comp(B.ingot(), 54F),
+				comp(RAREEARTH.ingot(), 24F),
+				comp(TA.ingot(), 13F),
+				comp(BI.ingot(), 9F)),
+			cat("actinide",
+				comp(U.ingot(), 52F),
+				comp(NP237.ingot(), 26F),
+				comp(RA226.ingot(), 13F),
+				comp(TC99.ingot(), 9F)),
+			cat("nonmetal",
+				comp(POLYMER.ingot(), 55F),
+				comp(RUBBER.ingot(), 22F),
+				comp(SEMTEX.ingot(), 14F),
+				comp(PVC.ingot(), 9F)),
+			cat("crystal",
+				comp(EMERALD.gem(), 52F),
+				comp(SI.ingot(), 26F),
+				comp(MOLYSITE.gem(), 13F),
+				comp(BORAX.gem(), 9F))
+		);
+	}
+
+	private static float calculateMassFromCore(CBT_Core core, float radiusKm) {
+		core.recalculateForRadius(radiusKm);
+		return (float) core.computedMassKg;
+	}
+
 	public static void init() {
+		CBT_Core mohoCore = getMohoCoreTrait();
+		CBT_Core eveCore = getEveCoreTrait();
+		CBT_Core kerbinCore = getKerbinCoreTrait();
+		CBT_Core munCore = getMunCoreTrait();
+		CBT_Core minmusCore = getMinmusCoreTrait();
+		CBT_Core dunaCore = getDunaCoreTrait();
+		CBT_Core ikeCore = getIkeCoreTrait();
+		CBT_Core dresCore = getDresCoreTrait();
+		CBT_Core laytheCore = getLaytheCoreTrait();
+		CBT_Core tektoCore = getTektoCoreTrait();
+
+		float mohoRadiusKm = 250F;
+		float eveRadiusKm = 700F;
+		float kerbinRadiusKm = 600F;
+		float munRadiusKm = 200F;
+		float minmusRadiusKm = 60F;
+		float dunaRadiusKm = 320F;
+		float ikeRadiusKm = 130F;
+		float dresRadiusKm = 138F;
+		float laytheRadiusKm = 500F;
+		float tektoRadiusKm = 480F;
+
+		float mohoMassKg = calculateMassFromCore(mohoCore, mohoRadiusKm);
+		float eveMassKg = calculateMassFromCore(eveCore, eveRadiusKm);
+		float kerbinMassKg = calculateMassFromCore(kerbinCore, kerbinRadiusKm);
+		float munMassKg = calculateMassFromCore(munCore, munRadiusKm);
+		float minmusMassKg = calculateMassFromCore(minmusCore, minmusRadiusKm);
+		float dunaMassKg = calculateMassFromCore(dunaCore, dunaRadiusKm);
+		float ikeMassKg = calculateMassFromCore(ikeCore, ikeRadiusKm);
+		float dresMassKg = calculateMassFromCore(dresCore, dresRadiusKm);
+		float laytheMassKg = calculateMassFromCore(laytheCore, laytheRadiusKm);
+		float tektoMassKg = calculateMassFromCore(tektoCore, tektoRadiusKm);
+
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones
 		kerbol = new CelestialBody("kerbol", SpaceConfig.kerbolDimension, Body.KERBOL)
 			.withMassRadius(1.757e28F, 261_600)
@@ -141,23 +488,23 @@ public class SolarSystem {
 			.withSatellites(
 
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)
-					.withMassRadius(2.526e21F, 250)
+					.withMassRadius(mohoMassKg, mohoRadiusKm)
 					.withOrbitalParameters(5_263_138, 0.2F, 15.0F, 7.0F, 70.0F)
 					.withRotationalPeriod(210_000)
 					.withColor(0.4863F, 0.4F, 0.3456F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/moho_stone.png", RefStrings.MODID + ":textures/blocks/moho_regolith.png")
 					.withAxialTilt(30F)
-					.withTraits(new CBT_Temperature(200)),
+					.withTraits(new CBT_Temperature(200), mohoCore),
 
 				new CelestialBody("eve", SpaceConfig.eveDimension, Body.EVE)
-					.withMassRadius(1.224e23F, 700)
+					.withMassRadius(eveMassKg, eveRadiusKm)
 					.withOrbitalParameters(9_832_684, 0.01F, 0.0F, 2.1F, 15.0F)
 					.withRotationalPeriod(80_500)
 					.withColor(0.408F, 0.298F, 0.553F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/eve_stone_2.png", RefStrings.MODID + ":textures/blocks/eve_silt.png")
 					.withMinProcessingLevel(3)
 					.withAxialTilt(0F)
-					.withTraits(new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
+					.withTraits(new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY), eveCore)
 					.withSatellites(
 
 						new CelestialBody("gilly")
@@ -170,11 +517,11 @@ public class SolarSystem {
 					),
 
 				new CelestialBody("kerbin", 0, Body.KERBIN) // overworld
-					.withMassRadius(5.292e22F, 600)
+					.withMassRadius(kerbinMassKg, kerbinRadiusKm)
 					.withOrbitalParameters(13_599_840, 0.0F, 0.0F, 0.0F, 0.0F)
 					.withRotationalPeriod(21_549)
 					.withColor(0.608F, 0.914F, 1.0F)
-					.withTraits(new CBT_Water())
+					.withTraits(new CBT_Water(), kerbinCore)
 					.withAxialTilt(65F)
 					.withBlockTextures("textures/blocks/stone.png", "textures/blocks/dirt.png")
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_mask.png"))
@@ -182,55 +529,58 @@ public class SolarSystem {
 					.withSatellites(
 
 						new CelestialBody("mun", SpaceConfig.moonDimension, Body.MUN)
-							.withMassRadius(9.76e20F, 200)
+							.withMassRadius(munMassKg, munRadiusKm)
 							.withOrbitalParameters(16_000, 0.054F, 0.0F, 5.15F, 17.0F)
 							.withRotationalPeriod(138_984)
 							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/moon_rock.png", RefStrings.MODID + ":textures/blocks/moon_turf.png")
+							.withTraits(munCore)
 							.withIce(true),
 
 						new CelestialBody("minmus", SpaceConfig.minmusDimension, Body.MINMUS)
-							.withMassRadius(2.646e19F, 60)
+							.withMassRadius(minmusMassKg, minmusRadiusKm)
 							.withOrbitalParameters(47_000, 0, 38.0F, 6.0F, 78.0F)
 							.withRotationalPeriod(40_400)
 							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/minmus_stone.png", RefStrings.MODID + ":textures/blocks/minmus_regolith.png")
-							.withTraits(new CBT_Water(Fluids.MILK))
+							.withTraits(new CBT_Water(Fluids.MILK), minmusCore)
 							.withIce(true)
 
 					),
 
 				new CelestialBody("duna", SpaceConfig.dunaDimension, Body.DUNA)
-					.withMassRadius(4.515e21F, 320)
+					.withMassRadius(dunaMassKg, dunaRadiusKm)
 					.withOrbitalParameters(20_726_155, 0.05F, 0.0F, 0.06F, 135.5F)
 					.withRotationalPeriod(65_518)
 					.withTidalLockingTo("ike")
 					.withColor(0.6471f, 0.2824f, 0.1608f)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/duna_rock.png", RefStrings.MODID + ":textures/blocks/duna_sands.png")
 					.withAxialTilt(0F)
+					.withTraits(dunaCore)
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/duna_mask.png"))
 					.withIce(true)
 					.withSatellites(
 
 						new CelestialBody("ike", SpaceConfig.ikeDimension, Body.IKE)
-							.withMassRadius(2.782e20F, 130)
+							.withMassRadius(ikeMassKg, ikeRadiusKm)
 							.withOrbitalParameters(3_200, 0.03F, 0.0F, 0.2F, 0.0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/ike_stone.png", RefStrings.MODID + ":textures/blocks/ike_regolith.png")
 							.withRotationalPeriod(65_518)
 							.withAxialTilt(0F)
-							.withTraits(new CBT_Water(Fluids.BROMINE))
+							.withTraits(new CBT_Water(Fluids.BROMINE), ikeCore)
 							.withIce(true)
 
 					),
 
 				new CelestialBody("dres", SpaceConfig.dresDimension, Body.DRES)
-					.withMassRadius(3.219e20F, 138)
+					.withMassRadius(dresMassKg, dresRadiusKm)
 					.withOrbitalParameters(40_839_348, 0.145F, 90.0F, 5.0F, 280.0F)
 					.withRotationalPeriod(34_800)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/dresbase.png", RefStrings.MODID + ":textures/blocks/sellafield_slaked.png")
 					.withRings(10.0F, 3, 0.4F, 0.4F, 0.4F)
 					.withAxialTilt(0F)
 					.withMinProcessingLevel(2)
+					.withTraits(dresCore)
 					.withIce(true),
 
 
@@ -244,12 +594,12 @@ public class SolarSystem {
 					.withSatellites(
 
 						new CelestialBody("laythe", SpaceConfig.laytheDimension, Body.LAYTHE)
-							.withMassRadius(2.94e22F, 500)
+							.withMassRadius(laytheMassKg, laytheRadiusKm)
 							.withOrbitalParameters(27_184, 0.0288F, 0.0F, 0.348F, 0.0F)
 							.withRotationalPeriod(52_981)
 							.withAxialTilt(0F)
 							.withMinProcessingLevel(3)
-							.withTraits(new CBT_Water())
+							.withTraits(new CBT_Water(), laytheCore)
 							.withBlockTextures("textures/blocks/stone.png", RefStrings.MODID + ":textures/blocks/laythe_silt.png")
 							.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/laythe_mask.png")),
 
@@ -314,12 +664,12 @@ public class SolarSystem {
 						.withRotationalPeriod(192_771),
 
 					new CelestialBody("tekto", SpaceConfig.tektoDimension, Body.TEKTO)
-						.withMassRadius(2.883e21F, 480)
+						.withMassRadius(tektoMassKg, tektoRadiusKm)
 						.withOrbitalParameters(67_355, 0.028F, 0.0F, 9.4F, 55.0F)
 						.withRotationalPeriod(57_915)
 						.withAxialTilt(25F)
 						.withMinProcessingLevel(3)
-						.withTraits(new CBT_Water(Fluids.CCL)) // :)
+						.withTraits(new CBT_Water(Fluids.CCL), tektoCore) // :)
 						.withBlockTextures(RefStrings.MODID + ":textures/blocks/basalt.png", RefStrings.MODID + ":textures/blocks/rubber_silt.png")
 
 				),
@@ -1115,3 +1465,4 @@ public class SolarSystem {
 	}
 
 }
+

@@ -12,6 +12,7 @@ import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_Core;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_SkyState;
@@ -35,6 +36,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.EntityWaterMob;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -251,8 +253,15 @@ public class CelestialBody {
 
 	public static void setTraits(World world, CelestialBodyTrait... traits) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get(world);
+		CelestialBody body = getBody(world);
 
-		traitsData.setTraits(getBody(world).name, traits);
+		traitsData.setTraits(body.name, traits);
+
+		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traitMap = new HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>();
+		for(CelestialBodyTrait trait : traits) {
+			traitMap.put(trait.getClass(), trait);
+		}
+		applyMassFromCurrentCore(body, traitMap);
 	}
 
 	public static void setTraits(World world, Map<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits) {
@@ -263,6 +272,12 @@ public class CelestialBody {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get();
 
 		traitsData.setTraits(name, traits);
+
+		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traitMap = new HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>();
+		for(CelestialBodyTrait trait : traits) {
+			traitMap.put(trait.getClass(), trait);
+		}
+		applyMassFromCurrentCore(this, traitMap);
 	}
 
 	public void setTraits(Map<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits) {
@@ -278,7 +293,7 @@ public class CelestialBody {
 		if(currentTraits == null) {
 			currentTraits = new HashMap<>();
 			for(CelestialBodyTrait trait : body.traits.values()) {
-				currentTraits.put(trait.getClass(), trait);
+				currentTraits.put(trait.getClass(), cloneTrait(trait));
 			}
 		}
 
@@ -292,11 +307,23 @@ public class CelestialBody {
 		if(currentTraits == null) {
 			currentTraits = new HashMap<>();
 			for(CelestialBodyTrait trait : traits.values()) {
-				currentTraits.put(trait.getClass(), trait);
+				currentTraits.put(trait.getClass(), cloneTrait(trait));
 			}
 		}
 
 		return currentTraits;
+	}
+
+	private static CelestialBodyTrait cloneTrait(CelestialBodyTrait trait) {
+		try {
+			CelestialBodyTrait clone = trait.getClass().newInstance();
+			NBTTagCompound nbt = new NBTTagCompound();
+			trait.writeToNBT(nbt);
+			clone.readFromNBT(nbt);
+			return clone;
+		} catch(Exception ignored) {
+			return trait;
+		}
 	}
 
 	public static void modifyTraits(World world, CelestialBodyTrait... traits) {
@@ -321,14 +348,32 @@ public class CelestialBody {
 
 	public static void clearTraits(World world) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get(world);
+		CelestialBody body = getBody(world);
 
-		traitsData.clearTraits(getBody(world).name);
+		traitsData.clearTraits(body.name);
+		applyMassFromCurrentCore(body, new HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>());
 	}
 
 	public void clearTraits() {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get();
 
 		traitsData.clearTraits(name);
+		applyMassFromCurrentCore(this, new HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>());
+	}
+
+	private static void applyMassFromCore(CelestialBody body, CBT_Core core) {
+		core.recalculateForRadius(body.radiusKm);
+		body.massKg = (float) core.computedMassKg;
+	}
+
+	private static void applyMassFromCurrentCore(CelestialBody body, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits) {
+		CBT_Core core = (CBT_Core) traits.get(CBT_Core.class);
+		if(core == null) {
+			core = body.getDefaultTrait(CBT_Core.class);
+		}
+		if(core != null) {
+			applyMassFromCore(body, core);
+		}
 	}
 
 	// he has ceased to be
@@ -614,6 +659,14 @@ public class CelestialBody {
 
 	public static <T extends CelestialBodyTrait> T getTrait(World world, Class<? extends T> trait) {
 		return getBody(world).getTrait(trait);
+	}
+
+	public static CBT_Core getCore(World world) {
+		return getTrait(world, CBT_Core.class);
+	}
+
+	public static void setCore(World world, CBT_Core core) {
+		modifyTraits(world, core);
 	}
 
 	public static boolean hasDefaultTrait(World world, Class<? extends CelestialBodyTrait> trait) {

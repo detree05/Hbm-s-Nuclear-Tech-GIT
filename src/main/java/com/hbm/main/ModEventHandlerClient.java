@@ -1,5 +1,7 @@
 package com.hbm.main;
 
+import java.util.HashMap;
+
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockAshes;
@@ -13,7 +15,7 @@ import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.kerbol.WorldProviderKerbol;
-import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.dim.trait.CBT_Core;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -1706,9 +1708,15 @@ public class ModEventHandlerClient {
 
 		if(!mc.isGamePaused() && event.phase == Phase.END) {
 			for(CelestialBody body : CelestialBody.getAllBodies()) {
-				if(SolarSystemWorldSavedData.getClientTraits(body.name) != null) {
-					for(CelestialBodyTrait trait : SolarSystemWorldSavedData.getClientTraits(body.name).values()) {
+				HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> bodyTraits = SolarSystemWorldSavedData.getClientTraits(body.name);
+				if(bodyTraits != null) {
+					for(CelestialBodyTrait trait : bodyTraits.values()) {
 						trait.update(true);
+					}
+					CBT_Core core = (CBT_Core) bodyTraits.get(CBT_Core.class);
+					if(core != null) {
+						core.recalculateForRadius(body.radiusKm);
+						body.massKg = (float) core.computedMassKg;
 					}
 				}
 			}
@@ -2296,40 +2304,7 @@ public class ModEventHandlerClient {
 				stopKerbolStarStareSound();
 			}
 
-			if(player != null && world.provider != null) {
-				int dim = world.provider.dimensionId;
-				if(dim != -1 && dim != 1 && dim != SpaceConfig.kerbolDimension) {
-					CBT_SkyState skyState = CBT_SkyState.get(world);
-					if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.SUN) {
-						float chargeRatio = MathHelper.clamp_float(
-							(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
-							0.0F,
-							1.0F
-						);
-						float decay = 1.0F - chargeRatio;
-						float startAt = 4.0F / 5.0F;
-						float volume = MathHelper.clamp_float((decay - startAt) / (1.0F - startAt), 0.0F, 1.0F);
-						if(volume > 0.0F) {
-							if(sunDecayHum == null || !sunDecayHum.isPlaying()) {
-								sunDecayHum = MainRegistry.proxy.getLoopedSound("hbm:misc.stationhum", player, volume, 5.0F, 1.0F, 10);
-								sunDecayHum.startSound();
-							}
-
-							sunDecayHum.updateVolume(volume);
-							sunDecayHum.keepAlive();
-						} else if(sunDecayHum != null) {
-							sunDecayHum.stopSound();
-							sunDecayHum = null;
-						}
-					} else if(sunDecayHum != null) {
-						sunDecayHum.stopSound();
-						sunDecayHum = null;
-					}
-				} else if(sunDecayHum != null) {
-					sunDecayHum.stopSound();
-					sunDecayHum = null;
-				}
-			} else if(sunDecayHum != null) {
+			if(sunDecayHum != null) {
 				sunDecayHum.stopSound();
 				sunDecayHum = null;
 			}
