@@ -85,6 +85,9 @@ public class CommandNtmCore extends CommandBase {
 		sender.addChatMessage(new ChatComponentText(
 			EnumChatFormatting.YELLOW + "Magnetic shielding: " + EnumChatFormatting.WHITE + formatPercent(core.getMagneticFieldStrength())
 		));
+		sender.addChatMessage(new ChatComponentText(
+			EnumChatFormatting.YELLOW + "Atmosphere retention: " + EnumChatFormatting.WHITE + formatAtmosphere(CelestialBody.getAtmosphereRetentionLimitAtm(body)) + " atm"
+		));
 
 		Map<String, List<MaterialMass>> massesByCategory = groupByCategory(core.materialMasses);
 		if(massesByCategory.isEmpty()) {
@@ -199,5 +202,10 @@ public class CommandNtmCore extends CommandBase {
 			return String.format(Locale.US, "%.3e", radiation);
 		}
 		return String.format(Locale.US, "%.3f", radiation);
+	}
+
+	private String formatAtmosphere(double pressureAtm) {
+		if(Double.isNaN(pressureAtm) || Double.isInfinite(pressureAtm)) return "N/A";
+		return String.format(Locale.US, "%.3f", pressureAtm);
 	}
 }

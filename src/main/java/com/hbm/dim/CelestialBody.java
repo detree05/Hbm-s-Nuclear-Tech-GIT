@@ -98,6 +98,10 @@ public class CelestialBody {
 	public FluidType gas;
 	private CelestialCore core;
 
+	private static final double ATM_OVERPRESSURE_DISSIPATION_FACTOR = 0.02D;
+	private static final double ATM_MIN_DISSIPATION_PER_UPDATE_ATM = 0.0001D;
+	private static final double ATM_MIN_PRESENT_PRESSURE_ATM = 0.0001D;
+
 	public List<CelestialBody> satellites = new ArrayList<CelestialBody>(); // moon boyes
 	public CelestialBody parent = null;
 
@@ -498,6 +502,8 @@ public class CelestialBody {
 	}
 
 	public static void emitGas(World world, FluidType fluid, double amount) {
+		if(amount <= 0.0D) return;
+
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = getTraits(world);
 
 		CBT_Atmosphere atmosphere = (CBT_Atmosphere) currentTraits.get(CBT_Atmosphere.class);
@@ -506,23 +512,35 @@ public class CelestialBody {
 			currentTraits.put(CBT_Atmosphere.class, atmosphere);
 		}
 
-		boolean hasFluid = false;
-		for(FluidEntry entry : atmosphere.fluids) {
+		double pressureDelta = amount / AstronomyUtil.MB_PER_ATM;
+		FluidEntry existingEntry = null;
+		int existingIndex = -1;
+
+		for(int i = 0; i < atmosphere.fluids.size(); i++) {
+			FluidEntry entry = atmosphere.fluids.get(i);
 			if(entry.fluid == fluid) {
-				entry.pressure += amount / AstronomyUtil.MB_PER_ATM;
-				hasFluid = true;
+				existingEntry = entry;
+				existingIndex = i;
 				break;
 			}
 		}
 
-		if(!hasFluid) {
+		if(existingEntry != null) {
+			existingEntry.pressure += pressureDelta;
+
+			// Keep "most recently added/touched" gases at the end so overpressure loss targets them first.
+			if(existingIndex >= 0 && existingIndex < atmosphere.fluids.size() - 1) {
+				atmosphere.fluids.remove(existingIndex);
+				atmosphere.fluids.add(existingEntry);
+			}
+		} else {
 			// Sort existing fluids and remove the lowest fraction
 			if(atmosphere.fluids.size() >= 8) {
 				atmosphere.sortDescending();
 				atmosphere.fluids.remove(atmosphere.fluids.size() - 1);
 			}
 
-			atmosphere.fluids.add(new FluidEntry(fluid, amount / AstronomyUtil.MB_PER_ATM));
+			atmosphere.fluids.add(new FluidEntry(fluid, pressureDelta));
 		}
 
 		setTraits(world, currentTraits);
@@ -556,6 +574,7 @@ public class CelestialBody {
 
 	public static void updateChemistry(World world) {
 		boolean hasUpdated = false;
+		CelestialBody body = getBody(world);
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = getTraits(world);
 		CBT_Atmosphere atmosphere = (CBT_Atmosphere) currentTraits.get(CBT_Atmosphere.class);
 
@@ -588,10 +607,84 @@ public class CelestialBody {
 				}
 			}
 
+			if(dissipateOverpressureAtmosphere(body, atmosphere)) {
+				hasUpdated = true;
+				if(atmosphere.fluids.isEmpty()) {
+					currentTraits.remove(CBT_Atmosphere.class);
+				}
+			}
 		}
 
 		if(hasUpdated)
 			setTraits(world, currentTraits);
+	}
+
+	private static boolean dissipateOverpressureAtmosphere(CelestialBody body, CBT_Atmosphere atmosphere) {
+		if(body == null || atmosphere == null || atmosphere.fluids.isEmpty()) return false;
+
+		double maxPressure = getAtmosphereRetentionLimitAtm(body);
+		if(Double.isInfinite(maxPressure) || Double.isNaN(maxPressure)) return false;
+
+		double totalPressure = atmosphere.getPressure();
+		double excessPressure = totalPressure - maxPressure;
+		if(excessPressure <= 0.0D) return false;
+
+		int lastIndex = atmosphere.fluids.size() - 1;
+		FluidEntry lastAdded = atmosphere.fluids.get(lastIndex);
+		if(lastAdded == null || lastAdded.pressure <= 0.0D) {
+			atmosphere.fluids.remove(lastIndex);
+			return true;
+		}
+
+		double dissipatedPressure = Math.max(ATM_MIN_DISSIPATION_PER_UPDATE_ATM, excessPressure * ATM_OVERPRESSURE_DISSIPATION_FACTOR);
+		dissipatedPressure = Math.min(dissipatedPressure, lastAdded.pressure);
+
+		if(dissipatedPressure <= 0.0D) return false;
+
+		lastAdded.pressure -= dissipatedPressure;
+		if(lastAdded.pressure <= ATM_MIN_PRESENT_PRESSURE_ATM) {
+			atmosphere.fluids.remove(lastIndex);
+		}
+
+		return true;
+	}
+
+	public static double getAtmosphereRetentionLimitAtm(World world) {
+		return getAtmosphereRetentionLimitAtm(getBody(world));
+	}
+
+	public static double getAtmosphereRetentionLimitAtm(CelestialBody body) {
+		if(body == null) return Double.POSITIVE_INFINITY;
+
+		double bodyCoreMassKg = getBodyCoreMassKg(body);
+		if(bodyCoreMassKg <= 0.0D) return Double.POSITIVE_INFINITY;
+
+		double kerbinCoreMassKg = getReferenceCoreMassKg("kerbin");
+		double eveCoreMassKg = getReferenceCoreMassKg("eve");
+		if(kerbinCoreMassKg <= 0.0D || eveCoreMassKg <= 0.0D || Math.abs(eveCoreMassKg - kerbinCoreMassKg) < 1.0D) {
+			return 1.5D;
+		}
+
+		double interpolation = (bodyCoreMassKg - kerbinCoreMassKg) / (eveCoreMassKg - kerbinCoreMassKg);
+		double maxPressure = 1.5D + interpolation * (6.0D - 1.5D);
+		return Math.max(0.0D, maxPressure);
+	}
+
+	private static double getReferenceCoreMassKg(String bodyName) {
+		CelestialBody reference = nameToBodyMap.get(bodyName);
+		if(reference == null || !bodyName.equals(reference.name)) return -1.0D;
+		return getBodyCoreMassKg(reference);
+	}
+
+	private static double getBodyCoreMassKg(CelestialBody body) {
+		CelestialCore core = body.getCore();
+		if(core == null) return -1.0D;
+
+		if(core.computedRadiusKm != body.radiusKm) {
+			core.recalculateForRadius(body.radiusKm);
+		}
+
+		return core.computedCoreMassKg;
 	}
 
 	// Called once per tick to attenuate swarm counts based on a swarm half-life
