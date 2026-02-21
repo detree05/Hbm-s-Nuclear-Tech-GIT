@@ -463,6 +463,8 @@ public class CelestialCore {
 	private static final double PLANET_MASS_SHARE_MAX = 0.75D;
 	private static final double PLANET_MASS_SHARE_RADIUS_MIN_KM = 60.0D;
 	private static final double PLANET_MASS_SHARE_RADIUS_MAX_KM = 700.0D;
+	// Calibrated so Kerbin/Earth-like light+heavy composition yields full magnetic shielding (1.0).
+	private static final double MAGNETIC_FIELD_EARTH_REFERENCE_COUPLING = 2.788131528E3D;
 	public double computedRadiusKm = -1.0D;
 	public double computedCoreMassKg = 0.0D;
 	public double computedPlanetMassKg = 0.0D;
@@ -470,6 +472,7 @@ public class CelestialCore {
 	public double computedMassKg = 0.0D;
 	public double computedBulkDensityKgPerM3 = 0.0D;
 	public double computedCoreRadioactivity = Double.NaN;
+	public double computedMagneticFieldStrength = Double.NaN;
 	public double densityScale = 1.0D;
 
 	public CelestialCore() { }
@@ -836,6 +839,42 @@ public class CelestialCore {
 		return computedCoreRadioactivity;
 	}
 
+	// Returns a normalized shielding strength in [0, 1] from conductive core composition.
+	// Only light/heavy categories contribute, per design.
+	public double getMagneticFieldStrength() {
+		if(!Double.isNaN(computedMagneticFieldStrength)) {
+			return computedMagneticFieldStrength;
+		}
+
+		double totalWeightedPercentage = getTotalWeightedPercentage();
+		double lightCoupling = getCategoryConductiveCoupling(CAT_LIGHT, totalWeightedPercentage);
+		double heavyCoupling = getCategoryConductiveCoupling(CAT_HEAVY, totalWeightedPercentage);
+		if(lightCoupling <= 0.0D || heavyCoupling <= 0.0D) {
+			computedMagneticFieldStrength = 0.0D;
+			return computedMagneticFieldStrength;
+		}
+
+		double coupling = Math.sqrt(lightCoupling * heavyCoupling);
+		computedMagneticFieldStrength = clamp01(coupling / MAGNETIC_FIELD_EARTH_REFERENCE_COUPLING);
+		return computedMagneticFieldStrength;
+	}
+
+	private double getCategoryConductiveCoupling(String categoryKey, double totalWeightedPercentage) {
+		CoreCategory category = getCategory(categoryKey);
+		if(category == null) return 0.0D;
+
+		double coupling = 0.0D;
+		for(CoreEntry entry : category.entries) {
+			double weightedShare = ((double) category.weight * (double) entry.percentage) / totalWeightedPercentage;
+			coupling += weightedShare * getDensityForOreDict(entry.oreDict);
+		}
+		return coupling;
+	}
+
+	private static double clamp01(double value) {
+		return Math.max(0.0D, Math.min(1.0D, value));
+	}
+
 	public CelestialCore recalculateForRadius(double radiusKm) {
 		// `radiusKm` is the full planetary radius used by gravity/orbit calcs.
 		materialMasses = calculateMaterialMasses(radiusKm);
@@ -850,6 +889,7 @@ public class CelestialCore {
 		computedPlanetMassKg = computedTotalMassKg - computedCoreMassKg;
 		computedMassKg = computedTotalMassKg; // Backward-compat alias for callers expecting total body mass.
 		computedCoreRadioactivity = getAverageRadioactivity();
+		computedMagneticFieldStrength = getMagneticFieldStrength();
 
 		double radiusM = radiusKm * 1_000D;
 		double volumeM3 = (4D / 3D) * Math.PI * radiusM * radiusM * radiusM;
@@ -866,6 +906,7 @@ public class CelestialCore {
 		computedMassKg = 0.0D;
 		computedBulkDensityKgPerM3 = 0.0D;
 		computedCoreRadioactivity = Double.NaN;
+		computedMagneticFieldStrength = Double.NaN;
 	}
 
 	public static double getPlanetMassShareForRadius(double radiusKm) {

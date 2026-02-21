@@ -70,7 +70,6 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
-import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -330,23 +329,16 @@ public class EntityEffectHandler {
 					}
 				}
 
-				if(world.getSavedLightValue(EnumSkyBlock.Sky, ix, iy, iz) - world.skylightSubtracted >= 14) {
-					if(world.provider instanceof WorldProviderDmitriy) {
-						// Dmitriy should not contribute ambient celestial radiation.
-						rad = Math.max(rad, 0);
-					} else {
-						CBT_Atmosphere atmosphere = !target.inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;
+				if(!(world.provider instanceof WorldProviderDmitriy) && target.body != null) {
+					float targetRad = target.body.getSunPower() * (float) RadiationConfig.celestialRadMultiplier;
 
-						float targetRad = target.body.getSunPower();
-
-						if(atmosphere != null) {
-							targetRad -= (float)atmosphere.getPressure() * 4;
-						}
-
-						targetRad *= RadiationConfig.celestialRadMultiplier;
-
-						if(targetRad > rad) rad = targetRad;
+					// Orbital stations are outside the planetary magnetosphere gameplay-wise.
+					if(target.body.getCore() != null && !target.inOrbit) {
+						float magneticShield = (float) target.body.getCore().getMagneticFieldStrength();
+						targetRad *= Math.max(0.0F, 1.0F - magneticShield);
 					}
+
+					if(targetRad > rad) rad = targetRad;
 				}
 			}
 

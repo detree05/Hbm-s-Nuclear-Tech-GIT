@@ -82,6 +82,9 @@ public class CommandNtmCore extends CommandBase {
 		sender.addChatMessage(new ChatComponentText(
 			EnumChatFormatting.YELLOW + "Core radioactivity: " + EnumChatFormatting.WHITE + formatRadiation(core.getAverageRadioactivity()) + " rad/s"
 		));
+		sender.addChatMessage(new ChatComponentText(
+			EnumChatFormatting.YELLOW + "Magnetic shielding: " + EnumChatFormatting.WHITE + formatPercent(core.getMagneticFieldStrength())
+		));
 
 		Map<String, List<MaterialMass>> massesByCategory = groupByCategory(core.materialMasses);
 		if(massesByCategory.isEmpty()) {
