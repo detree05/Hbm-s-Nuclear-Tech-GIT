@@ -659,21 +659,8 @@ public class CelestialBody {
 		double bodyCoreMassKg = getBodyCoreMassKg(body);
 		if(bodyCoreMassKg <= 0.0D) return Double.POSITIVE_INFINITY;
 
-		double kerbinCoreMassKg = getReferenceCoreMassKg("kerbin");
-		double eveCoreMassKg = getReferenceCoreMassKg("eve");
-		if(kerbinCoreMassKg <= 0.0D || eveCoreMassKg <= 0.0D || Math.abs(eveCoreMassKg - kerbinCoreMassKg) < 1.0D) {
-			return 1.5D;
-		}
-
-		double interpolation = (bodyCoreMassKg - kerbinCoreMassKg) / (eveCoreMassKg - kerbinCoreMassKg);
-		double maxPressure = 1.5D + interpolation * (6.0D - 1.5D);
-		return Math.max(0.0D, maxPressure);
-	}
-
-	private static double getReferenceCoreMassKg(String bodyName) {
-		CelestialBody reference = nameToBodyMap.get(bodyName);
-		if(reference == null || !bodyName.equals(reference.name)) return -1.0D;
-		return getBodyCoreMassKg(reference);
+		double retention = 0.05D + (bodyCoreMassKg - 1.0E18D) * (5.0D - 0.05D) / (3.0E22D - 1.0E18D);
+		return Math.max(0.0D, retention);
 	}
 
 	private static double getBodyCoreMassKg(CelestialBody body) {

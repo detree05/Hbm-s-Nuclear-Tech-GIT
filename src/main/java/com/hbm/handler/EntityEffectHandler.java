@@ -13,6 +13,7 @@ import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.entity.missile.EntityRideableRocket;
 import com.hbm.entity.mob.EntityCyberCrab;
 import com.hbm.entity.mob.glyphid.EntityGlyphid;
@@ -329,7 +330,10 @@ public class EntityEffectHandler {
 					}
 				}
 
-				if(!(world.provider instanceof WorldProviderDmitriy) && target.body != null) {
+				CBT_SkyState.SkyState skyState = CBT_SkyState.get(world).getState();
+				boolean hasSolarRadiation = skyState != CBT_SkyState.SkyState.NOTHING && skyState != CBT_SkyState.SkyState.STARCORE;
+
+				if(!(world.provider instanceof WorldProviderDmitriy) && target.body != null && hasSolarRadiation) {
 					float targetRad = target.body.getSunPower() * (float) RadiationConfig.celestialRadMultiplier;
 
 					// Orbital stations are outside the planetary magnetosphere gameplay-wise.

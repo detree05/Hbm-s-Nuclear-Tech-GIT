@@ -216,7 +216,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		try {
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 			if(skyState.isBlackhole() || skyState.isNothing()) {
-				return skyState.isNothing() ? 0.45F : 0.0F;
+				return 0.0F;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
@@ -224,7 +224,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return ratio;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
 				float ratio = MathHelper.clamp_float(

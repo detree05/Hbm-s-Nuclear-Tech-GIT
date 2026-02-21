@@ -197,6 +197,10 @@ public class SkyProviderCelestial extends IRenderHandler {
 			lastSkyState = sky;
 			lastStarcoreThroughput = skyState.getStarcoreThroughput();
 		}
+		long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
+		boolean forceNightSky = sky == CBT_SkyState.SkyState.BLACKHOLE
+			|| sky == CBT_SkyState.SkyState.NOTHING
+			|| (sky == CBT_SkyState.SkyState.STARCORE && starcoreThroughput <= 0L);
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 
 		boolean hasAtmosphere = atmosphere != null;
@@ -204,16 +208,13 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float pressure = hasAtmosphere ? (float)atmosphere.getPressure() : 0.0F;
 		float visibility = hasAtmosphere ? MathHelper.clamp_float(2.0F - pressure, 0.1F, 1.0F) : 1.0F;
 		float skyDim = 1.0F;
-		if(sky == CBT_SkyState.SkyState.NOTHING) {
-			skyDim = 0.45F;
-		} else if(sky == CBT_SkyState.SkyState.STARCORE) {
-			long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
+		if(sky == CBT_SkyState.SkyState.STARCORE) {
 			float ratio = MathHelper.clamp_float(
 				(float)((double)starcoreThroughput / (double)CBT_SkyState.STARCORE_THRESHOLD_HE_PER_TICK),
 				0.0F,
 				1.0F
 			);
-			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
+			skyDim = ratio;
 		} else if(sky == CBT_SkyState.SkyState.SUN && skyState != null) {
 			float ratio = MathHelper.clamp_float(
 				(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
@@ -222,7 +223,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 			);
 			skyDim = 0.45F + (1.0F - 0.45F) * ratio;
 		}
-		visibility *= skyDim;
+		if(!forceNightSky) {
+			visibility *= skyDim;
+		}
 
 		GL11.glDisable(GL11.GL_TEXTURE_2D);
 		Vec3 skyColor = world.getSkyColor(mc.renderViewEntity, partialTicks);
@@ -238,6 +241,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 			skyG *= curvature;
 			skyB *= curvature;
 		}
+		if(forceNightSky) {
+			skyR = 0.0F;
+			skyG = 0.0F;
+			skyB = 0.0F;
+		}
 
 		if(mc.gameSettings.anaglyph) {
 			float[] anaglyphColor = applyAnaglyph(skyR, skyG, skyB);
@@ -249,7 +257,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float skyDomeR = skyR;
 		float skyDomeG = skyG;
 		float skyDomeB = skyB;
-		if(skyDim < 1.0F) {
+		if(!forceNightSky && skyDim < 1.0F) {
 			skyDomeR *= skyDim;
 			skyDomeG *= skyDim;
 			skyDomeB *= skyDim;
@@ -266,7 +274,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			planetB = (float)BobMathUtil.clampedLerp(skyB, fogColor.zCoord, fogIntensity);
 		}
 
-		if(skyDim < 1.0F) {
+		if(!forceNightSky && skyDim < 1.0F) {
 			planetR *= skyDim;
 			planetG *= skyDim;
 			planetB *= skyDim;
@@ -302,7 +310,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, GL11.GL_ONE, GL11.GL_ZERO);
 
-		float starBrightness = world.getStarBrightness(partialTicks) * visibility;
+		float starBrightness = (forceNightSky ? 1.0F : world.getStarBrightness(partialTicks)) * visibility;
 		float solarAngle = world.getCelestialAngle(partialTicks);
 		float siderealAngle = (float)SolarSystem.calculateSiderealAngle(world, partialTicks, body);
 		if(world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
@@ -311,7 +319,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 
 		// Handle any special per-body sunset rendering
-		renderSunset(partialTicks, world, mc, solarAngle, pressure, body.surfaceTexture);
+		if(!forceNightSky) {
+			renderSunset(partialTicks, world, mc, solarAngle, pressure, body.surfaceTexture);
+		}
 
 		renderStars(partialTicks, world, mc, starBrightness, solarAngle + siderealAngle, body.axialTilt);
 
@@ -1028,8 +1038,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
 		final CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
-		final boolean noDirectSunlight = world.provider instanceof WorldProviderOrbit
-			&& (sky == CBT_SkyState.SkyState.NOTHING || sky == CBT_SkyState.SkyState.STARCORE);
+		final long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
+		final boolean noDirectSunlight = sky == CBT_SkyState.SkyState.NOTHING
+			|| (sky == CBT_SkyState.SkyState.STARCORE && starcoreThroughput <= 0L);
 		final float directLight = noDirectSunlight ? 0.15F : 1.0F;
 		float blendDarken = 0.1F;
 		final float redOverlayAlpha = 0.0F;
