@@ -10,7 +10,7 @@ import com.hbm.config.ServerConfig;
 import com.hbm.config.WorldConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.entity.missile.EntityRideableRocket;
@@ -321,23 +321,31 @@ public class EntityEffectHandler {
 				rad = (float) RadiationConfig.hellRad;
 
 			if(world.provider instanceof WorldProviderCelestial || world.provider instanceof WorldProviderOrbit) {
+				Target target = CelestialBody.getTarget(world, ix, iz);
+
+				if(target.body != null && target.body.getCore() != null && !target.inOrbit) {
+					float coreRadiation = (float) target.body.getCore().getAverageRadioactivity();
+					if(coreRadiation > 0) {
+						rad += coreRadiation;
+					}
+				}
+
 				if(world.getSavedLightValue(EnumSkyBlock.Sky, ix, iy, iz) - world.skylightSubtracted >= 14) {
-					if(world.provider instanceof WorldProviderKerbol) {
-						// Kerbol should not contribute ambient celestial radiation.
+					if(world.provider instanceof WorldProviderDmitriy) {
+						// Dmitriy should not contribute ambient celestial radiation.
 						rad = Math.max(rad, 0);
 					} else {
-					Target target = CelestialBody.getTarget(world, ix, iz);
-					CBT_Atmosphere atmosphere = !target.inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;
+						CBT_Atmosphere atmosphere = !target.inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;
 
-					float targetRad = target.body.getSunPower();
+						float targetRad = target.body.getSunPower();
 
-					if(atmosphere != null) {
-						targetRad -= (float)atmosphere.getPressure() * 4;
-					}
+						if(atmosphere != null) {
+							targetRad -= (float)atmosphere.getPressure() * 4;
+						}
 
-					targetRad *= RadiationConfig.celestialRadMultiplier;
+						targetRad *= RadiationConfig.celestialRadMultiplier;
 
-					if(targetRad > rad) rad = targetRad;
+						if(targetRad > rad) rad = targetRad;
 					}
 				}
 			}
@@ -872,3 +880,4 @@ public class EntityEffectHandler {
 		return true;
 	}
 }
+

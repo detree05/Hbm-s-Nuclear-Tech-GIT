@@ -36,7 +36,7 @@ public class TileEntityDysonConverterHE extends TileEntityMachineBase implements
 	@Override
 	public void updateEntity() {
 		if(!worldObj.isRemote) {
-			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 				isConverting = false;
 				power = 0;
 				cooldown = 0;
@@ -83,7 +83,7 @@ public class TileEntityDysonConverterHE extends TileEntityMachineBase implements
 
 		if(x != rx || y != ry || z != rz) return false;
 
-		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			return true;
 		}
 
@@ -161,3 +161,4 @@ public class TileEntityDysonConverterHE extends TileEntityMachineBase implements
 	}
 
 }
+

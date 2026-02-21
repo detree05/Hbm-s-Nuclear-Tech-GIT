@@ -1,4 +1,4 @@
-package com.hbm.dim.kerbol;
+package com.hbm.dim.dmitriy;
 
 import java.util.Random;
 
@@ -10,7 +10,7 @@ import com.hbm.config.WorldConfig;
 import com.hbm.util.Compat;
 import com.hbm.world.WorldUtil;
 import com.hbm.lib.RefStrings;
-import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
+import com.hbm.dim.dmitriy.biome.BiomeGenDmitriy;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -30,7 +30,7 @@ import net.minecraft.world.gen.NoiseGeneratorPerlin;
 import java.util.List;
 import net.minecraftforge.oredict.OreDictionary;
 
-public class ChunkProviderKerbol implements IChunkProvider {
+public class ChunkProviderDmitriy implements IChunkProvider {
 	private final World worldObj;
 	private final NoiseGeneratorPerlin terrainNoise;
 	private static final int BASE_HEIGHT = 64;
@@ -57,7 +57,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
 	private static List<ItemStack> cachedHbmIngots = null;
 
-	public ChunkProviderKerbol(World world) {
+	public ChunkProviderDmitriy(World world) {
 		this.worldObj = world;
 		this.terrainNoise = new NoiseGeneratorPerlin(new Random(world.getSeed() ^ 0x5deece66dL), 4);
 	}
@@ -127,13 +127,13 @@ public class ChunkProviderKerbol implements IChunkProvider {
 			short[] biomes = WorldUtil.getBiomeShortArray(chunk);
 			for(int i = 0; i < biomes.length; i++) {
 				int height = heightMap[i];
-				biomes[i] = (short) (height < BLOOD_SEA_LEVEL ? SpaceConfig.kerbolOceanBiome : SpaceConfig.kerbolBiome);
+				biomes[i] = (short) (height < BLOOD_SEA_LEVEL ? SpaceConfig.dmitriyOceanBiome : SpaceConfig.dmitriyBiome);
 			}
 		} else {
 			byte[] biomes = chunk.getBiomeArray();
 			for(int i = 0; i < biomes.length; i++) {
 				int height = heightMap[i];
-				biomes[i] = (byte) (height < BLOOD_SEA_LEVEL ? SpaceConfig.kerbolOceanBiome : SpaceConfig.kerbolBiome);
+				biomes[i] = (byte) (height < BLOOD_SEA_LEVEL ? SpaceConfig.dmitriyOceanBiome : SpaceConfig.dmitriyBiome);
 			}
 		}
 
@@ -170,7 +170,7 @@ public class ChunkProviderKerbol implements IChunkProvider {
 	@Override public boolean saveChunks(boolean combined, IProgressUpdate progress) { return true; }
 	@Override public boolean unloadQueuedChunks() { return false; }
 	@Override public boolean canSave() { return true; }
-	@Override public String makeString() { return "KerbolLevelSource"; }
+	@Override public String makeString() { return "DmitriyLevelSource"; }
 	@Override @SuppressWarnings("rawtypes")
 	public List getPossibleCreatures(EnumCreatureType type, int x, int y, int z) { return null; }
 	@Override public ChunkPosition func_147416_a(World w, String s, int x, int y, int z) { return null; }
@@ -588,3 +588,5 @@ public class ChunkProviderKerbol implements IChunkProvider {
 		worldObj.setBlock(x, y, z, block);
 	}
 }
+
+

@@ -193,7 +193,7 @@ public class TileEntityXenonThruster extends TileEntityMachineBase implements IP
 			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 			return;
 		}
@@ -258,3 +258,4 @@ public class TileEntityXenonThruster extends TileEntityMachineBase implements IP
 	}
 
 }
+

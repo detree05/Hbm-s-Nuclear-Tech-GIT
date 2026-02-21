@@ -142,11 +142,11 @@ public class RocketStruct {
 				issues.add(EnumChatFormatting.RED + "It's gone...");
 				return issues;
 			}
-			if(to.getEnum() == SolarSystem.Body.KERBOL) {
+			if(to.getEnum() == SolarSystem.Body.DMITRIY) {
 				issues.add(EnumChatFormatting.RED + "You aren't getting there buddy");
 				return issues;
 			}
-			if(from.getEnum() == SolarSystem.Body.KERBOL && to.getEnum() != SolarSystem.Body.KERBOL) {
+			if(from.getEnum() == SolarSystem.Body.DMITRIY && to.getEnum() != SolarSystem.Body.DMITRIY) {
 				issues.add(EnumChatFormatting.RED + "NO WAY HOME");
 			} else {
 			int fuelRequirement = getFuelRequired(stageNum, from, to, fromOrbit, toOrbit);
@@ -194,7 +194,7 @@ public class RocketStruct {
 	}
 
 	public boolean hasSufficientFuel(CelestialBody from, CelestialBody to, boolean fromOrbit, boolean toOrbit) {
-		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL) {
+		if(to != null && to.getEnum() == SolarSystem.Body.DMITRIY) {
 			return false;
 		}
 
@@ -229,7 +229,7 @@ public class RocketStruct {
 
 		if(stage.fuselage == null || stage.thruster == null) return -1;
 
-		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL) {
+		if(to != null && to.getEnum() == SolarSystem.Body.DMITRIY) {
 			return Integer.MAX_VALUE;
 		}
 
@@ -488,3 +488,4 @@ public class RocketStruct {
 	}
 
 }
+

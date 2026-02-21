@@ -152,9 +152,9 @@ public class CraftingManager {
 		addShapelessAuto(new ItemStack(ModItems.particle_lead, 1), new Object[] { ModItems.particle_empty, PB.dust(), ModItems.pellet_charged });
 		addShapelessAuto(new ItemStack(ModItems.cell_antimatter, 1), new Object[] { ModItems.particle_aproton, ModItems.particle_aelectron, ModItems.cell_empty });
 		addShapelessAuto(new ItemStack(ModItems.particle_amat, 1), new Object[] { ModItems.particle_aproton, ModItems.particle_aelectron, ModItems.particle_empty });
-		ItemStack kerbolDrive = new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal());
-		ItemVOTVdrive.setProcessed(kerbolDrive, true);
-		addShapelessAuto(kerbolDrive, new Object[] { ModItems.hard_drive, ModItems.particle_digamma });
+		ItemStack dmitriyDrive = new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY.ordinal());
+		ItemVOTVdrive.setProcessed(dmitriyDrive, true);
+		addShapelessAuto(dmitriyDrive, new Object[] { ModItems.hard_drive, ModItems.particle_digamma });
 
 		addRecipeAuto(new ItemStack(ModItems.canister_empty, 2), new Object[] { "S ", "AA", "AA", 'S', STEEL.plate(), 'A', AL.plate() });
 		addRecipeAuto(new ItemStack(ModItems.gas_empty, 2), new Object[] { "S ", "AA", "AA", 'A', STEEL.plate(), 'S', CU.plate() });
@@ -1239,3 +1239,4 @@ public class CraftingManager {
 			GameRegistry.addShapelessRecipe(result, ins);
 	}
 }
+

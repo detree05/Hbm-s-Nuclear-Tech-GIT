@@ -11,11 +11,11 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.World;
 
-public class EntityKerbolMeteor extends Entity {
+public class EntityDmitriyMeteor extends Entity {
 
 	private AudioWrapper audioFly;
 
-	public EntityKerbolMeteor(World world) {
+	public EntityDmitriyMeteor(World world) {
 		super(world);
 		this.ignoreFrustumCheck = true;
 		this.isImmuneToFire = true;

@@ -67,8 +67,8 @@ public class MachineDysonConverterAnatmogenesis extends BlockDummyable implement
 
 		List<String> text = new ArrayList<String>();
 
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
-			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getDmitriyWarning(world));
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 			return;
 		}
@@ -145,4 +145,6 @@ public class MachineDysonConverterAnatmogenesis extends BlockDummyable implement
 	}
 
 }
+
+
 

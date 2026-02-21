@@ -11,11 +11,11 @@ import com.hbm.config.ClientConfig;
 import com.hbm.config.GeneralConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialCore;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
-import com.hbm.dim.trait.CBT_Core;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -160,19 +160,19 @@ public class ModEventHandlerClient {
 	public static long flashTimestamp;
 	public static long starcoreFlashTimestamp;
 	public static long shakeTimestamp;
-	private static Float lastKerbolGravity;
-	private static long lastKerbolHeartbeatBeat = -1L;
-	private static float kerbolStarStareIntensity = 0.0F;
+	private static Float lastDmitriyGravity;
+	private static long lastDmitriyHeartbeatBeat = -1L;
+	private static float dmitriyStarStareIntensity = 0.0F;
 	private static Integer lastClientDimensionId = null;
-	private static final List<KerbolStareTextEntry> kerbolStarStareTextEntries = new ArrayList<KerbolStareTextEntry>();
-	private static int kerbolStarStareTextSpawnTimer = 0;
+	private static final List<DmitriyStareTextEntry> dmitriyStarStareTextEntries = new ArrayList<DmitriyStareTextEntry>();
+	private static int dmitriyStarStareTextSpawnTimer = 0;
 	private static ResourceLocation voidStareBlurTexture;
-	private static int kerbolDialogueCooldownTicks = -1;
+	private static int dmitriyDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
-	private static Method kerbolGhostAchievementToastMethod;
-	private static KerbolGhostAchievement kerbolGhostAchievement;
-	private static final Set<String> kerbolGhostAchievementSeenCache = new HashSet<String>();
-	private static boolean kerbolGhostAchievementSeenLoadedFromConfig = false;
+	private static Method dmitriyGhostAchievementToastMethod;
+	private static DmitriyGhostAchievement dmitriyGhostAchievement;
+	private static final Set<String> dmitriyGhostAchievementSeenCache = new HashSet<String>();
+	private static boolean dmitriyGhostAchievementSeenLoadedFromConfig = false;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -182,7 +182,7 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static String getKerbolStarStareHostName() {
+	private static String getDmitriyStarStareHostName() {
 		String envHost = System.getenv("COMPUTERNAME");
 		if(envHost != null && !envHost.isEmpty()) {
 			return envHost;
@@ -190,7 +190,7 @@ public class ModEventHandlerClient {
 		return resolveHostnameSafe();
 	}
 
-	private static Random getKerbolStarStareTextRandom() {
+	private static Random getDmitriyStarStareTextRandom() {
 		Minecraft mc = Minecraft.getMinecraft();
 		if(mc != null && mc.theWorld != null && mc.theWorld.rand != null) {
 			return mc.theWorld.rand;
@@ -198,7 +198,7 @@ public class ModEventHandlerClient {
 		return new Random();
 	}
 
-	private static String getKerbolStarStareText(Random random) {
+	private static String getDmitriyStarStareText(Random random) {
 		switch(random.nextInt(8)) {
 		case 0:
 			return "I T   W A T C H E S";
@@ -209,7 +209,7 @@ public class ModEventHandlerClient {
 		case 3:
 			return "L O O K   D E E P E R";
 		case 4:
-			return "I   K N O W   Y O U,   " + getKerbolStarStareHostName();
+			return "I   K N O W   Y O U,   " + getDmitriyStarStareHostName();
 		case 5:
 			return "I   S E E   Y O U";
 		case 6:
@@ -240,13 +240,13 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static class KerbolStareTextEntry {
+	private static class DmitriyStareTextEntry {
 		private final String text;
 		private final float anchorX;
 		private final float anchorY;
 		private int ageTicks;
 
-		private KerbolStareTextEntry(String text, float anchorX, float anchorY) {
+		private DmitriyStareTextEntry(String text, float anchorX, float anchorY) {
 			this.text = text;
 			this.anchorX = anchorX;
 			this.anchorY = anchorY;
@@ -297,12 +297,12 @@ public class ModEventHandlerClient {
 
 		if(event.type == ElementType.CROSSHAIRS) {
 			float intensity = getVoidStareIntensity(player);
-			float overlayIntensity = Math.max(intensity, kerbolStarStareIntensity);
+			float overlayIntensity = Math.max(intensity, dmitriyStarStareIntensity);
 			if(overlayIntensity > 0.001F) {
 				renderVoidStareOverlay(event.resolution, overlayIntensity);
 			}
-			if(kerbolStarStareIntensity > 0.001F) {
-				renderKerbolStarStareText(event.resolution, kerbolStarStareIntensity);
+			if(dmitriyStarStareIntensity > 0.001F) {
+				renderDmitriyStarStareText(event.resolution, dmitriyStarStareIntensity);
 			}
 		}
 
@@ -699,10 +699,10 @@ public class ModEventHandlerClient {
 			}
 		}
 
-		// Simple "pull" effect when approaching Kerbol in orbit.
+		// Simple "pull" effect when transfer animation approaches Dmitriy.
 		if(player.worldObj.provider instanceof WorldProviderOrbit) {
 			OrbitalStation station = OrbitalStation.clientStation;
-			if(station != null && station.state != StationState.ORBIT && station.target == SolarSystem.kerbol) {
+			if(station != null && station.state != StationState.ORBIT && station.getAnimationTarget() == SolarSystem.dmitriy) {
 				float progress = MathHelper.clamp_float((float)station.getTransferProgress(0), 0F, 1F);
 				fov *= (1.0F - 0.15F * progress);
 			}
@@ -715,9 +715,9 @@ public class ModEventHandlerClient {
 			fov *= (1.0F + voidStareMaxFovShift * curve);
 		}
 
-		if(kerbolStarStareIntensity > 0.001F) {
-			final float kerbolStarStareMaxFovZoom = 0.6F;
-			float zoomScale = 1.0F - kerbolStarStareMaxFovZoom * kerbolStarStareIntensity;
+		if(dmitriyStarStareIntensity > 0.001F) {
+			final float dmitriyStarStareMaxFovZoom = 0.6F;
+			float zoomScale = 1.0F - dmitriyStarStareMaxFovZoom * dmitriyStarStareIntensity;
 			fov *= MathHelper.clamp_float(zoomScale, 0.1F, 1.0F);
 		}
 
@@ -749,54 +749,54 @@ public class ModEventHandlerClient {
 		return MathHelper.clamp_float(max, 0.0F, 1.0F);
 	}
 
-	private static void updateKerbolStarStare(Minecraft mc, float partialTicks) {
-		final float kerbolStarStareAngleDeg = 35.0F;
-		final float kerbolStarStareRaytraceDistance = 512.0F;
-		final float kerbolStarStareMaxTurnDeg = 2.5F;
-		kerbolStarStareIntensity = 0.0F;
+	private static void updateDmitriyStarStare(Minecraft mc, float partialTicks) {
+		final float dmitriyStarStareAngleDeg = 35.0F;
+		final float dmitriyStarStareRaytraceDistance = 512.0F;
+		final float dmitriyStarStareMaxTurnDeg = 2.5F;
+		dmitriyStarStareIntensity = 0.0F;
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
-		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
-			updateKerbolStarStareTextState(false);
+		if(!(mc.theWorld.provider instanceof WorldProviderDmitriy)) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		Vec3 starDir = getKerbolStarADirection(mc.theWorld, partialTicks);
+		Vec3 starDir = getDmitriyStarADirection(mc.theWorld, partialTicks);
 		if(starDir == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
 		EntityPlayer player = mc.thePlayer;
 		Vec3 look = player.getLookVec();
 		if(look == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
 		double dot = look.xCoord * starDir.xCoord + look.yCoord * starDir.yCoord + look.zCoord * starDir.zCoord;
 		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
 		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
-		if(angleDeg > kerbolStarStareAngleDeg) {
-			updateKerbolStarStareTextState(false);
+		if(angleDeg > dmitriyStarStareAngleDeg) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		if(!isStarVisible(mc.theWorld, player, starDir, kerbolStarStareRaytraceDistance)) {
-			updateKerbolStarStareTextState(false);
+		if(!isStarVisible(mc.theWorld, player, starDir, dmitriyStarStareRaytraceDistance)) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		float intensity = 1.0F - (angleDeg / kerbolStarStareAngleDeg);
+		float intensity = 1.0F - (angleDeg / dmitriyStarStareAngleDeg);
 		intensity = intensity * intensity;
-		kerbolStarStareIntensity = intensity;
+		dmitriyStarStareIntensity = intensity;
 
 		float targetYaw = (float) (Math.atan2(starDir.zCoord, starDir.xCoord) * 180.0D / Math.PI) - 90.0F;
 		float targetPitch = (float) (-Math.asin(starDir.yCoord) * 180.0D / Math.PI);
 
-		float maxStep = kerbolStarStareMaxTurnDeg * intensity;
+		float maxStep = dmitriyStarStareMaxTurnDeg * intensity;
 		float yaw = player.rotationYaw;
 		float pitch = player.rotationPitch;
 
@@ -809,53 +809,53 @@ public class ModEventHandlerClient {
 		player.rotationYaw = yaw;
 		player.rotationPitch = MathHelper.clamp_float(pitch, -90.0F, 90.0F);
 		player.rotationYawHead = yaw;
-		updateKerbolStarStareTextState(true);
+		updateDmitriyStarStareTextState(true);
 	}
 
-	private static void updateKerbolStarStareTextState(boolean stareActive) {
-		final int kerbolStarStareTextSpawnIntervalTicks = 20;
-		final int kerbolStarStareTextMaxActive = 4;
+	private static void updateDmitriyStarStareTextState(boolean stareActive) {
+		final int dmitriyStarStareTextSpawnIntervalTicks = 20;
+		final int dmitriyStarStareTextMaxActive = 4;
 		if(!stareActive) {
-			kerbolStarStareTextEntries.clear();
-			kerbolStarStareTextSpawnTimer = 0;
+			dmitriyStarStareTextEntries.clear();
+			dmitriyStarStareTextSpawnTimer = 0;
 			return;
 		}
 
-		for(Iterator<KerbolStareTextEntry> iterator = kerbolStarStareTextEntries.iterator(); iterator.hasNext();) {
-			KerbolStareTextEntry entry = iterator.next();
+		for(Iterator<DmitriyStareTextEntry> iterator = dmitriyStarStareTextEntries.iterator(); iterator.hasNext();) {
+			DmitriyStareTextEntry entry = iterator.next();
 			entry.ageTicks++;
-			if(entry.ageTicks >= getKerbolStarStareTextTotalTicks()) {
+			if(entry.ageTicks >= getDmitriyStarStareTextTotalTicks()) {
 				iterator.remove();
 			}
 		}
 
-		if(kerbolStarStareTextSpawnTimer > 0) {
-			kerbolStarStareTextSpawnTimer--;
+		if(dmitriyStarStareTextSpawnTimer > 0) {
+			dmitriyStarStareTextSpawnTimer--;
 		}
 
-		if(kerbolStarStareTextSpawnTimer <= 0 && kerbolStarStareTextEntries.size() < kerbolStarStareTextMaxActive) {
-			kerbolStarStareTextEntries.add(createKerbolStarStareTextEntry());
-			kerbolStarStareTextSpawnTimer = kerbolStarStareTextSpawnIntervalTicks;
+		if(dmitriyStarStareTextSpawnTimer <= 0 && dmitriyStarStareTextEntries.size() < dmitriyStarStareTextMaxActive) {
+			dmitriyStarStareTextEntries.add(createDmitriyStarStareTextEntry());
+			dmitriyStarStareTextSpawnTimer = dmitriyStarStareTextSpawnIntervalTicks;
 		}
 	}
 
-	private static KerbolStareTextEntry createKerbolStarStareTextEntry() {
-		Random random = getKerbolStarStareTextRandom();
-		String text = getKerbolStarStareText(random);
+	private static DmitriyStareTextEntry createDmitriyStarStareTextEntry() {
+		Random random = getDmitriyStarStareTextRandom();
+		String text = getDmitriyStarStareText(random);
 		float anchorX = 0.15F + random.nextFloat() * 0.70F;
 		float anchorY = 0.25F + random.nextFloat() * 0.55F;
-		return new KerbolStareTextEntry(text, anchorX, anchorY);
+		return new DmitriyStareTextEntry(text, anchorX, anchorY);
 	}
 
-	private static int getKerbolStarStareTextTotalTicks() {
+	private static int getDmitriyStarStareTextTotalTicks() {
 		return 15;
 	}
 
-	private static float getKerbolStarStareTextFade(int ageTicks) {
+	private static float getDmitriyStarStareTextFade(int ageTicks) {
 		return ageTicks < 15 ? 1.0F : 0.0F;
 	}
 
-	private static Vec3 getKerbolStarADirection(World world, float partialTicks) {
+	private static Vec3 getDmitriyStarADirection(World world, float partialTicks) {
 		if(world == null) {
 			return null;
 		}
@@ -973,15 +973,15 @@ public class ModEventHandlerClient {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
-	private static void renderKerbolStarStareText(ScaledResolution resolution, float intensity) {
-		final float kerbolStarStareTextMaxAlpha = 1.0F;
-		final float kerbolStarStareTextShakePx = 3.0F;
-		Random random = getKerbolStarStareTextRandom();
+	private static void renderDmitriyStarStareText(ScaledResolution resolution, float intensity) {
+		final float dmitriyStarStareTextMaxAlpha = 1.0F;
+		final float dmitriyStarStareTextShakePx = 3.0F;
+		Random random = getDmitriyStarStareTextRandom();
 		Minecraft mc = Minecraft.getMinecraft();
 		if(mc == null || mc.fontRenderer == null || resolution == null) {
 			return;
 		}
-		if(kerbolStarStareTextEntries.isEmpty()) {
+		if(dmitriyStarStareTextEntries.isEmpty()) {
 			return;
 		}
 
@@ -989,15 +989,15 @@ public class ModEventHandlerClient {
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
-		for(KerbolStareTextEntry entry : kerbolStarStareTextEntries) {
+		for(DmitriyStareTextEntry entry : dmitriyStarStareTextEntries) {
 			float alphaFactor = 1.0F;
-			int alpha = MathHelper.clamp_int((int)(alphaFactor * 255.0F * kerbolStarStareTextMaxAlpha), 0, 127);
+			int alpha = MathHelper.clamp_int((int)(alphaFactor * 255.0F * dmitriyStarStareTextMaxAlpha), 0, 127);
 			if(alpha <= 0) {
 				continue;
 			}
 
 			String display = EnumChatFormatting.ITALIC + entry.text;
-			float shake = kerbolStarStareTextShakePx * alphaFactor;
+			float shake = dmitriyStarStareTextShakePx * alphaFactor;
 			int jitterRange = MathHelper.ceiling_float_int(shake);
 			int jitterX = jitterRange > 0 ? random.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
 			int jitterY = jitterRange > 0 ? random.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
@@ -1015,12 +1015,12 @@ public class ModEventHandlerClient {
 		GL11.glPopMatrix();
 	}
 
-	private static class KerbolGhostAchievement extends Achievement {
+	private static class DmitriyGhostAchievement extends Achievement {
 		private IChatComponent ghostTitle = new ChatComponentText("");
 		private String ghostDescription = ": )";
 
-		private KerbolGhostAchievement() {
-			super("achievement.kerbolGhostFake", "kerbolGhostFake", -128, -128, getKerbolGhostAchievementIconItem(), null);
+		private DmitriyGhostAchievement() {
+			super("achievement.dmitriyGhostFake", "dmitriyGhostFake", -128, -128, getDmitriyGhostAchievementIconItem(), null);
 			this.initIndependentStat();
 		}
 
@@ -1044,23 +1044,23 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static Item getKerbolGhostAchievementIconItem() {
+	private static Item getDmitriyGhostAchievementIconItem() {
 		Item icon = Item.getItemById(5270);
 		return icon != null ? icon : Items.nether_star;
 	}
 
-	private static void resetKerbolCameraEffects(Minecraft mc) {
-		kerbolStarStareIntensity = 0.0F;
-		updateKerbolStarStareTextState(false);
-		stopKerbolStarStareSound();
+	private static void resetDmitriyCameraEffects(Minecraft mc) {
+		dmitriyStarStareIntensity = 0.0F;
+		updateDmitriyStarStareTextState(false);
+		stopDmitriyStarStareSound();
 		if(mc != null && mc.entityRenderer != null) {
 			String[] camRollFields = new String[] { "camRoll", "field_78495_O", "O" };
 			ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, 0.0F, camRollFields);
 		}
 	}
 
-	private static float getKerbolStarStareCloseness() {
-		return MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
+	private static float getDmitriyStarStareCloseness() {
+		return MathHelper.sqrt_float(MathHelper.clamp_float(dmitriyStarStareIntensity, 0.0F, 1.0F));
 	}
 
 	@SubscribeEvent
@@ -1074,16 +1074,16 @@ public class ModEventHandlerClient {
 			return;
 		}
 		float roll = 0.0F;
-		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			float t = (float)(world.getTotalWorldTime() + event.renderTickTime);
 			roll = MathHelper.sin(t * 0.001F) * 2.0F;
 
-			if(kerbolStarStareIntensity > 0.001F) {
-				final float kerbolStarStareShakeMinDeg = 0.25F;
-				final float kerbolStarStareShakeMaxDeg = 2.25F;
-				float closeness = MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
-				float shakeAmp = kerbolStarStareShakeMinDeg
-						+ (kerbolStarStareShakeMaxDeg - kerbolStarStareShakeMinDeg) * closeness;
+			if(dmitriyStarStareIntensity > 0.001F) {
+				final float dmitriyStarStareShakeMinDeg = 0.25F;
+				final float dmitriyStarStareShakeMaxDeg = 2.25F;
+				float closeness = MathHelper.sqrt_float(MathHelper.clamp_float(dmitriyStarStareIntensity, 0.0F, 1.0F));
+				float shakeAmp = dmitriyStarStareShakeMinDeg
+						+ (dmitriyStarStareShakeMaxDeg - dmitriyStarStareShakeMinDeg) * closeness;
 
 				float tremor = 0.0F;
 				tremor += MathHelper.sin(t * 0.90F);
@@ -1198,7 +1198,7 @@ public class ModEventHandlerClient {
 	@SubscribeEvent
 	public void onPlayMusic(PlaySoundEvent17 event) {
 		final ResourceLocation musicLocation = new ResourceLocation("hbm:music.game.space");
-		final ResourceLocation musicLocationKerbol = new ResourceLocation("hbm:music.game.kerbol");
+		final ResourceLocation musicLocationDmitriy = new ResourceLocation("hbm:music.game.dmitriy");
 		ResourceLocation r = event.sound.getPositionedSoundLocation();
 		if(Minecraft.getMinecraft().theWorld == null) return;
 		if(!r.toString().equals("minecraft:music.game.creative") && !r.toString().equals("minecraft:music.game")) return;
@@ -1210,10 +1210,10 @@ public class ModEventHandlerClient {
 			return;
 		}
 
-		// Kerbol: match space music cadence
+		// Dmitriy: match space music cadence
 		WorldProvider provider = Minecraft.getMinecraft().theWorld.provider;
-		if(provider != null && provider.dimensionId == SpaceConfig.kerbolDimension) {
-			event.result = currentSong = PositionedSoundRecord.func_147673_a(musicLocationKerbol);
+		if(provider != null && provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			event.result = currentSong = PositionedSoundRecord.func_147673_a(musicLocationDmitriy);
 			return;
 		}
 
@@ -1364,6 +1364,8 @@ public class ModEventHandlerClient {
 			}
 		}
 
+		appendCoreCompositionTooltip(stack, list);
+
 		///NEUTRON ACTIVATION
 		float level = 0;
 		float rads = HazardSystem.getHazardLevelFromStack(stack, HazardRegistry.RADIATION);
@@ -1450,6 +1452,59 @@ public class ModEventHandlerClient {
 				}
 			}
 		}
+	}
+
+	private void appendCoreCompositionTooltip(ItemStack stack, List<String> list) {
+		if(stack == null || stack.getItem() == null) return;
+
+		List<String> oreDictNames = ItemStackUtil.getOreDictNames(stack);
+		if(oreDictNames == null || oreDictNames.isEmpty()) return;
+
+		List<String> coreTooltipLines = new ArrayList<String>();
+		Set<String> seenEntries = new LinkedHashSet<String>();
+		for(String oreDict : oreDictNames) {
+			String categoryKey = CelestialCore.getCategoryForOreDict(oreDict);
+			if(categoryKey == null || categoryKey.isEmpty()) continue;
+
+			String categoryName = formatCoreCategoryName(categoryKey);
+			double density;
+			try {
+				density = CelestialCore.getDensityForOreDict(oreDict);
+			} catch(Exception ignored) {
+				continue;
+			}
+
+			String formattedDensity = formatCoreDensity(density);
+			String dedupeKey = categoryName + "|" + formattedDensity;
+			if(!seenEntries.add(dedupeKey)) continue;
+
+			coreTooltipLines.add(EnumChatFormatting.YELLOW + "Category: " + EnumChatFormatting.AQUA + categoryName);
+			coreTooltipLines.add(EnumChatFormatting.YELLOW + "Density: " + EnumChatFormatting.AQUA + formattedDensity);
+		}
+
+		if(coreTooltipLines.isEmpty()) return;
+		if(!list.isEmpty()) {
+			list.add("");
+		}
+		list.add(EnumChatFormatting.GOLD + "Planet Core Composition Material");
+		list.addAll(coreTooltipLines);
+	}
+
+	private String formatCoreCategoryName(String categoryName) {
+		if(categoryName == null || categoryName.isEmpty()) return "Unknown";
+		if(CelestialCore.CAT_NONMETAL.equals(categoryName)) return "Non-Metal";
+		if(CelestialCore.CAT_SCHRABIDIC.equals(categoryName)) return "Schrabidic";
+		if(CelestialCore.CAT_LIVING.equals(categoryName)) return "Living";
+		if(CelestialCore.CAT_ACTINIDE.equals(categoryName)) return "Actinide";
+		if(CelestialCore.CAT_CRYSTAL.equals(categoryName)) return "Crystalline";
+		if(CelestialCore.CAT_LIGHT.equals(categoryName)) return "Light Metal";
+		if(CelestialCore.CAT_HEAVY.equals(categoryName)) return "Heavy Metal";
+		if(CelestialCore.CAT_RARE.equals(categoryName)) return "Rare Earth";
+		return Character.toUpperCase(categoryName.charAt(0)) + categoryName.substring(1);
+	}
+
+	private String formatCoreDensity(double densityKgPerM3) {
+		return String.format(Locale.US, "%,.0f kg/m^3", densityKgPerM3);
 	}
 
 	private static long canneryTimestamp;
@@ -1552,7 +1607,7 @@ public class ModEventHandlerClient {
 		}
 
 		if(mc.theWorld == null || mc.thePlayer == null) {
-			resetKerbolCameraEffects(mc);
+			resetDmitriyCameraEffects(mc);
 			lastClientDimensionId = null;
 			return;
 		}
@@ -1560,11 +1615,11 @@ public class ModEventHandlerClient {
 		int currentDimension = mc.theWorld.provider != null ? mc.theWorld.provider.dimensionId : 0;
 		if(lastClientDimensionId == null || lastClientDimensionId.intValue() != currentDimension) {
 			if(lastClientDimensionId != null) {
-				resetKerbolCameraEffects(mc);
+				resetDmitriyCameraEffects(mc);
 			}
 			lastClientDimensionId = currentDimension;
-		} else if(currentDimension != SpaceConfig.kerbolDimension) {
-			resetKerbolCameraEffects(mc);
+		} else if(currentDimension != SpaceConfig.dmitriyDimension) {
+			resetDmitriyCameraEffects(mc);
 		}
 
 		SolarSystem.applyMinmusShatterState(mc.theWorld);
@@ -1575,11 +1630,11 @@ public class ModEventHandlerClient {
 			if(BlockAshes.ashes > 0) BlockAshes.ashes -= 2;
 			if(BlockAshes.ashes < 0) BlockAshes.ashes = 0;
 
-			maybeSpawnKerbolRedRain(mc);
-			maybePlayKerbolDialogue(mc);
-			maybeSpawnKerbolGhostChat(mc);
-			maybeSpawnKerbolGhostAchievement(mc);
-			updateKerbolStarStare(mc, 0.0F);
+			maybeSpawnDmitriyRedRain(mc);
+			maybePlayDmitriyDialogue(mc);
+			maybeSpawnDmitriyGhostChat(mc);
+			maybeSpawnDmitriyGhostAchievement(mc);
+			updateDmitriyStarStare(mc, 0.0F);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
 				lastBrightness = currentBrightness;
@@ -1713,11 +1768,9 @@ public class ModEventHandlerClient {
 					for(CelestialBodyTrait trait : bodyTraits.values()) {
 						trait.update(true);
 					}
-					CBT_Core core = (CBT_Core) bodyTraits.get(CBT_Core.class);
-					if(core != null) {
-						core.recalculateForRadius(body.radiusKm);
-						body.massKg = (float) core.computedMassKg;
-					}
+				}
+				if(body.getCore() != null) {
+					CelestialBody.applyMassFromCore(body, body.getCore());
 				}
 			}
 
@@ -1782,19 +1835,19 @@ public class ModEventHandlerClient {
 		WorldProviderCelestial provider = (WorldProviderCelestial) mc.theWorld.provider;
 		provider.setGravityMultiplier(nextGravity);
 
-		if(!(provider instanceof WorldProviderKerbol)) {
+		if(!(provider instanceof WorldProviderDmitriy)) {
 			return;
 		}
 
-		WorldProviderKerbol kerbol = (WorldProviderKerbol) provider;
-		if(lastKerbolGravity == null) {
-			lastKerbolGravity = kerbol.getGravityMultiplier();
+		WorldProviderDmitriy dmitriy = (WorldProviderDmitriy) provider;
+		if(lastDmitriyGravity == null) {
+			lastDmitriyGravity = dmitriy.getGravityMultiplier();
 		}
 		shakeTimestamp = System.currentTimeMillis();
 		MainRegistry.proxy.displayTooltip(EnumChatFormatting.DARK_RED.toString() + EnumChatFormatting.BOLD + "IT LIVES...", ServerProxy.ID_GAS_HAZARD);
 
-		float previous = lastKerbolGravity != null ? lastKerbolGravity : 1.0F;
-		lastKerbolGravity = nextGravity;
+		float previous = lastDmitriyGravity != null ? lastDmitriyGravity : 1.0F;
+		lastDmitriyGravity = nextGravity;
 		boolean gravityHeavier = nextGravity > previous;
 		double speed = gravityHeavier ? -0.7D : 0.7D;
 		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
@@ -1819,81 +1872,81 @@ public class ModEventHandlerClient {
 			double motionZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.08D;
 
 			if(gravityHeavier) {
-				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, 0.9F, 0.1F, 0.1F);
+				ParticleUtil.spawnDmitriyDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, 0.9F, 0.1F, 0.1F);
 			} else {
 				int color = block.colorMultiplier(mc.theWorld, x, topY - 1, z);
 				float r = ((color >> 16) & 0xFF) / 255.0F;
 				float g = ((color >> 8) & 0xFF) / 255.0F;
 				float b = (color & 0xFF) / 255.0F;
-				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
+				ParticleUtil.spawnDmitriyDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
 			}
 		}
 	}
 
-	private void maybePlayKerbolHeartbeat(Minecraft mc) {
-		final double kerbolHeartbeatPeriodTicks = 200.0D;
+	private void maybePlayDmitriyHeartbeat(Minecraft mc) {
+		final double dmitriyHeartbeatPeriodTicks = 200.0D;
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 		long tick = mc.theWorld.getTotalWorldTime();
-		long beatIndex = (long) Math.floor(tick / kerbolHeartbeatPeriodTicks);
-		if(beatIndex == lastKerbolHeartbeatBeat) {
+		long beatIndex = (long) Math.floor(tick / dmitriyHeartbeatPeriodTicks);
+		if(beatIndex == lastDmitriyHeartbeatBeat) {
 			return;
 		}
-		lastKerbolHeartbeatBeat = beatIndex;
+		lastDmitriyHeartbeatBeat = beatIndex;
 		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
 	}
 
-	private void maybePlayKerbolDialogue(Minecraft mc) {
+	private void maybePlayDmitriyDialogue(Minecraft mc) {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
-			kerbolDialogueCooldownTicks = -1;
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
+			dmitriyDialogueCooldownTicks = -1;
 			return;
 		}
 
-		if(kerbolDialogueCooldownTicks < 0) {
-			kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+		if(dmitriyDialogueCooldownTicks < 0) {
+			dmitriyDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
 			return;
 		}
 
-		if(kerbolDialogueCooldownTicks > 0) {
-			kerbolDialogueCooldownTicks--;
+		if(dmitriyDialogueCooldownTicks > 0) {
+			dmitriyDialogueCooldownTicks--;
 			return;
 		}
 
-		kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+		dmitriyDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
 		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue1", 1.0F, 1.0F);
 	}
 
-	private void maybeSpawnKerbolGhostChat(Minecraft mc) {
-		final int kerbolGhostChatIntervalTicks = 60 * 20;
-		final float kerbolGhostChatChance = 0.10F;
+	private void maybeSpawnDmitriyGhostChat(Minecraft mc) {
+		final int dmitriyGhostChatIntervalTicks = 60 * 20;
+		final float dmitriyGhostChatChance = 0.10F;
 		if(mc.theWorld == null || mc.thePlayer == null || mc.ingameGUI == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 
 		long tick = mc.theWorld.getTotalWorldTime();
-		if(tick % kerbolGhostChatIntervalTicks != 0L) {
+		if(tick % dmitriyGhostChatIntervalTicks != 0L) {
 			return;
 		}
-		if(mc.theWorld.rand.nextFloat() >= kerbolGhostChatChance) {
+		if(mc.theWorld.rand.nextFloat() >= dmitriyGhostChatChance) {
 			return;
 		}
 
-		String sender = pickRandomKerbolGhostSender(mc);
+		String sender = pickRandomDmitriyGhostSender(mc);
 		if(sender == null || sender.isEmpty()) {
 			return;
 		}
 
-		String message = createKerbolGhostMessage(mc.theWorld.rand);
+		String message = createDmitriyGhostMessage(mc.theWorld.rand);
 		if(message.isEmpty()) {
 			return;
 		}
@@ -1901,96 +1954,96 @@ public class ModEventHandlerClient {
 		mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("<" + sender + "> " + message));
 	}
 
-	private void maybeSpawnKerbolGhostAchievement(Minecraft mc) {
-		final int kerbolGhostChatIntervalTicks = 60 * 20;
-		final float kerbolGhostAchievementChance = 0.30F;
+	private void maybeSpawnDmitriyGhostAchievement(Minecraft mc) {
+		final int dmitriyGhostChatIntervalTicks = 60 * 20;
+		final float dmitriyGhostAchievementChance = 0.30F;
 		if(mc.theWorld == null || mc.thePlayer == null || mc.guiAchievement == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 		String playerName = mc.thePlayer.getCommandSenderName();
-		if(playerName == null || playerName.isEmpty() || hasSeenKerbolGhostAchievement(mc.thePlayer, playerName)) {
+		if(playerName == null || playerName.isEmpty() || hasSeenDmitriyGhostAchievement(mc.thePlayer, playerName)) {
 			return;
 		}
 
 		long tick = mc.theWorld.getTotalWorldTime();
-		if(tick % kerbolGhostChatIntervalTicks != 0L) {
+		if(tick % dmitriyGhostChatIntervalTicks != 0L) {
 			return;
 		}
-		if(mc.theWorld.rand.nextFloat() >= kerbolGhostAchievementChance) {
+		if(mc.theWorld.rand.nextFloat() >= dmitriyGhostAchievementChance) {
 			return;
 		}
 
-		KerbolGhostAchievement achievement = getOrCreateKerbolGhostAchievement();
-		String achievementName = createKerbolGhostAchievementName(mc.theWorld.rand);
+		DmitriyGhostAchievement achievement = getOrCreateDmitriyGhostAchievement();
+		String achievementName = createDmitriyGhostAchievementName(mc.theWorld.rand);
 		achievement.setGhostText(achievementName, ": )");
-		showKerbolGhostAchievement(mc, achievement);
+		showDmitriyGhostAchievement(mc, achievement);
 		if(mc.ingameGUI != null) {
-			IChatComponent chatDisplayName = createKerbolGhostAchievementChatTitle(achievementName);
+			IChatComponent chatDisplayName = createDmitriyGhostAchievementChatTitle(achievementName);
 			mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentTranslation("chat.type.achievement", playerName, chatDisplayName));
 		}
-		markKerbolGhostAchievementSeen(mc.thePlayer, playerName);
+		markDmitriyGhostAchievementSeen(mc.thePlayer, playerName);
 	}
 
-	private boolean hasSeenKerbolGhostAchievement(EntityPlayer player, String playerName) {
-		final String kerbolGhostAchievementNbtRoot = "hbmKerbolGhostAchievement";
+	private boolean hasSeenDmitriyGhostAchievement(EntityPlayer player, String playerName) {
+		final String dmitriyGhostAchievementNbtRoot = "hbmDmitriyGhostAchievement";
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return true;
 		}
-		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
-		ensureKerbolGhostAchievementSeenCacheLoaded();
-		if(kerbolGhostAchievementSeenCache.contains(seenKey)) {
+		String seenKey = getDmitriyGhostAchievementSeenKey(player, playerName);
+		ensureDmitriyGhostAchievementSeenCacheLoaded();
+		if(dmitriyGhostAchievementSeenCache.contains(seenKey)) {
 			return true;
 		}
 		NBTTagCompound persisted = player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
-		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
-		boolean seen = ghostData.getBoolean(seenKey) || ghostData.getBoolean(getKerbolGhostAchievementLegacySeenKey(playerName));
-		if(seen && kerbolGhostAchievementSeenCache.add(seenKey)) {
-			persistKerbolGhostAchievementSeenCache();
+		NBTTagCompound ghostData = persisted.getCompoundTag(dmitriyGhostAchievementNbtRoot);
+		boolean seen = ghostData.getBoolean(seenKey) || ghostData.getBoolean(getDmitriyGhostAchievementLegacySeenKey(playerName));
+		if(seen && dmitriyGhostAchievementSeenCache.add(seenKey)) {
+			persistDmitriyGhostAchievementSeenCache();
 		}
 		return seen;
 	}
 
-	private void markKerbolGhostAchievementSeen(EntityPlayer player, String playerName) {
-		final String kerbolGhostAchievementNbtRoot = "hbmKerbolGhostAchievement";
+	private void markDmitriyGhostAchievementSeen(EntityPlayer player, String playerName) {
+		final String dmitriyGhostAchievementNbtRoot = "hbmDmitriyGhostAchievement";
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return;
 		}
-		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
-		ensureKerbolGhostAchievementSeenCacheLoaded();
-		boolean cacheChanged = kerbolGhostAchievementSeenCache.add(seenKey);
+		String seenKey = getDmitriyGhostAchievementSeenKey(player, playerName);
+		ensureDmitriyGhostAchievementSeenCacheLoaded();
+		boolean cacheChanged = dmitriyGhostAchievementSeenCache.add(seenKey);
 		NBTTagCompound entityData = player.getEntityData();
 		NBTTagCompound persisted = entityData.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
-		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
+		NBTTagCompound ghostData = persisted.getCompoundTag(dmitriyGhostAchievementNbtRoot);
 		ghostData.setBoolean(seenKey, true);
-		ghostData.setBoolean(getKerbolGhostAchievementLegacySeenKey(playerName), true);
-		persisted.setTag(kerbolGhostAchievementNbtRoot, ghostData);
+		ghostData.setBoolean(getDmitriyGhostAchievementLegacySeenKey(playerName), true);
+		persisted.setTag(dmitriyGhostAchievementNbtRoot, ghostData);
 		entityData.setTag(EntityPlayer.PERSISTED_NBT_TAG, persisted);
 		if(cacheChanged) {
-			persistKerbolGhostAchievementSeenCache();
+			persistDmitriyGhostAchievementSeenCache();
 		}
 	}
 
-	private String getKerbolGhostAchievementSeenKey(EntityPlayer player, String playerName) {
+	private String getDmitriyGhostAchievementSeenKey(EntityPlayer player, String playerName) {
 		if(player != null && player.getUniqueID() != null) {
 			return "seen_uuid_" + player.getUniqueID().toString().toLowerCase(Locale.ROOT);
 		}
-		return getKerbolGhostAchievementLegacySeenKey(playerName);
+		return getDmitriyGhostAchievementLegacySeenKey(playerName);
 	}
 
-	private String getKerbolGhostAchievementLegacySeenKey(String playerName) {
-		final String kerbolGhostAchievementNbtSeenPrefix = "seen_";
-		return kerbolGhostAchievementNbtSeenPrefix + playerName.toLowerCase(Locale.ROOT);
+	private String getDmitriyGhostAchievementLegacySeenKey(String playerName) {
+		final String dmitriyGhostAchievementNbtSeenPrefix = "seen_";
+		return dmitriyGhostAchievementNbtSeenPrefix + playerName.toLowerCase(Locale.ROOT);
 	}
 
-	private void ensureKerbolGhostAchievementSeenCacheLoaded() {
-		if(kerbolGhostAchievementSeenLoadedFromConfig) {
+	private void ensureDmitriyGhostAchievementSeenCacheLoaded() {
+		if(dmitriyGhostAchievementSeenLoadedFromConfig) {
 			return;
 		}
-		kerbolGhostAchievementSeenLoadedFromConfig = true;
-		String serialized = ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.get();
+		dmitriyGhostAchievementSeenLoadedFromConfig = true;
+		String serialized = ClientConfig.DMITRIY_GHOST_ACHIEVEMENT_SEEN.get();
 		if(serialized == null || serialized.isEmpty()) {
 			return;
 		}
@@ -2001,16 +2054,16 @@ public class ModEventHandlerClient {
 			}
 			String normalized = key.trim().toLowerCase(Locale.ROOT);
 			if(!normalized.isEmpty()) {
-				kerbolGhostAchievementSeenCache.add(normalized);
+				dmitriyGhostAchievementSeenCache.add(normalized);
 			}
 		}
 	}
 
-	private void persistKerbolGhostAchievementSeenCache() {
-		if(!kerbolGhostAchievementSeenLoadedFromConfig) {
+	private void persistDmitriyGhostAchievementSeenCache() {
+		if(!dmitriyGhostAchievementSeenLoadedFromConfig) {
 			return;
 		}
-		List<String> sortedKeys = new ArrayList<String>(kerbolGhostAchievementSeenCache);
+		List<String> sortedKeys = new ArrayList<String>(dmitriyGhostAchievementSeenCache);
 		Collections.sort(sortedKeys);
 		StringBuilder serialized = new StringBuilder();
 		for(String key : sortedKeys) {
@@ -2019,44 +2072,44 @@ public class ModEventHandlerClient {
 			}
 			serialized.append(key);
 		}
-		ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.set(serialized.toString());
+		ClientConfig.DMITRIY_GHOST_ACHIEVEMENT_SEEN.set(serialized.toString());
 		ClientConfig.refresh();
 	}
 
-	private KerbolGhostAchievement getOrCreateKerbolGhostAchievement() {
-		if(kerbolGhostAchievement == null) {
-			kerbolGhostAchievement = new KerbolGhostAchievement();
+	private DmitriyGhostAchievement getOrCreateDmitriyGhostAchievement() {
+		if(dmitriyGhostAchievement == null) {
+			dmitriyGhostAchievement = new DmitriyGhostAchievement();
 		}
-		return kerbolGhostAchievement;
+		return dmitriyGhostAchievement;
 	}
 
-	private void showKerbolGhostAchievement(Minecraft mc, Achievement achievement) {
+	private void showDmitriyGhostAchievement(Minecraft mc, Achievement achievement) {
 		if(mc == null || mc.guiAchievement == null || achievement == null) {
 			return;
 		}
 		try {
-			if(kerbolGhostAchievementToastMethod == null) {
-				kerbolGhostAchievementToastMethod = ReflectionHelper.findMethod(
+			if(dmitriyGhostAchievementToastMethod == null) {
+				dmitriyGhostAchievementToastMethod = ReflectionHelper.findMethod(
 					net.minecraft.client.gui.achievement.GuiAchievement.class,
 					mc.guiAchievement,
 					new String[] { "displayAchievement", "func_146256_a" },
 					Achievement.class
 				);
-				kerbolGhostAchievementToastMethod.setAccessible(true);
+				dmitriyGhostAchievementToastMethod.setAccessible(true);
 			}
-			kerbolGhostAchievementToastMethod.invoke(mc.guiAchievement, achievement);
+			dmitriyGhostAchievementToastMethod.invoke(mc.guiAchievement, achievement);
 		} catch(Exception ignored) { }
 	}
 
-	private String createKerbolGhostAchievementName(Random rand) {
-		final int kerbolGhostAchievementMinSymbols = 1;
-		final int kerbolGhostAchievementMaxSymbols = 12;
-		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+{};:'\",.?/\\\\|";
-		int symbolCount = kerbolGhostAchievementMinSymbols
-			+ rand.nextInt(kerbolGhostAchievementMaxSymbols - kerbolGhostAchievementMinSymbols + 1);
+	private String createDmitriyGhostAchievementName(Random rand) {
+		final int dmitriyGhostAchievementMinSymbols = 1;
+		final int dmitriyGhostAchievementMaxSymbols = 12;
+		final String dmitriyGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+{};:'\",.?/\\\\|";
+		int symbolCount = dmitriyGhostAchievementMinSymbols
+			+ rand.nextInt(dmitriyGhostAchievementMaxSymbols - dmitriyGhostAchievementMinSymbols + 1);
 		StringBuilder raw = new StringBuilder(symbolCount + 1);
 		for(int i = 0; i < symbolCount; i++) {
-			raw.append(kerbolGhostChatChars.charAt(rand.nextInt(kerbolGhostChatChars.length())));
+			raw.append(dmitriyGhostChatChars.charAt(rand.nextInt(dmitriyGhostChatChars.length())));
 		}
 		if(symbolCount > 1 && rand.nextBoolean()) {
 			int spacePos = 1 + rand.nextInt(symbolCount - 1);
@@ -2065,7 +2118,7 @@ public class ModEventHandlerClient {
 		return raw.toString();
 	}
 
-	private IChatComponent createKerbolGhostAchievementChatTitle(String rawTitle) {
+	private IChatComponent createDmitriyGhostAchievementChatTitle(String rawTitle) {
 		ChatStyle bracketStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN);
 		ChatStyle titleStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN).setObfuscated(true)
 			.setChatHoverEvent(new HoverEvent(
@@ -2079,7 +2132,7 @@ public class ModEventHandlerClient {
 		return chatTitle;
 	}
 
-	private String pickRandomKerbolGhostSender(Minecraft mc) {
+	private String pickRandomDmitriyGhostSender(Minecraft mc) {
 		if(mc.theWorld == null || mc.theWorld.playerEntities == null || mc.theWorld.playerEntities.isEmpty()) {
 			return null;
 		}
@@ -2102,14 +2155,14 @@ public class ModEventHandlerClient {
 		return names.get(mc.theWorld.rand.nextInt(names.size()));
 	}
 
-	private String createKerbolGhostMessage(Random rand) {
-		final int kerbolGhostChatMinLength = 8;
-		final int kerbolGhostChatMaxLength = 26;
-		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
-		int length = kerbolGhostChatMinLength + rand.nextInt(kerbolGhostChatMaxLength - kerbolGhostChatMinLength + 1);
+	private String createDmitriyGhostMessage(Random rand) {
+		final int dmitriyGhostChatMinLength = 8;
+		final int dmitriyGhostChatMaxLength = 26;
+		final String dmitriyGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
+		int length = dmitriyGhostChatMinLength + rand.nextInt(dmitriyGhostChatMaxLength - dmitriyGhostChatMinLength + 1);
 		StringBuilder builder = new StringBuilder(length + 4);
 		for(int i = 0; i < length; i++) {
-			builder.append(kerbolGhostChatChars.charAt(rand.nextInt(kerbolGhostChatChars.length())));
+			builder.append(dmitriyGhostChatChars.charAt(rand.nextInt(dmitriyGhostChatChars.length())));
 			if(i > 2 && i < length - 2 && rand.nextInt(12) == 0) {
 				builder.append(' ');
 			}
@@ -2117,11 +2170,11 @@ public class ModEventHandlerClient {
 		return builder.toString().trim();
 	}
 
-	private void maybeSpawnKerbolRedRain(Minecraft mc) {
+	private void maybeSpawnDmitriyRedRain(Minecraft mc) {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 		float rain = mc.theWorld.getRainStrength(1.0F);
@@ -2140,17 +2193,17 @@ public class ModEventHandlerClient {
 			double mX = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
 			double mZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
 			double mY = -0.6D - mc.theWorld.rand.nextDouble() * 0.3D;
-			ParticleUtil.spawnKerbolDot(mc.theWorld, x, y, z, mX, mY, mZ, 0.9F, 0.1F, 0.1F);
+			ParticleUtil.spawnDmitriyDot(mc.theWorld, x, y, z, mX, mY, mZ, 0.9F, 0.1F, 0.1F);
 		}
 	}
 
-	public static float getKerbolHeartbeatPulse(World world, float partialTicks) {
-		final double kerbolHeartbeatPeriodTicks = 200.0D;
-		if(world == null || world.provider == null || world.provider.dimensionId != SpaceConfig.kerbolDimension) {
+	public static float getDmitriyHeartbeatPulse(World world, float partialTicks) {
+		final double dmitriyHeartbeatPeriodTicks = 200.0D;
+		if(world == null || world.provider == null || world.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return 0.0F;
 		}
 		double ticks = world.getTotalWorldTime() + partialTicks;
-		double phase = (ticks / kerbolHeartbeatPeriodTicks) % 1.0D;
+		double phase = (ticks / dmitriyHeartbeatPeriodTicks) % 1.0D;
 		double p1 = 1.0D - Math.abs(phase - 0.0D) / 0.03D;
 		double p2 = 1.0D - Math.abs(phase - 0.02D) / 0.035D;
 		double pulse = Math.max(0.0D, p1);
@@ -2196,19 +2249,19 @@ public class ModEventHandlerClient {
 	public static int loadingScreenReplacementRetry = 0;
 
 	private static AudioWrapper shipHum;
-	private static AudioWrapper kerbolWind;
-	private static AudioWrapper kerbolStarStareSound;
-	private static AudioWrapper kerbolStarStareBackSound;
+	private static AudioWrapper dmitriyWind;
+	private static AudioWrapper dmitriyStarStareSound;
+	private static AudioWrapper dmitriyStarStareBackSound;
 	private static AudioWrapper sunDecayHum;
 
-	private static void stopKerbolStarStareSound() {
-		if(kerbolStarStareSound != null) {
-			kerbolStarStareSound.stopSound();
-			kerbolStarStareSound = null;
+	private static void stopDmitriyStarStareSound() {
+		if(dmitriyStarStareSound != null) {
+			dmitriyStarStareSound.stopSound();
+			dmitriyStarStareSound = null;
 		}
-		if(kerbolStarStareBackSound != null) {
-			kerbolStarStareBackSound.stopSound();
-			kerbolStarStareBackSound = null;
+		if(dmitriyStarStareBackSound != null) {
+			dmitriyStarStareBackSound.stopSound();
+			dmitriyStarStareBackSound = null;
 		}
 	}
 
@@ -2261,47 +2314,47 @@ public class ModEventHandlerClient {
 				shipHum = null;
 			}
 
-			if(player != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
-				if(kerbolWind == null || !kerbolWind.isPlaying()) {
-					kerbolWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.kerbol_wind", player, 0.7F, 6.0F, 1.0F, 10);
-					kerbolWind.startSound();
+			if(player != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+				if(dmitriyWind == null || !dmitriyWind.isPlaying()) {
+					dmitriyWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.dmitriy_wind", player, 0.7F, 6.0F, 1.0F, 10);
+					dmitriyWind.startSound();
 				}
 
-				kerbolWind.updateVolume(0.7F);
-				kerbolWind.keepAlive();
-			} else if(kerbolWind != null) {
-				kerbolWind.stopSound();
-				kerbolWind = null;
+				dmitriyWind.updateVolume(0.7F);
+				dmitriyWind.keepAlive();
+			} else if(dmitriyWind != null) {
+				dmitriyWind.stopSound();
+				dmitriyWind = null;
 			}
 
 			float stareCloseness = 0.0F;
-			if(player != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
-				stareCloseness = getKerbolStarStareCloseness();
+			if(player != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+				stareCloseness = getDmitriyStarStareCloseness();
 			}
-			final float kerbolStarStareSoundMaxVolume = 0.2F;
-			final float kerbolStarStareBackSoundMaxVolume = 0.1F;
-			final float kerbolStarStareSoundMinTrigger = 0.001F;
-			final float kerbolStarStareSoundRange = 1.0F;
-			final String kerbolStarStareSoundEvent = "hbm:misc.stare";
-			final String kerbolStarStareBackSoundEvent = "hbm:misc.itlives_itstaresback";
-			float stareVolume = stareCloseness * kerbolStarStareSoundMaxVolume;
-			float stareBackVolume = stareCloseness * kerbolStarStareBackSoundMaxVolume;
-			if(stareVolume > kerbolStarStareSoundMinTrigger) {
-				if(kerbolStarStareSound == null || !kerbolStarStareSound.isPlaying()) {
-					kerbolStarStareSound = MainRegistry.proxy.getLoopedSound(kerbolStarStareSoundEvent, player, stareVolume, kerbolStarStareSoundRange, 1.0F, 10);
-					kerbolStarStareSound.startSound();
+			final float dmitriyStarStareSoundMaxVolume = 0.2F;
+			final float dmitriyStarStareBackSoundMaxVolume = 0.1F;
+			final float dmitriyStarStareSoundMinTrigger = 0.001F;
+			final float dmitriyStarStareSoundRange = 1.0F;
+			final String dmitriyStarStareSoundEvent = "hbm:misc.stare";
+			final String dmitriyStarStareBackSoundEvent = "hbm:misc.itlives_itstaresback";
+			float stareVolume = stareCloseness * dmitriyStarStareSoundMaxVolume;
+			float stareBackVolume = stareCloseness * dmitriyStarStareBackSoundMaxVolume;
+			if(stareVolume > dmitriyStarStareSoundMinTrigger) {
+				if(dmitriyStarStareSound == null || !dmitriyStarStareSound.isPlaying()) {
+					dmitriyStarStareSound = MainRegistry.proxy.getLoopedSound(dmitriyStarStareSoundEvent, player, stareVolume, dmitriyStarStareSoundRange, 1.0F, 10);
+					dmitriyStarStareSound.startSound();
 				}
-				if(kerbolStarStareBackSound == null || !kerbolStarStareBackSound.isPlaying()) {
-					kerbolStarStareBackSound = MainRegistry.proxy.getLoopedSound(kerbolStarStareBackSoundEvent, player, stareBackVolume, kerbolStarStareSoundRange, 1.0F, 10);
-					kerbolStarStareBackSound.startSound();
+				if(dmitriyStarStareBackSound == null || !dmitriyStarStareBackSound.isPlaying()) {
+					dmitriyStarStareBackSound = MainRegistry.proxy.getLoopedSound(dmitriyStarStareBackSoundEvent, player, stareBackVolume, dmitriyStarStareSoundRange, 1.0F, 10);
+					dmitriyStarStareBackSound.startSound();
 				}
 
-				kerbolStarStareSound.updateVolume(stareVolume);
-				kerbolStarStareSound.keepAlive();
-				kerbolStarStareBackSound.updateVolume(stareBackVolume);
-				kerbolStarStareBackSound.keepAlive();
+				dmitriyStarStareSound.updateVolume(stareVolume);
+				dmitriyStarStareSound.keepAlive();
+				dmitriyStarStareBackSound.updateVolume(stareBackVolume);
+				dmitriyStarStareBackSound.keepAlive();
 			} else {
-				stopKerbolStarStareSound();
+				stopDmitriyStarStareSound();
 			}
 
 			if(sunDecayHum != null) {
@@ -2336,7 +2389,7 @@ public class ModEventHandlerClient {
 	public void onPlayerTick(TickEvent.PlayerTickEvent event) {
 		EntityPlayer player = event.player;
 
-		if(player.worldObj != null && player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+		if(player.worldObj != null && player.worldObj.provider instanceof WorldProviderDmitriy && !player.capabilities.isCreativeMode) {
 			if(player.capabilities.isFlying || player.capabilities.allowFlying) {
 				player.capabilities.isFlying = false;
 				player.capabilities.allowFlying = false;
@@ -2660,3 +2713,6 @@ public class ModEventHandlerClient {
 		}
 	}
 }
+
+
+

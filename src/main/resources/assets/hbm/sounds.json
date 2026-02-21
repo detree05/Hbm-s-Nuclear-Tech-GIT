@@ -24,7 +24,7 @@
 	"misc.starcore_ignited": {"category": "player", "sounds": [{"name": "misc/starcore_ignited", "stream": false}]},
 	"misc.stationhum": {"category": "ambient", "sounds": [{"name": "misc/stationhum", "stream": false}]},
 	"misc.stare": {"category": "ambient", "sounds": [{"name": "misc/stare", "stream": true}]},
-	"ambient.kerbol_wind": {"category": "ambient", "sounds": [{"name": "ambient/kerbol_wind", "stream": false}]},
+	"ambient.dmitriy_wind": {"category": "ambient", "sounds": [{"name": "ambient/dmitriy_wind", "stream": false}]},
 	"misc.spinshot": {"category": "block", "sounds": ["misc/spinshot1", "misc/spinshot2"]},
 	"misc.spincharge": {"category": "block", "sounds": [{"name": "misc/spincharge", "stream": false}]},
 
@@ -166,7 +166,7 @@
 		{"name": "music/spaceCalm", "stream": true},
 		{"name": "music/spaceKoyaanis", "stream": true}
 	]},
-	"music.game.kerbol": {"category": "hostile", "sounds": [
+	"music.game.dmitriy": {"category": "hostile", "sounds": [
 		{"name": "music/dmitriyDrone", "stream": true},
 		{"name": "music/dmitriyLost", "stream": true},
 		{"name": "music/dmitriyVoid", "stream": true}

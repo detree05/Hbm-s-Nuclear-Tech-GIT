@@ -76,7 +76,6 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 						} catch (Exception ex) {}
 					}
 				}
-
 				traitMap.put(body.name, traits);
 			}
 		}

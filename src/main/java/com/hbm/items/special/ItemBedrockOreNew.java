@@ -107,7 +107,7 @@ public class ItemBedrockOreNew extends Item {
 		int meta = stack.getItemDamage();
 		String type = StatCollector.translateToLocalFormatted(this.getUnlocalizedNameInefficiently(stack) + ".type." + this.getType(meta).suffix + ".name");
 		CelestialBedrockOreType oreType = this.getType(meta);
-		String body = oreType.body == SolarSystem.Body.KERBOL ? "\u00A7kDmitriy\u00A7r" : I18nUtil.resolveKey("body." + oreType.body.name);
+		String body = oreType.body == SolarSystem.Body.DMITRIY ? "\u00A7kDmitriy\u00A7r" : I18nUtil.resolveKey("body." + oreType.body.name);
 		return StatCollector.translateToLocalFormatted(this.getUnlocalizedNameInefficiently(stack) + ".grade." + this.getGrade(meta).name().toLowerCase(Locale.US) + ".name", type) + " (" + body + ")";
 	}
 
@@ -272,7 +272,7 @@ public class ItemBedrockOreNew extends Item {
 				T("plastic",	o(MAT_POLYMER, 18),			o(MAT_RUBBER, 9),			o(MAT_SEMTEX, 6),			o(MAT_PVC, 3))
 			);
 			register(
-				SolarSystem.Body.KERBOL,
+				SolarSystem.Body.DMITRIY,
 				T("rift", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_SATURN, 18),			o(MAT_SCHRABIDIUM, 4),		o(MAT_EUPHEMIUM, 2),		o(MAT_RIFT, 1)),
 				T("abyss", "heavy",		0xE8E8E8, 0xC8C8C8,	o(MAT_DESH, 18),			o(MAT_YHARONITE, 4),		o(MAT_ETHYROITE, 2),		o(MAT_ABYSS, 1))
 			);
@@ -457,3 +457,4 @@ public class ItemBedrockOreNew extends Item {
 		return CelestialBedrockOre.oreTypes.get((meta & 255) % CelestialBedrockOre.oreTypes.size());
 	}
 }
+

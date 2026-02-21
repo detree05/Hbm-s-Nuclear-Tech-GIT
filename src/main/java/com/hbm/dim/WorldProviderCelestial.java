@@ -210,7 +210,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		if(worldObj == null || worldObj.provider == null) {
 			return 1.0F;
 		}
-		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			return 0.45F;
 		}
 		try {
@@ -823,7 +823,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			--f1;
 		}
 
-		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			double t = (worldTime + partialTicks);
 			double wobble = Math.sin(t / 12000.0D * Math.PI * 2.0D) * 0.004D;
 			wobble += Math.sin(t / 3600.0D * Math.PI * 2.0D + 1.3D) * 0.002D;
@@ -909,3 +909,4 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	/// FISH ///
 
 }
+

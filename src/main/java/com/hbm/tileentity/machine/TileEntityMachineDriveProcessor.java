@@ -58,9 +58,9 @@ public class TileEntityMachineDriveProcessor extends TileEntityMachineBase imple
 			} else if(slots[0] == null || slots[0].getItem() != ModItems.full_drive) {
 				isProcessing = false;
 				status = "";
-			} else if(ItemVOTVdrive.getDestination(slots[0]).body == SolarSystem.Body.KERBOL) {
+			} else if(ItemVOTVdrive.getDestination(slots[0]).body == SolarSystem.Body.DMITRIY) {
 				isProcessing = false;
-				status = EnumChatFormatting.RED + "Kerbol requires digamma ";
+				status = EnumChatFormatting.RED + "Dmitriy requires digamma ";
 			} else if(getProcessingTier() < ItemVOTVdrive.getProcessingTier(slots[0], CelestialBody.getBody(worldObj))) {
 				isProcessing = false;
 				status = EnumChatFormatting.RED + "Low tier ";
@@ -166,7 +166,7 @@ public class TileEntityMachineDriveProcessor extends TileEntityMachineBase imple
 		if(power < maxPower * 0.75) return;
 		if(slots[0] == null || slots[0].getItem() != ModItems.full_drive) return;
 		if(ItemVOTVdrive.getProcessed(slots[0])) return;
-		if(ItemVOTVdrive.getDestination(slots[0]).body == SolarSystem.Body.KERBOL) return;
+		if(ItemVOTVdrive.getDestination(slots[0]).body == SolarSystem.Body.DMITRIY) return;
 
 		// Check that our installed upgrade is a high enough tier
 		if(getProcessingTier() >= ItemVOTVdrive.getProcessingTier(slots[0], CelestialBody.getBody(worldObj))) {
@@ -244,3 +244,4 @@ public class TileEntityMachineDriveProcessor extends TileEntityMachineBase imple
 	@Override public long getMaxPower() { return maxPower; }
 
 }
+

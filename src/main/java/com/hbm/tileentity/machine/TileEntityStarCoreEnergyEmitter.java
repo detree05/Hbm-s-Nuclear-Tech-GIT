@@ -4,7 +4,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.config.SpaceConfig;
 import com.hbm.lib.Library;
@@ -229,7 +229,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		}
 		if(worldObj.provider instanceof WorldProviderHell
 			|| worldObj.provider instanceof WorldProviderEnd
-			|| worldObj.provider instanceof WorldProviderKerbol) {
+			|| worldObj.provider instanceof WorldProviderDmitriy) {
 			return false;
 		}
 		return isWorldDaytime();
@@ -507,3 +507,4 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		return 65536.0D;
 	}
 }
+

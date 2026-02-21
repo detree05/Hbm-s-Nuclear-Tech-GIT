@@ -116,7 +116,7 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 
 			Target toTarget = ItemVOTVdrive.getTarget(slots[0], worldObj);
 			if(toTarget.body != null
-					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& toTarget.body.getEnum() == SolarSystem.Body.DMITRIY
 					&& !toTarget.inOrbit
 					&& rocket.capsule != null
 					&& rocket.capsule.part == ModItems.rp_capsule_20) {
@@ -199,7 +199,7 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 		SolarSystem.Body target = ItemVOTVdrive.getDestination(slots[0]).body;
 		if(target == SolarSystem.Body.ORBIT && rocket.capsule.part != ModItems.rp_capsule_20 && rocket.capsule.part != ModItems.rp_station_core_20)
 		return false;
-		if(target == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole())
+		if(target == SolarSystem.Body.DMITRIY && !SolarSystem.isKerbolBlackhole())
 			return false;
 
 		Target from = CelestialBody.getTarget(worldObj, xCoord, zCoord);
@@ -393,3 +393,5 @@ public class TileEntityOrbitalStationLauncher extends TileEntityMachineBase impl
 	}
 
 }
+
+

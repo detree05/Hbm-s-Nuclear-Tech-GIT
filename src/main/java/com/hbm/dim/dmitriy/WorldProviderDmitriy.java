@@ -1,10 +1,10 @@
-package com.hbm.dim.kerbol;
+package com.hbm.dim.dmitriy;
 
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
 import com.hbm.lib.RefStrings;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
+import com.hbm.dim.dmitriy.biome.BiomeGenDmitriy;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.util.ParticleUtil;
@@ -30,7 +30,7 @@ import org.lwjgl.opengl.GL11;
 import net.minecraft.util.ResourceLocation;
 import java.util.Random;
 
-public class WorldProviderKerbol extends WorldProviderCelestial {
+public class WorldProviderDmitriy extends WorldProviderCelestial {
 	private static final float GRAVITY_MIN = 0.1F;
 	private static final float GRAVITY_MAX = 6.0F;
 	private static final long GRAVITY_EVENT_INTERVAL_MILLIS = 10L * 60L * 1000L;
@@ -42,7 +42,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	private static final float[] CLOUD_LAYER_OFFSETS = new float[] { 0F, 25F, 50F };
 	private static final float[] CLOUD_LAYER_SPEEDS = new float[] { 0.02F, 0.035F, 0.05F };
 	private static final float[] CLOUD_LAYER_ALPHA = new float[] { 0.6F, 0.45F, 0.3F };
-	private static final IRenderHandler KERBOL_SKY = new IRenderHandler() {
+	private static final IRenderHandler DMITRIY_SKY = new IRenderHandler() {
 		@Override
 		public void render(float partialTicks, WorldClient world, Minecraft mc) {
 			Tessellator tessellator = Tessellator.instance;
@@ -55,7 +55,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 			GL11.glPushMatrix();
 			{
-				// Speed up the dual-star orbit in the Kerbol sky.
+				// Speed up the dual-star orbit in the Dmitriy sky.
 				float solarAngle = (world.getCelestialAngle(partialTicks) * 128.0F) % 1.0F;
 				if(solarAngle < 0.0F) {
 					solarAngle += 1.0F;
@@ -133,7 +133,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		}
 	};
 
-	private static final IRenderHandler KERBOL_CLOUDS = new IRenderHandler() {
+	private static final IRenderHandler DMITRIY_CLOUDS = new IRenderHandler() {
 		@Override
 		@SideOnly(Side.CLIENT)
 		public void render(float partialTicks, WorldClient world, Minecraft mc) {
@@ -203,15 +203,15 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 	@Override
 	public void registerWorldChunkManager() {
-		this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenKerbol.digammaWastelands, 0.0F);
+		this.worldChunkMgr = new WorldChunkManagerHell(BiomeGenDmitriy.digammaWastelands, 0.0F);
 	}
 
 	@Override
-	public String getDimensionName() { return "Kerbol"; }
+	public String getDimensionName() { return "Dmitriy"; }
 
 	@Override
 	public IChunkProvider createChunkGenerator() {
-		return new ChunkProviderKerbol(this.worldObj);
+		return new ChunkProviderDmitriy(this.worldObj);
 	}
 
 	@Override
@@ -241,7 +241,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		vec.rotateAroundY((float)(worldObj.rand.nextDouble() * Math.PI * 2));
 
 		float scale = 0.6F + worldObj.rand.nextFloat() * 0.6F;
-		ParticleUtil.spawnKerbolWind(worldObj,
+		ParticleUtil.spawnDmitriyWind(worldObj,
 				viewEntity.posX + vec.xCoord,
 				viewEntity.posY + 1 + vec.yCoord,
 				viewEntity.posZ + vec.zCoord,
@@ -257,7 +257,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 			double dotX = worldObj.rand.nextGaussian() * 0.004D * windSpeed;
 			double dotZ = worldObj.rand.nextGaussian() * 0.004D * windSpeed;
 			double dotY = (0.025D + worldObj.rand.nextDouble() * 0.02D) * windSpeed;
-			ParticleUtil.spawnKerbolDot(worldObj,
+			ParticleUtil.spawnDmitriyDot(worldObj,
 					viewEntity.posX + dotVec.xCoord,
 					viewEntity.posY + 1 + dotVec.yCoord,
 					viewEntity.posZ + dotVec.zCoord,
@@ -271,7 +271,7 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 	@Override
 	protected double getDayLength() {
-		// Kerbol has no parent, so avoid orbital-period math from WorldProviderCelestial.
+		// Dmitriy has no parent, so avoid orbital-period math from WorldProviderCelestial.
 		return com.hbm.dim.CelestialBody.getBody(worldObj).getRotationalPeriod();
 	}
 
@@ -281,21 +281,21 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 	}
 
 	public static Float rollGravityEvent(World world) {
-		if (!(world.provider instanceof WorldProviderKerbol)) {
+		if (!(world.provider instanceof WorldProviderDmitriy)) {
 			return null;
 		}
 
-		WorldProviderKerbol kerbol = (WorldProviderKerbol) world.provider;
+		WorldProviderDmitriy dmitriy = (WorldProviderDmitriy) world.provider;
 		long now = System.currentTimeMillis();
 
-		if (kerbol.lastGravityEventMillis >= 0L &&
-			(now - kerbol.lastGravityEventMillis) < GRAVITY_EVENT_INTERVAL_MILLIS) {
+		if (dmitriy.lastGravityEventMillis >= 0L &&
+			(now - dmitriy.lastGravityEventMillis) < GRAVITY_EVENT_INTERVAL_MILLIS) {
 			return null;
 		}
 
-		kerbol.lastGravityEventMillis = now;
+		dmitriy.lastGravityEventMillis = now;
 
-		float current = kerbol.getGravityMultiplier();
+		float current = dmitriy.getGravityMultiplier();
 		float next = Math.abs(current - GRAVITY_MAX) < 0.01F ? GRAVITY_MIN : GRAVITY_MAX;
 
 		return next;
@@ -303,13 +303,13 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 
 	@Override
 	public IRenderHandler getSkyRenderer() {
-		return KERBOL_SKY;
+		return DMITRIY_SKY;
 	}
 
 	@Override
 	@SideOnly(Side.CLIENT)
 	public IRenderHandler getCloudRenderer() {
-		return KERBOL_CLOUDS;
+		return DMITRIY_CLOUDS;
 	}
 
 	@Override
@@ -382,3 +382,4 @@ public class WorldProviderKerbol extends WorldProviderCelestial {
 		return (float) (pulse * pulse);
 	}
 }
+

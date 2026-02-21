@@ -79,7 +79,7 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 		ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset).getOpposite();
 
 		if(!worldObj.isRemote) {
-			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 				isReceiving = false;
 				swarmId = 0;
 				swarmCount = 0;
@@ -275,3 +275,4 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 	}
 
 }
+

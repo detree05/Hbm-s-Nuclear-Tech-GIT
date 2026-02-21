@@ -1,7 +1,6 @@
 package com.hbm.dim;
 
-import static com.hbm.dim.trait.CBT_Core.cat;
-import static com.hbm.dim.trait.CBT_Core.comp;
+import static com.hbm.dim.CelestialCore.comp;
 import static com.hbm.inventory.OreDictManager.*;
 
 import java.security.InvalidParameterException;
@@ -10,7 +9,7 @@ import java.util.List;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
-import com.hbm.dim.trait.CBT_Core;
+import com.hbm.dim.CelestialCore;
 import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_Temperature;
@@ -31,6 +30,7 @@ import net.minecraft.world.World;
 public class SolarSystem {
 
 	public static CelestialBody kerbol;
+	public static CelestialBody dmitriy;
 
 	// How much to scale celestial objects when rendering
 	public static final double RENDER_SCALE = 180;
@@ -128,383 +128,416 @@ public class SolarSystem {
 		return skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE;
 	}
 
-	private static CBT_Core getKerbinCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(IRON.ingot(), 53F),
-				comp(CU.ingot(), 25F),
-				comp(AL.ingot(), 12F),
-				comp(NA.ingot(), 10F)),
-			cat("heavy",
-				comp(W.ingot(), 91F),
-				comp(ZI.ingot(), 9F)),
-			cat("nonmetal",
-				comp(COAL.gem(), 52F),
-				comp(LIGNITE.gem(), 26F),
-				comp(S.dust(), 13F),
-				comp(KNO.dust(), 9F)),
-			cat("crystal",
-				comp(REDSTONE.dust(), 51F),
-				comp(ASBESTOS.ingot(), 27F),
-				comp(DIAMOND.gem(), 13F),
-				comp(EMERALD.gem(), 9F))
+	private static CelestialCore getKerbinCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(IRON.ingot(), 53F),
+			comp(CU.ingot(), 25F),
+			comp(AL.ingot(), 12F),
+			comp(NA.ingot(), 10F),
+			// Heavy category
+			comp(W.ingot(), 91F),
+			comp(ZI.ingot(), 9F),
+			// Nonmetal category
+			comp(COAL.gem(), 52F),
+			comp(LIGNITE.gem(), 26F),
+			comp(S.dust(), 13F),
+			comp(KNO.dust(), 9F),
+			// Crystal category
+			comp(REDSTONE.dust(), 51F),
+			comp(ASBESTOS.ingot(), 27F),
+			comp(DIAMOND.gem(), 13F),
+			comp(EMERALD.gem(), 9F)
 		);
 	}
 
-	private static CBT_Core getMunCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(LI.ingot(), 52F),
-				comp(IRON.ingot(), 26F),
-				comp(NA.ingot(), 13F),
-				comp(CHLOROCALCITE.dust(), 9F)),
-			cat("heavy",
-				comp(PB.ingot(), 53F),
-				comp(ZI.ingot(), 25F),
-				comp(GOLD.ingot(), 12F),
-				comp(BI.ingot(), 10F)),
-			cat("rare",
-				comp(CO.ingot(), 54F),
-				comp(RAREEARTH.ingot(), 24F),
-				comp(ND.dust(), 13F),
-				comp(ST.dust(), 9F)),
-			cat("nonmetal",
-				comp(S.dust(), 55F),
-				comp(F.dust(), 22F),
-				comp(KNO.dust(), 14F),
-				comp(SI.ingot(), 9F)),
-			cat("crystal",
-				comp(QUARTZ.gem(), 52F),
-				comp(SODALITE.gem(), 26F),
-				comp(EMERALD.gem(), 13F),
-				comp(CINNABAR.gem(), 9F))
+	private static CelestialCore getMunCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(LI.ingot(), 52F),
+			comp(IRON.ingot(), 26F),
+			comp(NA.ingot(), 13F),
+			comp(CHLOROCALCITE.dust(), 9F),
+			// Heavy category
+			comp(PB.ingot(), 53F),
+			comp(ZI.ingot(), 25F),
+			comp(GOLD.ingot(), 12F),
+			comp(BI.ingot(), 10F),
+			// Rare category
+			comp(CO.ingot(), 54F),
+			comp(RAREEARTH.ingot(), 24F),
+			comp(ND.dust(), 13F),
+			comp(ST.dust(), 9F),
+			// Nonmetal category
+			comp(S.dust(), 55F),
+			comp(F.dust(), 22F),
+			comp(KNO.dust(), 14F),
+			comp(SI.ingot(), 9F),
+			// Crystal category
+			comp(QUARTZ.gem(), 52F),
+			comp(SODALITE.gem(), 26F),
+			comp(EMERALD.gem(), 13F),
+			comp(CINNABAR.gem(), 9F)
 		);
 	}
 
-	private static CBT_Core getMinmusCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(CU.ingot(), 64F),
-				comp(TI.ingot(), 22F),
-				comp(CHLOROCALCITE.dust(), 14F)),
-			cat("heavy",
-				comp(PB.ingot(), 51F),
-				comp(GOLD.ingot(), 27F),
-				comp(W.ingot(), 13F),
-				comp(BI.ingot(), 9F)),
-			cat("rare",
-				comp(ZR.ingot(), 53F),
-				comp(B.ingot(), 25F),
-				comp(CO.ingot(), 12F),
-				comp(ST.dust(), 10F)),
-			cat("nonmetal",
-				comp(S.dust(), 54F),
-				comp(KNO.dust(), 24F),
-				comp(F.dust(), 13F),
-				comp(SI.ingot(), 9F)),
-			cat("crystal",
-				comp(EMERALD.gem(), 65F),
-				comp(SODALITE.gem(), 22F),
-				comp(DIAMOND.gem(), 13F))
+	private static CelestialCore getMinmusCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(CU.ingot(), 64F),
+			comp(TI.ingot(), 22F),
+			comp(CHLOROCALCITE.dust(), 14F),
+			// Heavy category
+			comp(PB.ingot(), 51F),
+			comp(GOLD.ingot(), 27F),
+			comp(W.ingot(), 13F),
+			comp(BI.ingot(), 9F),
+			// Rare category
+			comp(ZR.ingot(), 53F),
+			comp(B.ingot(), 25F),
+			comp(CO.ingot(), 12F),
+			comp(ST.dust(), 10F),
+			// Nonmetal category
+			comp(S.dust(), 54F),
+			comp(KNO.dust(), 24F),
+			comp(F.dust(), 13F),
+			comp(SI.ingot(), 9F),
+			// Crystal category
+			comp(EMERALD.gem(), 65F),
+			comp(SODALITE.gem(), 22F),
+			comp(DIAMOND.gem(), 13F)
 		);
 	}
 
-	private static CBT_Core getDunaCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(IRON.ingot(), 53F),
-				comp(NI.ingot(), 25F),
-				comp(TI.ingot(), 12F),
-				comp(CHLOROCALCITE.dust(), 10F)),
-			cat("heavy",
-				comp(BE.ingot(), 50F),
-				comp(W.ingot(), 28F),
-				comp(ZI.ingot(), 13F),
-				comp(BI.ingot(), 9F)),
-			cat("rare",
-				comp(RAREEARTH.ingot(), 54F),
-				comp(B.ingot(), 24F),
-				comp(ZR.ingot(), 13F),
-				comp(ST.dust(), 9F)),
-			cat("actinide",
-				comp(TH232.ingot(), 52F),
-				comp(RA226.ingot(), 26F),
-				comp(PO210.ingot(), 13F),
-				comp(U233.ingot(), 9F)),
-			cat("nonmetal",
-				comp(F.dust(), 53F),
-				comp(S.dust(), 25F),
-				comp(SI.ingot(), 12F),
-				comp(P_RED.dust(), 10F)),
-			cat("crystal",
-				comp(REDSTONE.dust(), 51F),
-				comp(CINNABAR.gem(), 27F),
-				comp(DIAMOND.gem(), 13F),
-				comp(MOLYSITE.gem(), 9F))
+	private static CelestialCore getDunaCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(IRON.ingot(), 53F),
+			comp(NI.ingot(), 25F),
+			comp(TI.ingot(), 12F),
+			comp(CHLOROCALCITE.dust(), 10F),
+			// Heavy category
+			comp(BE.ingot(), 50F),
+			comp(W.ingot(), 28F),
+			comp(ZI.ingot(), 13F),
+			comp(BI.ingot(), 9F),
+			// Rare category
+			comp(RAREEARTH.ingot(), 54F),
+			comp(B.ingot(), 24F),
+			comp(ZR.ingot(), 13F),
+			comp(ST.dust(), 9F),
+			// Actinide category
+			comp(TH232.ingot(), 52F),
+			comp(RA226.ingot(), 26F),
+			comp(PO210.ingot(), 13F),
+			comp(U233.ingot(), 9F),
+			// Nonmetal category
+			comp(F.dust(), 53F),
+			comp(S.dust(), 25F),
+			comp(SI.ingot(), 12F),
+			comp(P_RED.dust(), 10F),
+			// Crystal category
+			comp(REDSTONE.dust(), 51F),
+			comp(CINNABAR.gem(), 27F),
+			comp(DIAMOND.gem(), 13F),
+			comp(MOLYSITE.gem(), 9F)
 		);
 	}
 
-	private static CBT_Core getMohoCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(TI.ingot(), 54F),
-				comp(CHLOROCALCITE.dust(), 24F),
-				comp(NI.ingot(), 13F),
-				comp(LI.ingot(), 9F)),
-			cat("heavy",
-				comp(GOLD.ingot(), 52F),
-				comp(ZI.ingot(), 26F),
-				comp(PB.ingot(), 13F),
-				comp(BI.ingot(), 9F)),
-			cat("rare",
-				comp(ND.dust(), 53F),
-				comp(ZR.ingot(), 25F),
-				comp(BR.dust(), 12F),
-				comp(ST.dust(), 10F)),
-			cat("actinide",
-				comp(AUSTRALIUM.ingot(), 77F),
-				comp(TASMANITE.ingot(), 14F),
-				comp(AYERITE.ingot(), 9F)),
-			cat("nonmetal",
-				comp(GLOWSTONE.dust(), 52F),
-				comp(P_RED.dust(), 26F),
-				comp(S.dust(), 13F),
-				comp(P_WHITE.ingot(), 9F)),
-			cat("crystal",
-				comp(CINNABAR.gem(), 53F),
-				comp(REDSTONE.dust(), 25F),
-				comp(QUARTZ.gem(), 12F),
-				comp(MOLYSITE.gem(), 10F))
+	private static CelestialCore getMohoCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(TI.ingot(), 54F),
+			comp(CHLOROCALCITE.dust(), 24F),
+			comp(NI.ingot(), 13F),
+			comp(LI.ingot(), 9F),
+			// Heavy category
+			comp(GOLD.ingot(), 52F),
+			comp(ZI.ingot(), 26F),
+			comp(PB.ingot(), 13F),
+			comp(BI.ingot(), 9F),
+			// Rare category
+			comp(ND.dust(), 53F),
+			comp(ZR.ingot(), 25F),
+			comp(BR.dust(), 12F),
+			comp(ST.dust(), 10F),
+			// Actinide category
+			comp(AUSTRALIUM.ingot(), 77F),
+			comp(TASMANITE.ingot(), 14F),
+			comp(AYERITE.ingot(), 9F),
+			// Nonmetal category
+			comp(GLOWSTONE.dust(), 52F),
+			comp(P_RED.dust(), 26F),
+			comp(S.dust(), 13F),
+			comp(P_WHITE.ingot(), 9F),
+			// Crystal category
+			comp(CINNABAR.gem(), 53F),
+			comp(REDSTONE.dust(), 25F),
+			comp(QUARTZ.gem(), 12F),
+			comp(MOLYSITE.gem(), 10F)
 		);
 	}
 
-	private static CBT_Core getDresCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(NI.ingot(), 52F),
-				comp(TI.ingot(), 26F),
-				comp(CD.ingot(), 13F),
-				comp(GALLIUM.ingot(), 9F)),
-			cat("heavy",
-				comp(ZI.ingot(), 54F),
-				comp(GOLD.ingot(), 24F),
-				comp(BI.ingot(), 13F),
-				comp(AS.ingot(), 9F)),
-			cat("rare",
-				comp(TA.ingot(), 53F),
-				comp(LA.ingot(), 25F),
-				comp(NB.ingot(), 12F),
-				comp(ST.dust(), 10F)),
-			cat("actinide",
-				comp(U.ingot(), 52F),
-				comp(RA226.ingot(), 26F),
-				comp(TC99.ingot(), 13F),
-				comp(U238.ingot(), 9F)),
-			cat("nonmetal",
-				comp(SI.ingot(), 77F),
-				comp(F.dust(), 23F)),
-			cat("crystal",
-				comp(DIAMOND.gem(), 51F),
-				comp(BORAX.gem(), 27F),
-				comp(MOLYSITE.gem(), 22F))
+	private static CelestialCore getDresCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(NI.ingot(), 52F),
+			comp(TI.ingot(), 26F),
+			comp(CD.ingot(), 13F),
+			comp(GALLIUM.ingot(), 9F),
+			// Heavy category
+			comp(ZI.ingot(), 54F),
+			comp(GOLD.ingot(), 24F),
+			comp(BI.ingot(), 13F),
+			comp(AS.ingot(), 9F),
+			// Rare category
+			comp(TA.ingot(), 53F),
+			comp(LA.ingot(), 25F),
+			comp(NB.ingot(), 12F),
+			comp(ST.dust(), 10F),
+			// Actinide category
+			comp(U.ingot(), 52F),
+			comp(RA226.ingot(), 26F),
+			comp(TC99.ingot(), 13F),
+			comp(U238.ingot(), 9F),
+			// Nonmetal category
+			comp(SI.ingot(), 77F),
+			comp(F.dust(), 23F),
+			// Crystal category
+			comp(DIAMOND.gem(), 51F),
+			comp(BORAX.gem(), 27F),
+			comp(MOLYSITE.gem(), 22F)
 		);
 	}
 
-	private static CBT_Core getEveCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(NA.ingot(), 58F),
-				comp(CHLOROCALCITE.dust(), 28F),
-				comp(IRON.ingot(), 14F)),
-			cat("heavy",
-				comp(W.ingot(), 59F),
-				comp(PB.ingot(), 26F),
-				comp(AS.ingot(), 15F)),
-			cat("rare",
-				comp(NB.ingot(), 57F),
-				comp(ST.dust(), 29F),
-				comp(I.dust(), 14F)),
-			cat("actinide",
-				comp(PO210.ingot(), 39F),
-				comp(NP237.ingot(), 29F),
-				comp(PB209.ingot(), 17F),
-				comp(AU198.ingot(), 15F)),
-			cat("schrabidic",
-				comp(SA326.ingot(), 65F),
-				comp(SA327.ingot(), 22F),
-				comp(GH336.ingot(), 13F)),
-			cat("crystal",
-				comp(SODALITE.gem(), 52F),
-				comp(MOLYSITE.gem(), 26F),
-				comp(DIAMOND.gem(), 13F),
-				comp(BORAX.gem(), 9F))
+	private static CelestialCore getEveCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(NA.ingot(), 58F),
+			comp(CHLOROCALCITE.dust(), 28F),
+			comp(IRON.ingot(), 14F),
+			// Heavy category
+			comp(W.ingot(), 59F),
+			comp(PB.ingot(), 26F),
+			comp(AS.ingot(), 15F),
+			// Rare category
+			comp(NB.ingot(), 57F),
+			comp(ST.dust(), 29F),
+			comp(I.dust(), 14F),
+			// Actinide category
+			comp(PO210.ingot(), 39F),
+			comp(NP237.ingot(), 29F),
+			comp(PB209.ingot(), 17F),
+			comp(AU198.ingot(), 15F),
+			// Schrabidic category
+			comp(SA326.ingot(), 65F),
+			comp(SA327.ingot(), 22F),
+			comp(GH336.ingot(), 13F),
+			// Crystal category
+			comp(SODALITE.gem(), 52F),
+			comp(MOLYSITE.gem(), 26F),
+			comp(DIAMOND.gem(), 13F),
+			comp(BORAX.gem(), 9F)
 		);
 	}
 
-	private static CBT_Core getIkeCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(CU.ingot(), 53F),
-				comp(BAUXITE.gem(), 25F),
-				comp(NI.ingot(), 12F),
-				comp(NA.ingot(), 10F)),
-			cat("heavy",
-				comp(PB.ingot(), 54F),
-				comp(ZI.ingot(), 24F),
-				comp(GOLD.ingot(), 13F),
-				comp(AS.ingot(), 9F)),
-			cat("rare",
-				comp(B.ingot(), 52F),
-				comp(ND.dust(), 26F),
-				comp(ST.dust(), 13F),
-				comp(LA.ingot(), 9F)),
-			cat("actinide",
-				comp(U.ingot(), 53F),
-				comp(U238.ingot(), 25F),
-				comp(PU.ingot(), 12F),
-				comp(TC99.ingot(), 10F))
+	private static CelestialCore getIkeCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(CU.ingot(), 53F),
+			comp(BAUXITE.gem(), 25F),
+			comp(NI.ingot(), 12F),
+			comp(NA.ingot(), 10F),
+			// Heavy category
+			comp(PB.ingot(), 54F),
+			comp(ZI.ingot(), 24F),
+			comp(GOLD.ingot(), 13F),
+			comp(AS.ingot(), 9F),
+			// Rare category
+			comp(B.ingot(), 52F),
+			comp(ND.dust(), 26F),
+			comp(ST.dust(), 13F),
+			comp(LA.ingot(), 9F),
+			// Actinide category
+			comp(U.ingot(), 53F),
+			comp(U238.ingot(), 25F),
+			comp(PU.ingot(), 12F),
+			comp(TC99.ingot(), 10F)
 		);
 	}
 
-	private static CBT_Core getLaytheCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(AL.ingot(), 54F),
-				comp(TI.ingot(), 24F),
-				comp(GALLIUM.ingot(), 13F),
-				comp(HAFNIUM.ingot(), 9F)),
-			cat("heavy",
-				comp(BE.ingot(), 52F),
-				comp(W.ingot(), 26F),
-				comp(PB.ingot(), 13F),
-				comp(AS.ingot(), 9F)),
-			cat("rare",
-				comp(RAREEARTH.ingot(), 53F),
-				comp(ND.dust(), 25F),
-				comp(ST.dust(), 12F),
-				comp(NB.ingot(), 10F)),
-			cat("actinide",
-				comp(U.ingot(), 52F),
-				comp(TH232.ingot(), 26F),
-				comp(PO210.ingot(), 13F),
-				comp(U235.ingot(), 9F)),
-			cat("nonmetal",
-				comp(CHLOROCALCITE.dust(), 55F),
-				comp(COAL.gem(), 22F),
-				comp(F.dust(), 14F),
-				comp(SI.ingot(), 9F)),
-			cat("crystal",
-				comp(ASBESTOS.ingot(), 51F),
-				comp(SODALITE.gem(), 36F),
-				comp(DIAMOND.gem(), 13F))
+	private static CelestialCore getLaytheCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(AL.ingot(), 54F),
+			comp(TI.ingot(), 24F),
+			comp(GALLIUM.ingot(), 13F),
+			comp(HAFNIUM.ingot(), 9F),
+			// Heavy category
+			comp(BE.ingot(), 52F),
+			comp(W.ingot(), 26F),
+			comp(PB.ingot(), 13F),
+			comp(AS.ingot(), 9F),
+			// Rare category
+			comp(RAREEARTH.ingot(), 53F),
+			comp(ND.dust(), 25F),
+			comp(ST.dust(), 12F),
+			comp(NB.ingot(), 10F),
+			// Actinide category
+			comp(U.ingot(), 52F),
+			comp(TH232.ingot(), 26F),
+			comp(PO210.ingot(), 13F),
+			comp(U235.ingot(), 9F),
+			// Nonmetal category
+			comp(CHLOROCALCITE.dust(), 55F),
+			comp(COAL.gem(), 22F),
+			comp(F.dust(), 14F),
+			comp(SI.ingot(), 9F),
+			// Crystal category
+			comp(ASBESTOS.ingot(), 51F),
+			comp(SODALITE.gem(), 36F),
+			comp(DIAMOND.gem(), 13F)
 		);
 	}
 
-	private static CBT_Core getTektoCoreTrait() {
-		return new CBT_Core(
-			cat("light",
-				comp(TI.ingot(), 53F),
-				comp(CU.ingot(), 25F),
-				comp(NI.ingot(), 12F),
-				comp(LI.ingot(), 10F)),
-			cat("heavy",
-				comp(BE.ingot(), 52F),
-				comp(PB.ingot(), 26F),
-				comp(ZI.ingot(), 22F)),
-			cat("rare",
-				comp(B.ingot(), 54F),
-				comp(RAREEARTH.ingot(), 24F),
-				comp(TA.ingot(), 13F),
-				comp(BI.ingot(), 9F)),
-			cat("actinide",
-				comp(U.ingot(), 52F),
-				comp(NP237.ingot(), 26F),
-				comp(RA226.ingot(), 13F),
-				comp(TC99.ingot(), 9F)),
-			cat("nonmetal",
-				comp(POLYMER.ingot(), 55F),
-				comp(RUBBER.ingot(), 22F),
-				comp(SEMTEX.ingot(), 14F),
-				comp(PVC.ingot(), 9F)),
-			cat("crystal",
-				comp(EMERALD.gem(), 52F),
-				comp(SI.ingot(), 26F),
-				comp(MOLYSITE.gem(), 13F),
-				comp(BORAX.gem(), 9F))
+	private static CelestialCore getTektoCoreTrait() {
+		return new CelestialCore(
+			// Light category
+			comp(TI.ingot(), 53F),
+			comp(CU.ingot(), 25F),
+			comp(NI.ingot(), 12F),
+			comp(LI.ingot(), 10F),
+			// Heavy category
+			comp(BE.ingot(), 52F),
+			comp(PB.ingot(), 26F),
+			comp(ZI.ingot(), 22F),
+			// Rare category
+			comp(B.ingot(), 54F),
+			comp(RAREEARTH.ingot(), 24F),
+			comp(TA.ingot(), 13F),
+			comp(BI.ingot(), 9F),
+			// Actinide category
+			comp(U.ingot(), 52F),
+			comp(NP237.ingot(), 26F),
+			comp(RA226.ingot(), 13F),
+			comp(TC99.ingot(), 9F),
+			// Nonmetal category
+			comp(POLYMER.ingot(), 55F),
+			comp(RUBBER.ingot(), 22F),
+			comp(SEMTEX.ingot(), 14F),
+			comp(PVC.ingot(), 9F),
+			// Crystal category
+			comp(EMERALD.gem(), 52F),
+			comp(SI.ingot(), 26F),
+			comp(MOLYSITE.gem(), 13F),
+			comp(BORAX.gem(), 9F)
 		);
 	}
 
-	private static float calculateMassFromCore(CBT_Core core, float radiusKm) {
-		core.recalculateForRadius(radiusKm);
-		return (float) core.computedMassKg;
+	private static CelestialCore getDmitriyCoreTrait() {
+		return new CelestialCore(
+			// Heavy category
+			comp(BIGMT.ingot(), 75F),
+			comp(YHARONITE.ingot(), 17F),
+			comp(ETHYROITE.ingot(), 8F),
+			// Light category
+			comp(DESH.ingot(), 100F),
+			// Schrabidic category
+			comp(SA326.ingot(), 67F),
+			comp(EUPH.ingot(), 33F),
+			// Living category
+			comp(RIFT.ingot(), 50F),
+			comp(ABYSS.ingot(), 50F)
+		);
+	}
+
+	private static CorePlanetSpec corePlanet(CelestialCore core, float planetRadiusKm, double densityScale) {
+		return new CorePlanetSpec(core, planetRadiusKm, densityScale);
+	}
+
+	private static class CorePlanetSpec {
+		final CelestialCore core;
+		final float planetRadiusKm;
+		final float coreMassKg;
+		final float planetMassKg;
+		final float totalMassKg;
+		float semiMajorAxisKm;
+		float eccentricity;
+		float argumentPeriapsisDegrees;
+		float inclinationDegrees;
+		float ascendingNodeDegrees;
+		int rotationalPeriodSeconds;
+
+		CorePlanetSpec(CelestialCore core, float planetRadiusKm, double densityScale) {
+			this.core = core.withDensityScale(densityScale);
+			this.planetRadiusKm = planetRadiusKm;
+			this.core.recalculateForRadius(planetRadiusKm);
+			this.coreMassKg = (float) this.core.computedCoreMassKg;
+			this.planetMassKg = (float) this.core.computedPlanetMassKg;
+			this.totalMassKg = (float) this.core.computedTotalMassKg;
+		}
+
+		CorePlanetSpec withOrbitAndRotation(float semiMajorAxisKm, float eccentricity, float argumentPeriapsisDegrees, float inclinationDegrees, float ascendingNodeDegrees, int rotationalPeriodSeconds) {
+			this.semiMajorAxisKm = semiMajorAxisKm;
+			this.eccentricity = eccentricity;
+			this.argumentPeriapsisDegrees = argumentPeriapsisDegrees;
+			this.inclinationDegrees = inclinationDegrees;
+			this.ascendingNodeDegrees = ascendingNodeDegrees;
+			this.rotationalPeriodSeconds = rotationalPeriodSeconds;
+			return this;
+		}
 	}
 
 	public static void init() {
-		CBT_Core mohoCore = getMohoCoreTrait();
-		CBT_Core eveCore = getEveCoreTrait();
-		CBT_Core kerbinCore = getKerbinCoreTrait();
-		CBT_Core munCore = getMunCoreTrait();
-		CBT_Core minmusCore = getMinmusCoreTrait();
-		CBT_Core dunaCore = getDunaCoreTrait();
-		CBT_Core ikeCore = getIkeCoreTrait();
-		CBT_Core dresCore = getDresCoreTrait();
-		CBT_Core laytheCore = getLaytheCoreTrait();
-		CBT_Core tektoCore = getTektoCoreTrait();
-
-		float mohoRadiusKm = 250F;
-		float eveRadiusKm = 700F;
-		float kerbinRadiusKm = 600F;
-		float munRadiusKm = 200F;
-		float minmusRadiusKm = 60F;
-		float dunaRadiusKm = 320F;
-		float ikeRadiusKm = 130F;
-		float dresRadiusKm = 138F;
-		float laytheRadiusKm = 500F;
-		float tektoRadiusKm = 480F;
-
-		float mohoMassKg = calculateMassFromCore(mohoCore, mohoRadiusKm);
-		float eveMassKg = calculateMassFromCore(eveCore, eveRadiusKm);
-		float kerbinMassKg = calculateMassFromCore(kerbinCore, kerbinRadiusKm);
-		float munMassKg = calculateMassFromCore(munCore, munRadiusKm);
-		float minmusMassKg = calculateMassFromCore(minmusCore, minmusRadiusKm);
-		float dunaMassKg = calculateMassFromCore(dunaCore, dunaRadiusKm);
-		float ikeMassKg = calculateMassFromCore(ikeCore, ikeRadiusKm);
-		float dresMassKg = calculateMassFromCore(dresCore, dresRadiusKm);
-		float laytheMassKg = calculateMassFromCore(laytheCore, laytheRadiusKm);
-		float tektoMassKg = calculateMassFromCore(tektoCore, tektoRadiusKm);
+		// Calibrated so dynamic core-driven masses match intended gravity targets at stock radii.
+		CorePlanetSpec moho = corePlanet(getMohoCoreTrait(), 250F, 1.469161107751D)
+			.withOrbitAndRotation(5_263_138, 0.2F, 15.0F, 7.0F, 70.0F, 210_000);
+		CorePlanetSpec eve = corePlanet(getEveCoreTrait(), 700F, 1.938047657016D)
+			.withOrbitAndRotation(9_832_684, 0.01F, 0.0F, 2.1F, 15.0F, 80_500);
+		CorePlanetSpec kerbin = corePlanet(getKerbinCoreTrait(), 600F, 2.125219521622D)
+			.withOrbitAndRotation(13_599_840, 0.0F, 0.0F, 0.0F, 0.0F, 21_549);
+		CorePlanetSpec mun = corePlanet(getMunCoreTrait(), 200F, 1.781592988856D)
+			.withOrbitAndRotation(16_000, 0.054F, 0.0F, 5.15F, 17.0F, 138_984);
+		CorePlanetSpec minmus = corePlanet(getMinmusCoreTrait(), 60F, 1.608448614261D)
+			.withOrbitAndRotation(47_000, 0.0F, 38.0F, 6.0F, 78.0F, 40_400);
+		CorePlanetSpec duna = corePlanet(getDunaCoreTrait(), 320F, 1.590476965197D)
+			.withOrbitAndRotation(20_726_155, 0.05F, 0.0F, 0.06F, 135.5F, 65_518);
+		CorePlanetSpec ike = corePlanet(getIkeCoreTrait(), 130F, 1.029864110889D)
+			.withOrbitAndRotation(3_200, 0.03F, 0.0F, 0.2F, 0.0F, 65_518);
+		CorePlanetSpec dres = corePlanet(getDresCoreTrait(), 138F, 1.191662616939D)
+			.withOrbitAndRotation(40_839_348, 0.145F, 90.0F, 5.0F, 280.0F, 34_800);
+		CorePlanetSpec laythe = corePlanet(getLaytheCoreTrait(), 500F, 2.381467979214D)
+			.withOrbitAndRotation(27_184, 0.0288F, 0.0F, 0.348F, 0.0F, 52_981);
+		CorePlanetSpec tekto = corePlanet(getTektoCoreTrait(), 480F, 0.277912852481D)
+			.withOrbitAndRotation(67_355, 0.028F, 0.0F, 9.4F, 55.0F, 57_915);
 
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones
-		kerbol = new CelestialBody("kerbol", SpaceConfig.kerbolDimension, Body.KERBOL)
+		kerbol = new CelestialBody("kerbol")
 			.withMassRadius(1.757e28F, 261_600)
 			.withRotationalPeriod(432_000)
-			.withTexture(new ResourceLocation(RefStrings.MODID, "textures/misc/space/dmitriy.png"))
 			.withShader(new ResourceLocation(RefStrings.MODID, "shaders/blackhole.frag"), 2)
-			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
-			.withTraits(
-				new CBT_Atmosphere(Fluids.DMITRIYGAS, 6.191D),
-				new CBT_Water(Fluids.BLOOD),
-				new CBT_SkyState(CBT_SkyState.SkyState.BLACKHOLE)
-			)
+			.withTraits(new CBT_SkyState(CBT_SkyState.SkyState.BLACKHOLE))
 			.withSatellites(
-
 				new CelestialBody("moho", SpaceConfig.mohoDimension, Body.MOHO)
-					.withMassRadius(mohoMassKg, mohoRadiusKm)
-					.withOrbitalParameters(5_263_138, 0.2F, 15.0F, 7.0F, 70.0F)
-					.withRotationalPeriod(210_000)
+					.withMassRadius(moho.totalMassKg, moho.planetRadiusKm)
+					.withOrbitalParameters(moho.semiMajorAxisKm, moho.eccentricity, moho.argumentPeriapsisDegrees, moho.inclinationDegrees, moho.ascendingNodeDegrees)
+					.withRotationalPeriod(moho.rotationalPeriodSeconds)
 					.withColor(0.4863F, 0.4F, 0.3456F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/moho_stone.png", RefStrings.MODID + ":textures/blocks/moho_regolith.png")
 					.withAxialTilt(30F)
-					.withTraits(new CBT_Temperature(200), mohoCore),
+					.withTraits(new CBT_Temperature(200))
+					.withCore(moho.core),
 
 				new CelestialBody("eve", SpaceConfig.eveDimension, Body.EVE)
-					.withMassRadius(eveMassKg, eveRadiusKm)
-					.withOrbitalParameters(9_832_684, 0.01F, 0.0F, 2.1F, 15.0F)
-					.withRotationalPeriod(80_500)
+					.withMassRadius(eve.totalMassKg, eve.planetRadiusKm)
+					.withOrbitalParameters(eve.semiMajorAxisKm, eve.eccentricity, eve.argumentPeriapsisDegrees, eve.inclinationDegrees, eve.ascendingNodeDegrees)
+					.withRotationalPeriod(eve.rotationalPeriodSeconds)
 					.withColor(0.408F, 0.298F, 0.553F)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/eve_stone_2.png", RefStrings.MODID + ":textures/blocks/eve_silt.png")
 					.withMinProcessingLevel(3)
 					.withAxialTilt(0F)
-					.withTraits(new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY), eveCore)
+					.withTraits(new CBT_Temperature(400), new CBT_Water(Fluids.MERCURY))
+					.withCore(eve.core)
 					.withSatellites(
 
 						new CelestialBody("gilly")
@@ -517,11 +550,12 @@ public class SolarSystem {
 					),
 
 				new CelestialBody("kerbin", 0, Body.KERBIN) // overworld
-					.withMassRadius(kerbinMassKg, kerbinRadiusKm)
-					.withOrbitalParameters(13_599_840, 0.0F, 0.0F, 0.0F, 0.0F)
-					.withRotationalPeriod(21_549)
+					.withMassRadius(kerbin.totalMassKg, kerbin.planetRadiusKm)
+					.withOrbitalParameters(kerbin.semiMajorAxisKm, kerbin.eccentricity, kerbin.argumentPeriapsisDegrees, kerbin.inclinationDegrees, kerbin.ascendingNodeDegrees)
+					.withRotationalPeriod(kerbin.rotationalPeriodSeconds)
 					.withColor(0.608F, 0.914F, 1.0F)
-					.withTraits(new CBT_Water(), kerbinCore)
+					.withTraits(new CBT_Water())
+					.withCore(kerbin.core)
 					.withAxialTilt(65F)
 					.withBlockTextures("textures/blocks/stone.png", "textures/blocks/dirt.png")
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/kerbin_mask.png"))
@@ -529,58 +563,60 @@ public class SolarSystem {
 					.withSatellites(
 
 						new CelestialBody("mun", SpaceConfig.moonDimension, Body.MUN)
-							.withMassRadius(munMassKg, munRadiusKm)
-							.withOrbitalParameters(16_000, 0.054F, 0.0F, 5.15F, 17.0F)
-							.withRotationalPeriod(138_984)
+							.withMassRadius(mun.totalMassKg, mun.planetRadiusKm)
+							.withOrbitalParameters(mun.semiMajorAxisKm, mun.eccentricity, mun.argumentPeriapsisDegrees, mun.inclinationDegrees, mun.ascendingNodeDegrees)
+							.withRotationalPeriod(mun.rotationalPeriodSeconds)
 							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/moon_rock.png", RefStrings.MODID + ":textures/blocks/moon_turf.png")
-							.withTraits(munCore)
+							.withCore(mun.core)
 							.withIce(true),
 
 						new CelestialBody("minmus", SpaceConfig.minmusDimension, Body.MINMUS)
-							.withMassRadius(minmusMassKg, minmusRadiusKm)
-							.withOrbitalParameters(47_000, 0, 38.0F, 6.0F, 78.0F)
-							.withRotationalPeriod(40_400)
+							.withMassRadius(minmus.totalMassKg, minmus.planetRadiusKm)
+							.withOrbitalParameters(minmus.semiMajorAxisKm, minmus.eccentricity, minmus.argumentPeriapsisDegrees, minmus.inclinationDegrees, minmus.ascendingNodeDegrees)
+							.withRotationalPeriod(minmus.rotationalPeriodSeconds)
 							.withAxialTilt(0F)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/minmus_stone.png", RefStrings.MODID + ":textures/blocks/minmus_regolith.png")
-							.withTraits(new CBT_Water(Fluids.MILK), minmusCore)
+							.withTraits(new CBT_Water(Fluids.MILK))
+							.withCore(minmus.core)
 							.withIce(true)
 
 					),
 
 				new CelestialBody("duna", SpaceConfig.dunaDimension, Body.DUNA)
-					.withMassRadius(dunaMassKg, dunaRadiusKm)
-					.withOrbitalParameters(20_726_155, 0.05F, 0.0F, 0.06F, 135.5F)
-					.withRotationalPeriod(65_518)
+					.withMassRadius(duna.totalMassKg, duna.planetRadiusKm)
+					.withOrbitalParameters(duna.semiMajorAxisKm, duna.eccentricity, duna.argumentPeriapsisDegrees, duna.inclinationDegrees, duna.ascendingNodeDegrees)
+					.withRotationalPeriod(duna.rotationalPeriodSeconds)
 					.withTidalLockingTo("ike")
 					.withColor(0.6471f, 0.2824f, 0.1608f)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/duna_rock.png", RefStrings.MODID + ":textures/blocks/duna_sands.png")
 					.withAxialTilt(0F)
-					.withTraits(dunaCore)
+					.withCore(duna.core)
 					.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/duna_mask.png"))
 					.withIce(true)
 					.withSatellites(
 
 						new CelestialBody("ike", SpaceConfig.ikeDimension, Body.IKE)
-							.withMassRadius(ikeMassKg, ikeRadiusKm)
-							.withOrbitalParameters(3_200, 0.03F, 0.0F, 0.2F, 0.0F)
+							.withMassRadius(ike.totalMassKg, ike.planetRadiusKm)
+							.withOrbitalParameters(ike.semiMajorAxisKm, ike.eccentricity, ike.argumentPeriapsisDegrees, ike.inclinationDegrees, ike.ascendingNodeDegrees)
+							.withRotationalPeriod(ike.rotationalPeriodSeconds)
 							.withBlockTextures(RefStrings.MODID + ":textures/blocks/ike_stone.png", RefStrings.MODID + ":textures/blocks/ike_regolith.png")
-							.withRotationalPeriod(65_518)
 							.withAxialTilt(0F)
-							.withTraits(new CBT_Water(Fluids.BROMINE), ikeCore)
+							.withTraits(new CBT_Water(Fluids.BROMINE))
+							.withCore(ike.core)
 							.withIce(true)
 
 					),
 
 				new CelestialBody("dres", SpaceConfig.dresDimension, Body.DRES)
-					.withMassRadius(dresMassKg, dresRadiusKm)
-					.withOrbitalParameters(40_839_348, 0.145F, 90.0F, 5.0F, 280.0F)
-					.withRotationalPeriod(34_800)
+					.withMassRadius(dres.totalMassKg, dres.planetRadiusKm)
+					.withOrbitalParameters(dres.semiMajorAxisKm, dres.eccentricity, dres.argumentPeriapsisDegrees, dres.inclinationDegrees, dres.ascendingNodeDegrees)
+					.withRotationalPeriod(dres.rotationalPeriodSeconds)
 					.withBlockTextures(RefStrings.MODID + ":textures/blocks/dresbase.png", RefStrings.MODID + ":textures/blocks/sellafield_slaked.png")
 					.withRings(10.0F, 3, 0.4F, 0.4F, 0.4F)
 					.withAxialTilt(0F)
 					.withMinProcessingLevel(2)
-					.withTraits(dresCore)
+					.withCore(dres.core)
 					.withIce(true),
 
 
@@ -594,12 +630,13 @@ public class SolarSystem {
 					.withSatellites(
 
 						new CelestialBody("laythe", SpaceConfig.laytheDimension, Body.LAYTHE)
-							.withMassRadius(laytheMassKg, laytheRadiusKm)
-							.withOrbitalParameters(27_184, 0.0288F, 0.0F, 0.348F, 0.0F)
-							.withRotationalPeriod(52_981)
+							.withMassRadius(laythe.totalMassKg, laythe.planetRadiusKm)
+							.withOrbitalParameters(laythe.semiMajorAxisKm, laythe.eccentricity, laythe.argumentPeriapsisDegrees, laythe.inclinationDegrees, laythe.ascendingNodeDegrees)
+							.withRotationalPeriod(laythe.rotationalPeriodSeconds)
 							.withAxialTilt(0F)
 							.withMinProcessingLevel(3)
-							.withTraits(new CBT_Water(), laytheCore)
+							.withTraits(new CBT_Water())
+							.withCore(laythe.core)
 							.withBlockTextures("textures/blocks/stone.png", RefStrings.MODID + ":textures/blocks/laythe_silt.png")
 							.withCityMask(new ResourceLocation(RefStrings.MODID, "textures/misc/space/laythe_mask.png")),
 
@@ -664,12 +701,13 @@ public class SolarSystem {
 						.withRotationalPeriod(192_771),
 
 					new CelestialBody("tekto", SpaceConfig.tektoDimension, Body.TEKTO)
-						.withMassRadius(tektoMassKg, tektoRadiusKm)
-						.withOrbitalParameters(67_355, 0.028F, 0.0F, 9.4F, 55.0F)
-						.withRotationalPeriod(57_915)
+						.withMassRadius(tekto.totalMassKg, tekto.planetRadiusKm)
+						.withOrbitalParameters(tekto.semiMajorAxisKm, tekto.eccentricity, tekto.argumentPeriapsisDegrees, tekto.inclinationDegrees, tekto.ascendingNodeDegrees)
+						.withRotationalPeriod(tekto.rotationalPeriodSeconds)
 						.withAxialTilt(25F)
 						.withMinProcessingLevel(3)
-						.withTraits(new CBT_Water(Fluids.CCL), tektoCore) // :)
+						.withTraits(new CBT_Water(Fluids.CCL)) // :)
+						.withCore(tekto.core)
 						.withBlockTextures(RefStrings.MODID + ":textures/blocks/basalt.png", RefStrings.MODID + ":textures/blocks/rubber_silt.png")
 
 				),
@@ -696,6 +734,20 @@ public class SolarSystem {
 					)
 			);
 
+		dmitriy = new CelestialBody("dmitriy", SpaceConfig.dmitriyDimension, Body.DMITRIY)
+			.withMassRadius(1.757e28F, 261_600)
+			.withRotationalPeriod(432_000)
+			.withTexture(new ResourceLocation(RefStrings.MODID, "textures/misc/space/dmitriy.png"))
+			.withBlockTextures("textures/blocks/obsidian.png", "textures/blocks/obsidian.png")
+			.withTraits(
+				new CBT_Atmosphere(Fluids.DMITRIYGAS, 6.1916D),
+				new CBT_Water(Fluids.BLOOD)
+			)
+			.withCore(getDmitriyCoreTrait());
+
+		kerbol.captureDynamicBaselinesRecursive();
+		dmitriy.captureDynamicBaselinesRecursive();
+
 		runTests();
 	}
 
@@ -712,7 +764,7 @@ public class SolarSystem {
 		IKE("ike"),
 		LAYTHE("laythe"),
 		TEKTO("tekto"),
-		KERBOL("kerbol");
+		DMITRIY("dmitriy");
 		//THATMO("thatmo"); sit this one out buddy :)
 
 		public String name;
@@ -1465,4 +1517,7 @@ public class SolarSystem {
 	}
 
 }
+
+
+
 

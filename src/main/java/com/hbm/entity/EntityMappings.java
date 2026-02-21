@@ -97,7 +97,7 @@ public class EntityMappings {
 		addEntity(EntityNukeExplosionMK3.class, "entity_nuke_mk3", 1000);
 		addEntity(EntityVortex.class, "entity_vortex", 250);
 		addEntity(EntityMeteor.class, "entity_meteor", 250);
-		addEntity(EntityKerbolMeteor.class, "entity_kerbol_meteor", 250);
+		addEntity(EntityDmitriyMeteor.class, "entity_dmitriy_meteor", 250);
 		addEntity(EntityBoxcar.class, "entity_boxcar", 1000);
 		addEntity(EntityTorpedo.class, "entity_torpedo", 1000);
 		addEntity(EntityMissileTaint.class, "entity_missile_taint", 1000);

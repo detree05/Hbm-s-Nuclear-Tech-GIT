@@ -16,7 +16,7 @@ public class StarcoreSkyEffects {
 		for(WorldServer targetWorld : DimensionManager.getWorlds()) {
 			if(targetWorld == null || targetWorld.provider == null) continue;
 			int dim = targetWorld.provider.dimensionId;
-			if(dim == -1 || dim == 1 || dim == SpaceConfig.kerbolDimension) {
+			if(dim == -1 || dim == 1 || dim == SpaceConfig.dmitriyDimension) {
 				continue;
 			}
 			PacketDispatcher.wrapper.sendToDimension(
@@ -26,3 +26,4 @@ public class StarcoreSkyEffects {
 		}
 	}
 }
+

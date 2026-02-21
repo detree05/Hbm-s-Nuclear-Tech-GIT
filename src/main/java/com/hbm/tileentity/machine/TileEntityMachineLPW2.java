@@ -250,7 +250,7 @@ public class TileEntityMachineLPW2 extends TileEntityMachineBase implements IPro
 			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 			return;
 		}
@@ -297,3 +297,4 @@ public class TileEntityMachineLPW2 extends TileEntityMachineBase implements IPro
 		return tanks;
 	}
 }
+

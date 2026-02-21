@@ -32,14 +32,13 @@ import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.WorldProviderEarth;
 import com.hbm.dim.WorldTypeTeleport;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
-import com.hbm.dim.trait.CBT_Core;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_Invasion;
 import com.hbm.dim.trait.CBT_Lights;
@@ -51,7 +50,7 @@ import com.hbm.entity.mob.EntityCyberCrab;
 import com.hbm.entity.mob.siege.EntitySiegeCraft;
 import com.hbm.entity.projectile.EntityBulletBaseMK4;
 import com.hbm.entity.projectile.EntityBurningFOEQ;
-import com.hbm.entity.projectile.EntityKerbolMeteor;
+import com.hbm.entity.projectile.EntityDmitriyMeteor;
 import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.entity.train.EntityRailCarBase;
 import com.hbm.explosion.vanillant.ExplosionVNT;
@@ -203,34 +202,34 @@ import net.minecraftforge.event.world.WorldEvent;
 public class ModEventHandler {
 
 	private static Random rand = new Random();
-	private static long lastKerbolHeartbeatBeat = -1L;
-	private static final long KERBOL_HEARTBEAT_PERIOD_TICKS = 200L;
-	private static final int KERBOL_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
-	private static final int KERBOL_METEOR_CHANCE = 100;
-	private static final int KERBOL_VOID_INTERVAL_TICKS = 60 * 20;
-	private static final int KERBOL_VOID_CHANCE = 1;
-	private static final int KERBOL_VOID_MIN_DIST = 50;
-	private static final int KERBOL_VOID_MAX_DIST = 70;
-	private static final int KERBOL_FOOTSTEP_MIN_DURATION_TICKS = 5 * 20;
-	private static final int KERBOL_FOOTSTEP_MAX_DURATION_TICKS = 15 * 20;
-	private static final int KERBOL_FOOTSTEP_MIN_START_DISTANCE = 12;
-	private static final int KERBOL_FOOTSTEP_MAX_START_DISTANCE = 20;
-	private static final int KERBOL_FOOTSTEP_MIN_END_DISTANCE = 2;
-	private static final int KERBOL_FOOTSTEP_MAX_END_DISTANCE = 4;
-	private static final int KERBOL_FOOTSTEP_MIN_START_INTERVAL = 16;
-	private static final int KERBOL_FOOTSTEP_MAX_START_INTERVAL = 24;
-	private static final int KERBOL_FOOTSTEP_MIN_END_INTERVAL = 2;
-	private static final int KERBOL_FOOTSTEP_MAX_END_INTERVAL = 4;
-	private static final float KERBOL_FOOTSTEP_START_VOLUME = 0.12F;
-	private static final float KERBOL_FOOTSTEP_END_VOLUME = 0.5F;
-	private static final float KERBOL_STAR_DRX_ANGLE_DEG = 35.0F;
-	private static final float KERBOL_STAR_DRX_EDGE_PER_SEC = 0.01F;
-	private static final float KERBOL_STAR_DRX_CENTER_PER_SEC = 0.1F;
-	private static final float KERBOL_STAR_DRX_RAYTRACE_DISTANCE = 512.0F;
+	private static long lastDmitriyHeartbeatBeat = -1L;
+	private static final long DMITRIY_HEARTBEAT_PERIOD_TICKS = 200L;
+	private static final int DMITRIY_METEOR_INTERVAL_TICKS = 10 * 60 * 20;
+	private static final int DMITRIY_METEOR_CHANCE = 100;
+	private static final int DMITRIY_VOID_INTERVAL_TICKS = 60 * 20;
+	private static final int DMITRIY_VOID_CHANCE = 1;
+	private static final int DMITRIY_VOID_MIN_DIST = 50;
+	private static final int DMITRIY_VOID_MAX_DIST = 70;
+	private static final int DMITRIY_FOOTSTEP_MIN_DURATION_TICKS = 5 * 20;
+	private static final int DMITRIY_FOOTSTEP_MAX_DURATION_TICKS = 15 * 20;
+	private static final int DMITRIY_FOOTSTEP_MIN_START_DISTANCE = 12;
+	private static final int DMITRIY_FOOTSTEP_MAX_START_DISTANCE = 20;
+	private static final int DMITRIY_FOOTSTEP_MIN_END_DISTANCE = 2;
+	private static final int DMITRIY_FOOTSTEP_MAX_END_DISTANCE = 4;
+	private static final int DMITRIY_FOOTSTEP_MIN_START_INTERVAL = 16;
+	private static final int DMITRIY_FOOTSTEP_MAX_START_INTERVAL = 24;
+	private static final int DMITRIY_FOOTSTEP_MIN_END_INTERVAL = 2;
+	private static final int DMITRIY_FOOTSTEP_MAX_END_INTERVAL = 4;
+	private static final float DMITRIY_FOOTSTEP_START_VOLUME = 0.12F;
+	private static final float DMITRIY_FOOTSTEP_END_VOLUME = 0.5F;
+	private static final float DMITRIY_STAR_DRX_ANGLE_DEG = 35.0F;
+	private static final float DMITRIY_STAR_DRX_EDGE_PER_SEC = 0.01F;
+	private static final float DMITRIY_STAR_DRX_CENTER_PER_SEC = 0.1F;
+	private static final float DMITRIY_STAR_DRX_RAYTRACE_DISTANCE = 512.0F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
-	private static final Map<UUID, KerbolFootstepSequence> kerbolFootsteps = new HashMap<UUID, KerbolFootstepSequence>();
+	private static final Map<UUID, DmitriyFootstepSequence> dmitriyFootsteps = new HashMap<UUID, DmitriyFootstepSequence>();
 
-	private static class KerbolFootstepSequence {
+	private static class DmitriyFootstepSequence {
 		private final UUID playerId;
 		private final int totalTicks;
 		private int remainingTicks;
@@ -240,7 +239,7 @@ public class ModEventHandler {
 		private final int startInterval;
 		private final int endInterval;
 
-		private KerbolFootstepSequence(UUID playerId, int durationTicks, int startInterval, int endInterval, int startDistance, int endDistance) {
+		private DmitriyFootstepSequence(UUID playerId, int durationTicks, int startInterval, int endInterval, int startDistance, int endDistance) {
 			this.playerId = playerId;
 			this.totalTicks = durationTicks;
 			this.remainingTicks = durationTicks;
@@ -252,15 +251,15 @@ public class ModEventHandler {
 		}
 	}
 
-	private static void applyKerbolStarDigamma(EntityPlayer player) {
+	private static void applyDmitriyStarDigamma(EntityPlayer player) {
 		if(player == null || player.worldObj == null || player.capabilities.isCreativeMode) {
 			return;
 		}
-		if(!(player.worldObj.provider instanceof WorldProviderKerbol)) {
+		if(!(player.worldObj.provider instanceof WorldProviderDmitriy)) {
 			return;
 		}
 
-		Vec3 starDir = getKerbolStarADirection(player.worldObj);
+		Vec3 starDir = getDmitriyStarADirection(player.worldObj);
 		if(starDir == null) {
 			return;
 		}
@@ -273,23 +272,23 @@ public class ModEventHandler {
 		double dot = look.xCoord * starDir.xCoord + look.yCoord * starDir.yCoord + look.zCoord * starDir.zCoord;
 		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
 		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
-		if(angleDeg > KERBOL_STAR_DRX_ANGLE_DEG) {
+		if(angleDeg > DMITRIY_STAR_DRX_ANGLE_DEG) {
 			return;
 		}
 
-		if(!isKerbolStarVisible(player.worldObj, player, starDir, KERBOL_STAR_DRX_RAYTRACE_DISTANCE)) {
+		if(!isDmitriyStarVisible(player.worldObj, player, starDir, DMITRIY_STAR_DRX_RAYTRACE_DISTANCE)) {
 			return;
 		}
 
-		float closeness = 1.0F - (angleDeg / KERBOL_STAR_DRX_ANGLE_DEG);
+		float closeness = 1.0F - (angleDeg / DMITRIY_STAR_DRX_ANGLE_DEG);
 		closeness = MathHelper.clamp_float(closeness, 0.0F, 1.0F);
 
-		float drxPerSecond = KERBOL_STAR_DRX_EDGE_PER_SEC
-				+ (KERBOL_STAR_DRX_CENTER_PER_SEC - KERBOL_STAR_DRX_EDGE_PER_SEC) * closeness;
+		float drxPerSecond = DMITRIY_STAR_DRX_EDGE_PER_SEC
+				+ (DMITRIY_STAR_DRX_CENTER_PER_SEC - DMITRIY_STAR_DRX_EDGE_PER_SEC) * closeness;
 		HbmLivingProps.incrementDigamma(player, drxPerSecond / 20.0F);
 	}
 
-	private static Vec3 getKerbolStarADirection(World world) {
+	private static Vec3 getDmitriyStarADirection(World world) {
 		if(world == null) {
 			return null;
 		}
@@ -338,7 +337,7 @@ public class ModEventHandler {
 		return Vec3.createVectorHelper(x, y, v.zCoord);
 	}
 
-	private static boolean isKerbolStarVisible(World world, EntityPlayer player, Vec3 dir, double maxDistance) {
+	private static boolean isDmitriyStarVisible(World world, EntityPlayer player, Vec3 dir, double maxDistance) {
 		Vec3 start = Vec3.createVectorHelper(
 			player.posX,
 			player.posY + player.getEyeHeight(),
@@ -900,7 +899,7 @@ public class ModEventHandler {
 
 		if(!event.entity.worldObj.isRemote && event.entity instanceof EntityPlayer) {
 			EntityPlayer player = (EntityPlayer) event.entity;
-			if(player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+			if(player.worldObj.provider instanceof WorldProviderDmitriy && !player.capabilities.isCreativeMode) {
 				if(player.capabilities.isFlying || player.capabilities.allowFlying) {
 					player.capabilities.isFlying = false;
 					player.capabilities.allowFlying = false;
@@ -1053,8 +1052,8 @@ public class ModEventHandler {
 			StarcoreThroughputTracker.onWorldUnload(event.world);
 		}
 		NeutronNodeWorld.streamWorlds.remove(event.world);
-		if(event.world.provider instanceof WorldProviderKerbol) {
-			kerbolFootsteps.clear();
+		if(event.world.provider instanceof WorldProviderDmitriy) {
+			dmitriyFootsteps.clear();
 		}
 	}
 
@@ -1138,11 +1137,11 @@ public class ModEventHandler {
 					CelestialBody.updateChemistry(event.world);
 				}
 
-				if(event.world.provider instanceof WorldProviderKerbol) {
-					WorldProviderKerbol kerbol = (WorldProviderKerbol) event.world.provider;
-					Float nextGravity = WorldProviderKerbol.rollGravityEvent(event.world);
+				if(event.world.provider instanceof WorldProviderDmitriy) {
+					WorldProviderDmitriy dmitriy = (WorldProviderDmitriy) event.world.provider;
+					Float nextGravity = WorldProviderDmitriy.rollGravityEvent(event.world);
 					if(nextGravity != null) {
-						kerbol.setGravityMultiplier(nextGravity);
+						dmitriy.setGravityMultiplier(nextGravity);
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
 							if(player instanceof EntityPlayerMP) {
@@ -1152,12 +1151,12 @@ public class ModEventHandler {
 						}
 					}
 
-					updateKerbolFootsteps(event.world);
+					updateDmitriyFootsteps(event.world);
 
 					long tick = event.world.getTotalWorldTime();
-					long beatIndex = tick / KERBOL_HEARTBEAT_PERIOD_TICKS;
-					if(beatIndex != lastKerbolHeartbeatBeat) {
-						lastKerbolHeartbeatBeat = beatIndex;
+					long beatIndex = tick / DMITRIY_HEARTBEAT_PERIOD_TICKS;
+					if(beatIndex != lastDmitriyHeartbeatBeat) {
+						lastDmitriyHeartbeatBeat = beatIndex;
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
 							event.world.playSoundAtEntity(player, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
@@ -1168,8 +1167,8 @@ public class ModEventHandler {
 						for(Object obj : event.world.playerEntities) {
 							EntityPlayer player = (EntityPlayer) obj;
 							Random rand = player.getRNG();
-							if(rand.nextFloat() < 0.10F && !kerbolFootsteps.containsKey(player.getUniqueID())) {
-								maybeStartKerbolFootsteps(event.world, player, rand);
+							if(rand.nextFloat() < 0.10F && !dmitriyFootsteps.containsKey(player.getUniqueID())) {
+								maybeStartDmitriyFootsteps(event.world, player, rand);
 							}
 
 							if(rand.nextFloat() >= 0.10F) {
@@ -1228,15 +1227,15 @@ public class ModEventHandler {
 						}
 					}
 
-					if(tick % KERBOL_METEOR_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
-						if(event.world.rand.nextInt(KERBOL_METEOR_CHANCE) == 0) {
-							spawnKerbolMeteor(event.world);
+					if(tick % DMITRIY_METEOR_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
+						if(event.world.rand.nextInt(DMITRIY_METEOR_CHANCE) == 0) {
+							spawnDmitriyMeteor(event.world);
 						}
 					}
 
-					if(!event.world.isRemote && tick % KERBOL_VOID_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
-						if(event.world.rand.nextInt(KERBOL_VOID_CHANCE) == 0) {
-							spawnKerbolVoidStaresBack(event.world);
+					if(!event.world.isRemote && tick % DMITRIY_VOID_INTERVAL_TICKS == 0 && !event.world.playerEntities.isEmpty()) {
+						if(event.world.rand.nextInt(DMITRIY_VOID_CHANCE) == 0) {
+							spawnDmitriyVoidStaresBack(event.world);
 						}
 					}
 				}
@@ -1246,7 +1245,7 @@ public class ModEventHandler {
 					boolean shouldBroadcast = false;
 					float nextGravity = 0.0F;
 
-					if(event.world.provider instanceof WorldProviderCelestial && !(event.world.provider instanceof WorldProviderKerbol)) {
+					if(event.world.provider instanceof WorldProviderCelestial && !(event.world.provider instanceof WorldProviderDmitriy)) {
 						CBT_SkyState skyState = CBT_SkyState.get(event.world);
 						if(!skyState.isBlackhole()) {
 							WorldProviderCelestial provider = (WorldProviderCelestial) event.world.provider;
@@ -1369,16 +1368,16 @@ public class ModEventHandler {
 		Blocks.flowing_water.setLightOpacity(waterOpacity);
 	}
 
-	private static void updateKerbolFootsteps(World world) {
-		if(kerbolFootsteps.isEmpty()) {
+	private static void updateDmitriyFootsteps(World world) {
+		if(dmitriyFootsteps.isEmpty()) {
 			return;
 		}
 
 		List<UUID> expired = new ArrayList<UUID>();
-		for(Map.Entry<UUID, KerbolFootstepSequence> entry : kerbolFootsteps.entrySet()) {
-			KerbolFootstepSequence sequence = entry.getValue();
+		for(Map.Entry<UUID, DmitriyFootstepSequence> entry : dmitriyFootsteps.entrySet()) {
+			DmitriyFootstepSequence sequence = entry.getValue();
 			EntityPlayer player = findPlayerByUUID(world, sequence.playerId);
-			if(player == null || player.worldObj != world || !(world.provider instanceof WorldProviderKerbol)) {
+			if(player == null || player.worldObj != world || !(world.provider instanceof WorldProviderDmitriy)) {
 				expired.add(entry.getKey());
 				continue;
 			}
@@ -1432,7 +1431,7 @@ public class ModEventHandler {
 				continue;
 			}
 
-			float volume = lerpFloat(KERBOL_FOOTSTEP_START_VOLUME, KERBOL_FOOTSTEP_END_VOLUME, progress);
+			float volume = lerpFloat(DMITRIY_FOOTSTEP_START_VOLUME, DMITRIY_FOOTSTEP_END_VOLUME, progress);
 			volume *= (0.9F + world.rand.nextFloat() * 0.2F);
 			float pitch = block.stepSound.getPitch() * (0.8F + world.rand.nextFloat() * 0.3F);
 
@@ -1440,27 +1439,27 @@ public class ModEventHandler {
 		}
 
 		for(UUID id : expired) {
-			kerbolFootsteps.remove(id);
+			dmitriyFootsteps.remove(id);
 		}
 	}
 
-	private static void maybeStartKerbolFootsteps(World world, EntityPlayer player, Random rand) {
+	private static void maybeStartDmitriyFootsteps(World world, EntityPlayer player, Random rand) {
 		if(player == null || player.worldObj != world) {
 			return;
 		}
 
-		int durationTicks = KERBOL_FOOTSTEP_MIN_DURATION_TICKS
-			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_DURATION_TICKS - KERBOL_FOOTSTEP_MIN_DURATION_TICKS + 1);
-		int startDistance = KERBOL_FOOTSTEP_MIN_START_DISTANCE
-			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_START_DISTANCE - KERBOL_FOOTSTEP_MIN_START_DISTANCE + 1);
-		int endDistance = KERBOL_FOOTSTEP_MIN_END_DISTANCE
-			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_END_DISTANCE - KERBOL_FOOTSTEP_MIN_END_DISTANCE + 1);
-		int startInterval = KERBOL_FOOTSTEP_MIN_START_INTERVAL
-			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_START_INTERVAL - KERBOL_FOOTSTEP_MIN_START_INTERVAL + 1);
-		int endInterval = KERBOL_FOOTSTEP_MIN_END_INTERVAL
-			+ rand.nextInt(KERBOL_FOOTSTEP_MAX_END_INTERVAL - KERBOL_FOOTSTEP_MIN_END_INTERVAL + 1);
+		int durationTicks = DMITRIY_FOOTSTEP_MIN_DURATION_TICKS
+			+ rand.nextInt(DMITRIY_FOOTSTEP_MAX_DURATION_TICKS - DMITRIY_FOOTSTEP_MIN_DURATION_TICKS + 1);
+		int startDistance = DMITRIY_FOOTSTEP_MIN_START_DISTANCE
+			+ rand.nextInt(DMITRIY_FOOTSTEP_MAX_START_DISTANCE - DMITRIY_FOOTSTEP_MIN_START_DISTANCE + 1);
+		int endDistance = DMITRIY_FOOTSTEP_MIN_END_DISTANCE
+			+ rand.nextInt(DMITRIY_FOOTSTEP_MAX_END_DISTANCE - DMITRIY_FOOTSTEP_MIN_END_DISTANCE + 1);
+		int startInterval = DMITRIY_FOOTSTEP_MIN_START_INTERVAL
+			+ rand.nextInt(DMITRIY_FOOTSTEP_MAX_START_INTERVAL - DMITRIY_FOOTSTEP_MIN_START_INTERVAL + 1);
+		int endInterval = DMITRIY_FOOTSTEP_MIN_END_INTERVAL
+			+ rand.nextInt(DMITRIY_FOOTSTEP_MAX_END_INTERVAL - DMITRIY_FOOTSTEP_MIN_END_INTERVAL + 1);
 
-		KerbolFootstepSequence sequence = new KerbolFootstepSequence(
+		DmitriyFootstepSequence sequence = new DmitriyFootstepSequence(
 			player.getUniqueID(),
 			durationTicks,
 			startInterval,
@@ -1468,7 +1467,7 @@ public class ModEventHandler {
 			startDistance,
 			endDistance
 		);
-		kerbolFootsteps.put(player.getUniqueID(), sequence);
+		dmitriyFootsteps.put(player.getUniqueID(), sequence);
 	}
 
 	private static EntityPlayer findPlayerByUUID(World world, UUID id) {
@@ -1489,8 +1488,8 @@ public class ModEventHandler {
 		return start + (end - start) * t;
 	}
 
-	// Spawn a rare, immobile void apparition near players in Kerbol.
-	private void spawnKerbolVoidStaresBack(World world) {
+	// Spawn a rare, immobile void apparition near players in Dmitriy.
+	private void spawnDmitriyVoidStaresBack(World world) {
 		if(world.playerEntities.isEmpty()) {
 			return;
 		}
@@ -1504,7 +1503,7 @@ public class ModEventHandler {
 			return;
 		}
 
-		int radius = KERBOL_VOID_MIN_DIST + world.rand.nextInt(KERBOL_VOID_MAX_DIST - KERBOL_VOID_MIN_DIST + 1);
+		int radius = DMITRIY_VOID_MIN_DIST + world.rand.nextInt(DMITRIY_VOID_MAX_DIST - DMITRIY_VOID_MIN_DIST + 1);
 		double angle = world.rand.nextDouble() * Math.PI * 2.0D;
 		double x = player.posX + Math.cos(angle) * radius;
 		double z = player.posZ + Math.sin(angle) * radius;
@@ -1516,9 +1515,9 @@ public class ModEventHandler {
 		world.spawnEntityInWorld(entity);
 	}
 
-	private void spawnKerbolMeteor(World world) {
+	private void spawnDmitriyMeteor(World world) {
 		EntityPlayer player = (EntityPlayer) world.playerEntities.get(world.rand.nextInt(world.playerEntities.size()));
-		EntityKerbolMeteor meteor = new EntityKerbolMeteor(world);
+		EntityDmitriyMeteor meteor = new EntityDmitriyMeteor(world);
 		meteor.setPositionAndRotation(player.posX + world.rand.nextInt(401) - 200, 384, player.posZ + world.rand.nextInt(401) - 200, 0, 0);
 		meteor.motionX = (world.rand.nextDouble() - 0.5D) * 0.25D;
 		meteor.motionY = -2.5;
@@ -1927,14 +1926,14 @@ public class ModEventHandler {
 		}
 
 		if(!player.worldObj.isRemote && event.phase == TickEvent.Phase.START) {
-			if(player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+			if(player.worldObj.provider instanceof WorldProviderDmitriy && !player.capabilities.isCreativeMode) {
 				try {
 					Field food = ReflectionHelper.findField(FoodStats.class, "field_75127_a", "foodLevel");
 					food.setInt(player.getFoodStats(), 20);
 				} catch(Exception ignored) { }
 				player.getFoodStats().addStats(20, 20.0F);
 			}
-			applyKerbolStarDigamma(player);
+			applyDmitriyStarDigamma(player);
 
 			// Check for players attempting to cross over to another orbital grid
 			if(player.worldObj.provider instanceof WorldProviderOrbit && !(player.ridingEntity instanceof EntityRideableRocket)) {
@@ -2110,10 +2109,8 @@ public class ModEventHandler {
 						trait.update(false);
 					}
 
-					CBT_Core core = (CBT_Core) bodyTraits.get(CBT_Core.class);
-					if(core != null) {
-						core.recalculateForRadius(body.radiusKm);
-						body.massKg = (float) core.computedMassKg;
+					if(body.getCore() != null) {
+						CelestialBody.applyMassFromCore(body, body.getCore());
 					}
 				}
 
@@ -2552,3 +2549,4 @@ public class ModEventHandler {
 					}
 				}
 			}
+

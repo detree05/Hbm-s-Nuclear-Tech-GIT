@@ -22,7 +22,7 @@ public class SpaceConfig {
 	public static int orbitDimension = 413_023;
 	public static int tektoDimension = 413_024;
 	public static int thatmoDimension = 413_025;
-	public static int kerbolDimension = 413_026;
+	public static int dmitriyDimension = 413_026;
 
 	// Biome ID limit is 255
 
@@ -42,8 +42,8 @@ public class SpaceConfig {
 
 	// Most mods start at 40 and go up, so easiest way to avoid conflicts is to count backwards!
 
-	public static int kerbolBiome = 128;
-	public static int kerbolOceanBiome = 129;
+	public static int dmitriyBiome = 128;
+	public static int dmitriyOceanBiome = 129;
 	public static int orbitBiome = 126;
 
 	public static int moonBiome = 125;
@@ -114,7 +114,7 @@ public class SpaceConfig {
 		orbitDimension = CommonConfig.createConfigInt(config, CATEGORY_DIM, "17.09_orbitDimension", "Orbital dimension ID", orbitDimension);
 		tektoDimension = CommonConfig.createConfigInt(config, CATEGORY_DIM, "17.10_tektoDimension", "Tekto dimension ID", tektoDimension);
 		thatmoDimension = CommonConfig.createConfigInt(config, CATEGORY_DIM, "17.10_thatmoDimension", "Thatmo dimension ID", thatmoDimension);
-		kerbolDimension = CommonConfig.createConfigInt(config, CATEGORY_DIM, "17.11_kerbolDimension", "Kerbol dimension ID", kerbolDimension);
+		dmitriyDimension = CommonConfig.createConfigInt(config, CATEGORY_DIM, "17.11_dmitriyDimension", "Dmitriy dimension ID", dmitriyDimension);
 
 		final String CATEGORY_GENERAL = CommonConfig.CATEGORY_GENERAL;
 		maxProbeDistance = CommonConfig.createConfigInt(config, CATEGORY_GENERAL, "1.90_maxProbeDistance", "How far from the center of the dimension can probes generate landing coordinates", maxProbeDistance);
@@ -158,8 +158,8 @@ public class SpaceConfig {
 		tektoForestBiome = createConfigBiome(config, CATEGORY_BIOME, "16.30_tektoForestBiome", "Tekto Forest Biome ID", tektoForestBiome + defaultBiomeOffset);
 		tektoVinylIslandBiome = createConfigBiome(config, CATEGORY_BIOME, "16.31_tektoVinylSandsBiome", "Tekto Vinyl Sands Biome ID", tektoVinylIslandBiome + defaultBiomeOffset);
 		thatmoBiome = createConfigBiome(config, CATEGORY_BIOME, "16.32_thatmoBiome", "Thatmo Biome ID", thatmoBiome + defaultBiomeOffset);
-		kerbolBiome = createConfigBiome(config, CATEGORY_BIOME, "16.33_kerbolBiome", "Kerbol Biome ID", kerbolBiome + defaultBiomeOffset);
-		kerbolOceanBiome = createConfigBiome(config, CATEGORY_BIOME, "16.34_kerbolOceanBiome", "Kerbol Ocean Biome ID", kerbolOceanBiome + defaultBiomeOffset);
+		dmitriyBiome = createConfigBiome(config, CATEGORY_BIOME, "16.33_dmitriyBiome", "Dmitriy Biome ID", dmitriyBiome + defaultBiomeOffset);
+		dmitriyOceanBiome = createConfigBiome(config, CATEGORY_BIOME, "16.34_dmitriyOceanBiome", "Dmitriy Ocean Biome ID", dmitriyOceanBiome + defaultBiomeOffset);
 	}
 
 	private static HashMap<Integer, String> registeredIds = new HashMap<>();

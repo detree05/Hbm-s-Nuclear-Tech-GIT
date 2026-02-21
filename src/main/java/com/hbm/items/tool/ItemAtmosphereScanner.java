@@ -19,6 +19,8 @@ import net.minecraft.world.World;
 
 public class ItemAtmosphereScanner extends Item {
 
+	private static final int TOOLTIP_ID_BASE = 700; // keep above generic IDs and below ore density scanner IDs (777+)
+
 	@Override
 	public void onUpdate(ItemStack stack, World world, Entity entity, int slot, boolean inHand) {
 
@@ -27,7 +29,7 @@ public class ItemAtmosphereScanner extends Item {
 		EntityPlayerMP player = (EntityPlayerMP) entity;
 
 		CBT_Atmosphere atmosphere = ChunkAtmosphereManager.proxy.getAtmosphere(entity);
-		EnumChatFormatting fluidColor = CelestialBody.getStar(world) == SolarSystem.kerbol ? EnumChatFormatting.RED : EnumChatFormatting.AQUA;
+		EnumChatFormatting fluidColor = CelestialBody.getStar(world) == SolarSystem.dmitriy ? EnumChatFormatting.RED : EnumChatFormatting.AQUA;
 
 		boolean hasAtmosphere = false;
 		if(atmosphere != null) {
@@ -35,14 +37,14 @@ public class ItemAtmosphereScanner extends Item {
 				FluidEntry entry = atmosphere.fluids.get(i);
 				if(entry.pressure > 0.0001) {
 					String pressure = String.format("%.4f", BobMathUtil.roundDecimal(entry.pressure, 4));
-					PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.startTranslation(entry.fluid.getUnlocalizedName()).color(EnumChatFormatting.AQUA).next(": ").next(pressure + "atm").color(EnumChatFormatting.RESET).flush(), 969 + i, 4000), player);
+					PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.startTranslation(entry.fluid.getUnlocalizedName()).color(fluidColor).next(": ").next(pressure + "atm").color(EnumChatFormatting.RESET).flush(), TOOLTIP_ID_BASE + i, 4000), player);
 					hasAtmosphere = true;
 				}
 			}
 		}
 
 		if(!hasAtmosphere) {
-			PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.start("NEAR VACUUM").color(EnumChatFormatting.YELLOW).flush(), 969, 4000), player);
+			PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(ChatBuilder.start("NEAR VACUUM").color(EnumChatFormatting.YELLOW).flush(), TOOLTIP_ID_BASE, 4000), player);
 		}
 	}
 

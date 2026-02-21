@@ -59,7 +59,7 @@ public class CommandNovae extends CommandBase {
 
 		Integer[] dimensionIds = DimensionManager.getStaticDimensionIDs();
 		for(int dimensionId : dimensionIds) {
-			if(dimensionId == SpaceConfig.kerbolDimension) {
+			if(dimensionId == SpaceConfig.dmitriyDimension) {
 				continue;
 			}
 
@@ -129,3 +129,4 @@ public class CommandNovae extends CommandBase {
 		return center.yCoord > MIN_HORIZON_DOT;
 	}
 }
+

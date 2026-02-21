@@ -1,9 +1,9 @@
-package com.hbm.dim.kerbol;
+package com.hbm.dim.dmitriy;
 
 import java.util.Random;
 
 import com.hbm.config.SpaceConfig;
-import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
+import com.hbm.dim.dmitriy.biome.BiomeGenDmitriy;
 import com.hbm.main.StructureManager;
 import com.hbm.world.gen.nbt.JigsawPiece;
 import com.hbm.world.gen.nbt.NBTStructure;
@@ -15,7 +15,7 @@ import net.minecraft.world.World;
 import net.minecraft.world.biome.BiomeGenBase;
 import net.minecraft.world.chunk.IChunkProvider;
 
-public class WorldGeneratorKerbol implements IWorldGenerator {
+public class WorldGeneratorDmitriy implements IWorldGenerator {
 
 	private static final int FOOTPRINT_SIZE = 5;
 	private static final int HALF_FOOTPRINT = FOOTPRINT_SIZE / 2;
@@ -23,9 +23,9 @@ public class WorldGeneratorKerbol implements IWorldGenerator {
 	private static final int SPAWN_CHANCE = 2;
 	private static final int BLOOD_SEA_LEVEL = 62;
 
-	public WorldGeneratorKerbol() {
-		NBTStructure.registerStructure(SpaceConfig.kerbolDimension, new SpawnCondition("kerbol_tree") {{
-			structure = new JigsawPiece("kerbol_tree", StructureManager.tree, -1) {{
+	public WorldGeneratorDmitriy() {
+		NBTStructure.registerStructure(SpaceConfig.dmitriyDimension, new SpawnCondition("dmitriy_tree") {{
+			structure = new JigsawPiece("dmitriy_tree", StructureManager.tree, -1) {{
 				keepExistingOnAir = true;
 			}};
 			checkCoordinates = coords -> {
@@ -43,7 +43,7 @@ public class WorldGeneratorKerbol implements IWorldGenerator {
 				int centerX = (chunkX << 4) + 8;
 				int centerZ = (chunkZ << 4) + 8;
 				BiomeGenBase centerBiome = coords.world.getBiomeGenForCoords(centerX, centerZ);
-				if(centerBiome != BiomeGenKerbol.digammaWastelands) {
+				if(centerBiome != BiomeGenDmitriy.digammaWastelands) {
 					return false;
 				}
 
@@ -59,7 +59,7 @@ public class WorldGeneratorKerbol implements IWorldGenerator {
 
 				for(int x = minX; x <= maxX; x++) {
 					for(int z = minZ; z <= maxZ; z++) {
-						if(coords.world.getBiomeGenForCoords(x, z) != BiomeGenKerbol.digammaWastelands) {
+						if(coords.world.getBiomeGenForCoords(x, z) != BiomeGenDmitriy.digammaWastelands) {
 							return false;
 						}
 
@@ -84,3 +84,5 @@ public class WorldGeneratorKerbol implements IWorldGenerator {
 	public void generate(Random random, int chunkX, int chunkZ, World world, IChunkProvider chunkGenerator, IChunkProvider chunkProvider) {
 	}
 }
+
+

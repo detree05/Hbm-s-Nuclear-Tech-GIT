@@ -305,7 +305,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float starBrightness = world.getStarBrightness(partialTicks) * visibility;
 		float solarAngle = world.getCelestialAngle(partialTicks);
 		float siderealAngle = (float)SolarSystem.calculateSiderealAngle(world, partialTicks, body);
-		if(world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			double t = world.getTotalWorldTime() + partialTicks;
 			siderealAngle += (float)(Math.sin(t / 6000.0D * Math.PI * 2.0D) * 6.0D);
 		}
@@ -1855,7 +1855,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 			float var12 = 1F + world.rand.nextFloat() * 0.5F;
 			double dist = 100D;
 			double t = world.getTotalWorldTime() + partialTicks;
-			boolean isKerbol = world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension;
+			boolean isKerbol = world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension;
 			double orbitYaw = isKerbol ? Math.sin(t / 6000.0D * Math.PI * 2.0D) * 18.0D : 0.0D;
 			double orbitPitch = isKerbol ? Math.sin(t / 4200.0D * Math.PI * 2.0D + 1.2D) * 10.0D : 0.0D;
 			double distOffset = isKerbol ? Math.sin(t / 3600.0D * Math.PI * 2.0D) * 10.0D : 0.0D;
@@ -1929,12 +1929,12 @@ public class SkyProviderCelestial extends IRenderHandler {
 		if(world.provider == null) return;
 		renderSkyfallEffect(partialTicks, world, mc);
 		if(novaeEffects.isEmpty()) return;
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return;
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) return;
 
 		CelestialBody body = CelestialBody.getBody(world);
 		float axialTilt = body != null ? body.axialTilt : 0.0F;
 		float siderealAngle = body != null ? (float)SolarSystem.calculateSiderealAngle(world, partialTicks, body) : 0.0F;
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			double t = world.getTotalWorldTime() + partialTicks;
 			siderealAngle += (float)(Math.sin(t / 6000.0D * Math.PI * 2.0D) * 6.0D);
 		}
@@ -2513,3 +2513,4 @@ protected void renderStation(float partialTicks, WorldClient world, Minecraft mc
 	}
 
 }
+

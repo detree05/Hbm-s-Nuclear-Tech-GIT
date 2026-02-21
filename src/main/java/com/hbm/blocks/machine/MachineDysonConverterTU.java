@@ -53,11 +53,13 @@ public class MachineDysonConverterTU extends BlockDummyable implements ILookOver
 
 	@Override
 	public void printHook(Pre event, World world, int x, int y, int z) {
-		if(world.provider.dimensionId != SpaceConfig.kerbolDimension) return;
+		if(world.provider.dimensionId != SpaceConfig.dmitriyDimension) return;
 
 		List<String> text = new ArrayList<String>();
-		text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+		text.add(EnumChatFormatting.RED + MachineDysonLauncher.getDmitriyWarning(world));
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 	}
 
 }
+
+

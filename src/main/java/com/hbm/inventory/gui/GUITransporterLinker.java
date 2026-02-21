@@ -234,7 +234,7 @@ public class GUITransporterLinker extends GuiScreen {
 			return;
 		}
 
-		if(from.dimensionId == SpaceConfig.kerbolDimension || to.dimensionId == SpaceConfig.kerbolDimension) {
+		if(from.dimensionId == SpaceConfig.dmitriyDimension || to.dimensionId == SpaceConfig.dmitriyDimension) {
 			Random rand = player.worldObj != null ? player.worldObj.rand : new Random();
 			player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + randomizeSpaces("i cant do this...", rand)));
 			return;
@@ -299,3 +299,4 @@ public class GUITransporterLinker extends GuiScreen {
 	}
 
 }
+

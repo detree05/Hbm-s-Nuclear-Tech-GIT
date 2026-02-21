@@ -327,7 +327,7 @@ public class StarcoreThroughputTracker {
 	private static boolean shouldCountForSkyLines(World world) {
 		if(world == null || world.provider == null) return false;
 		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) return false;
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return false;
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) return false;
 		return world.provider.dimensionId != SpaceConfig.orbitDimension;
 	}
 
@@ -343,3 +343,4 @@ public class StarcoreThroughputTracker {
 		acc.lastInjectorSyncTick = now;
 	}
 }
+

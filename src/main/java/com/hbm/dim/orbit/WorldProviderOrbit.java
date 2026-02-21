@@ -54,7 +54,9 @@ public class WorldProviderOrbit extends WorldProvider {
 		double progress = OrbitalStation.clientStation.getTransferProgress(0);
 		float sunPower = OrbitalStation.clientStation.orbiting.getSunPower();
 		if(progress > 0) {
-			return (float)BobMathUtil.lerp(progress, sunPower, OrbitalStation.clientStation.target.getSunPower());
+			CelestialBody visualTarget = OrbitalStation.clientStation.getAnimationTarget();
+			float targetSunPower = visualTarget != null && visualTarget.parent != null ? visualTarget.getSunPower() : sunPower;
+			return (float)BobMathUtil.lerp(progress, sunPower, targetSunPower);
 		}
 		return sunPower;
 	}
@@ -95,6 +97,7 @@ public class WorldProviderOrbit extends WorldProvider {
 		double sunSize = SolarSystem.calculateSunSize(body);
 
 		double progress = station.getTransferProgress(partialTicks);
+		CelestialBody visualTarget = station.getAnimationTarget();
 
 		// Get our orrery of bodies, this is cached for reuse in sky rendering
 		if(station.state == StationState.ORBIT) {
@@ -102,14 +105,14 @@ public class WorldProviderOrbit extends WorldProvider {
 			metrics = SolarSystem.calculateMetricsFromSatellite(worldObj, partialTicks, station.orbiting, altitude);
 		} else {
 			double fromAlt = getOrbitalAltitude(station.orbiting);
-			double toAlt = getOrbitalAltitude(station.target);
-			metrics = SolarSystem.calculateMetricsBetweenSatelliteOrbits(worldObj, partialTicks, station.orbiting, station.target, fromAlt, toAlt, progress);
+			double toAlt = getOrbitalAltitude(visualTarget);
+			metrics = SolarSystem.calculateMetricsBetweenSatelliteOrbits(worldObj, partialTicks, station.orbiting, visualTarget, fromAlt, toAlt, progress);
 		}
 
 		// Get our sun angle
 		float angle = (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, station.orbiting, getOrbitalAltitude(station.orbiting));
 		if(progress > 0) {
-			angle = (float)BobMathUtil.clerp(progress, angle, (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, station.target, getOrbitalAltitude(station.target)));
+			angle = (float)BobMathUtil.clerp(progress, angle, (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, visualTarget, getOrbitalAltitude(visualTarget)));
 		}
 
 		celestialAngle = 0.5F - (angle / 360.0F);
@@ -151,7 +154,8 @@ public class WorldProviderOrbit extends WorldProvider {
 		double progress = OrbitalStation.clientStation.getTransferProgress(par1);
 		float semiMajorAxisKm = OrbitalStation.clientStation.orbiting.getPlanet().semiMajorAxisKm;
 		if(progress > 0) {
-			semiMajorAxisKm = (float)BobMathUtil.lerp(progress, semiMajorAxisKm, OrbitalStation.clientStation.target.getPlanet().semiMajorAxisKm);
+			CelestialBody visualTarget = OrbitalStation.clientStation.getAnimationTarget();
+			semiMajorAxisKm = (float)BobMathUtil.lerp(progress, semiMajorAxisKm, visualTarget.getPlanet().semiMajorAxisKm);
 		}
 
 		float distanceFactor = MathHelper.clamp_float((semiMajorAxisKm - distanceStart) / (distanceEnd - distanceStart), 0F, 1F);
@@ -164,7 +168,7 @@ public class WorldProviderOrbit extends WorldProvider {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
-		if(worldObj.provider.dimensionId != SpaceConfig.kerbolDimension)
+		if(worldObj.provider.dimensionId != SpaceConfig.dmitriyDimension)
 			return 0;
 
 		return 1.0F - (float)eclipseAmount;
@@ -307,3 +311,4 @@ public class WorldProviderOrbit extends WorldProvider {
 	}
 
 }
+

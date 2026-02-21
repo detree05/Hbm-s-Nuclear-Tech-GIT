@@ -65,7 +65,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	@Override
 	public void updateEntity() {
 		if(!worldObj.isRemote) {
-			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 				isOperating = false;
 				isSpinningDown = false;
 				operatingTime = 0;
@@ -386,3 +386,4 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	}
 
 }
+

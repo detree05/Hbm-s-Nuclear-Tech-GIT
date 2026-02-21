@@ -2,8 +2,10 @@ package com.hbm.render.util;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.lwjgl.opengl.GL11;
 
@@ -59,8 +61,19 @@ public class RenderInfoSystem {
 		Minecraft mc = Minecraft.getMinecraft();
 		ScaledResolution resolution = event.resolution;
 		
-		List<InfoEntry> entries = new ArrayList(messages.values());
-		Collections.sort(entries);
+		List<Map.Entry<Integer, InfoEntry>> entries = new ArrayList(messages.entrySet());
+		Collections.sort(entries, new Comparator<Map.Entry<Integer, InfoEntry>>() {
+			@Override
+			public int compare(Map.Entry<Integer, InfoEntry> left, Map.Entry<Integer, InfoEntry> right) {
+				InfoEntry leftEntry = left.getValue();
+				InfoEntry rightEntry = right.getValue();
+				int millisCompare = leftEntry.compareTo(rightEntry);
+				if(millisCompare != 0) {
+					return millisCompare;
+				}
+				return left.getKey().compareTo(right.getKey());
+			}
+		});
 
 		GL11.glPushMatrix();
 		GL11.glEnable(GL11.GL_BLEND);
@@ -68,7 +81,8 @@ public class RenderInfoSystem {
 		
 		int longest = 0;
 		
-		for(InfoEntry entry : entries) {
+		for(Map.Entry<Integer, InfoEntry> wrappedEntry : entries) {
+			InfoEntry entry = wrappedEntry.getValue();
 			int length = mc.fontRenderer.getStringWidth(entry.text);
 			
 			if(length > longest)
@@ -101,7 +115,8 @@ public class RenderInfoSystem {
 		int off = 0;
 		long now = System.currentTimeMillis();
 		
-		for(InfoEntry entry : entries) {
+		for(Map.Entry<Integer, InfoEntry> wrappedEntry : entries) {
+			InfoEntry entry = wrappedEntry.getValue();
 			
 			int elapsed = (int) (now - entry.start);
 			

@@ -409,7 +409,7 @@ public class MainRegistry {
 		achFiend2 = new Achievement("achievement.fiend2", "fiend2", -4, 9, ModItems.shimmer_axe, null).initIndependentStat().setSpecial().registerStat();
 		achStratum = new Achievement("achievement.stratum", "stratum", -4, -2, new ItemStack(ModBlocks.stone_gneiss), null).initIndependentStat().setSpecial().registerStat();
 		achOmega12 = new Achievement("achievement.omega12", "omega12", 17, -1, ModItems.particle_digamma, null).initIndependentStat().setSpecial().registerStat();
-		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal()), achOmega12).initIndependentStat().registerStat();
+		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY.ordinal()), achOmega12).initIndependentStat().registerStat();
 		achItFeelsPain = new Achievement("achievement.itFeelsPain", "itFeelsPain", 15, 1, ModItems.ingot_rift, achFutileEscapism).initIndependentStat().registerStat();
 		achItLives = new Achievement("achievement.itLives", "itLives", 19, 1, ModItems.ingot_abyss, achFutileEscapism).initIndependentStat().registerStat();
 
@@ -753,6 +753,7 @@ public class MainRegistry {
 		event.registerServerCommand(new CommandNovae());
 		event.registerServerCommand(new CommandSkyfall());
 		event.registerServerCommand(new CommandNtmDaytime());
+		event.registerServerCommand(new CommandNtmCore());
 		event.registerServerCommand(new CommandVoidStaresBack());
 		event.registerServerCommand(new CommandVoidStaresBackChase());
 		ArcFurnaceRecipes.registerFurnaceSmeltables(); // because we have to wait for other mods to take their merry ass time to register recipes
@@ -1606,3 +1607,4 @@ public class MainRegistry {
 		}
 	}
 }
+

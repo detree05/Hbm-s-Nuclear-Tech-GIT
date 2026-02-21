@@ -8,7 +8,7 @@ import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ITooltipProvider;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.StarcoreThroughputTracker;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.lib.RefStrings;
 import com.hbm.tileentity.TileEntityProxyCombo;
@@ -162,7 +162,7 @@ public class MachineStarCoreEnergyEmitter extends BlockDummyable implements ILoo
 			return;
 		}
 
-		if(world.provider instanceof WorldProviderKerbol) {
+		if(world.provider instanceof WorldProviderDmitriy) {
 			text.add(EnumChatFormatting.RED + "never.");
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 			return;
@@ -196,3 +196,4 @@ public class MachineStarCoreEnergyEmitter extends BlockDummyable implements ILoo
 	@Override
 	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean ext) { }
 }
+

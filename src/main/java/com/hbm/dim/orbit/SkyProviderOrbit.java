@@ -30,6 +30,7 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 		WorldProviderOrbit provider = (WorldProviderOrbit) world.provider;
 		OrbitalStation station = OrbitalStation.clientStation;
 		double progress = station.getTransferProgress(partialTicks);
+		CelestialBody animationTarget = station.getAnimationTarget();
 		float orbitalTilt = 80;
 
 		// Keep orbit lightmap dimming in sync with sky-state transitions.
@@ -73,22 +74,22 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 			double sunSize = SolarSystem.calculateSunSize(station.orbiting) * SolarSystem.SUN_RENDER_SCALE;
 			if(station.state != StationState.ORBIT) {
 				double sunTargetSize;
-				if(station.target != null && station.target.parent == null && station.target == SolarSystem.kerbol) {
+				if(station.target == SolarSystem.dmitriy && animationTarget != null && animationTarget.parent == null) {
 					// Approaching Kerbol: linear distance ramp for a steady growth.
 					double baseDist = Math.max(1.0, station.orbiting.semiMajorAxisKm);
 					double dist = Math.max(1.0, BobMathUtil.lerp(progress, baseDist, 50_000D));
-					sunTargetSize = 2D * Math.atan((2D * station.target.radiusKm) / (2D * dist)) * SolarSystem.RENDER_SCALE;
+					sunTargetSize = 2D * Math.atan((2D * animationTarget.radiusKm) / (2D * dist)) * SolarSystem.RENDER_SCALE;
 					sunTargetSize *= SolarSystem.SUN_RENDER_SCALE;
 					sunTargetSize = Math.min(sunTargetSize, SolarSystem.MAX_APPARENT_SIZE_ORBIT);
 				} else {
-					sunTargetSize = SolarSystem.calculateSunSize(station.target) * SolarSystem.SUN_RENDER_SCALE;
+					sunTargetSize = SolarSystem.calculateSunSize(animationTarget) * SolarSystem.SUN_RENDER_SCALE;
 				}
 				sunSize = BobMathUtil.lerp(progress, sunSize, sunTargetSize);
 			}
 			double coronaSize = sunSize * (3 - Library.smoothstep(Math.abs(celestialPhase), 0.7, 0.8));
 
 			CelestialBody orbiting = station.orbiting;
-			if(station.state != StationState.ORBIT && progress > 0.5) orbiting = station.target;
+			if(station.state != StationState.ORBIT && progress > 0.5) orbiting = animationTarget;
 
 			CBT_SkyState skyState = station.orbiting != null ? station.orbiting.getStar().getTrait(CBT_SkyState.class) : null;
 			renderInjectorLinesPass(partialTicks, world, provider.metrics, orbiting, 1.0F, skyState);
@@ -119,7 +120,7 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 		if(station.state != StationState.ARRIVING) lastBody = station.orbiting;
 
 		double progress = station.getUnscaledProgress(partialTicks);
-		float travelAngle = -(float)SolarSystem.calculateSingleAngle(metrics, lastBody, station.target);
+		float travelAngle = -(float)SolarSystem.calculateSingleAngle(metrics, lastBody, station.getAnimationTarget());
 		travelAngle = MathHelper.wrapAngleTo180_float(travelAngle + 90.0F);
 
 		if(station.state == StationState.TRANSFER) {
@@ -132,3 +133,4 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 	}
 
 }
+

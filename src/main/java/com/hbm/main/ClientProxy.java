@@ -669,7 +669,7 @@ public class ClientProxy extends ServerProxy {
 		RenderingRegistry.registerEntityRenderingHandler(EntitySiegeLaser.class, new RenderSiegeLaser());
 		RenderingRegistry.registerEntityRenderingHandler(EntityBombletZeta.class, new RenderBombletTheta());
 		RenderingRegistry.registerEntityRenderingHandler(EntityMeteor.class, new RenderMeteor());
-		RenderingRegistry.registerEntityRenderingHandler(EntityKerbolMeteor.class, new RenderMeteor());
+		RenderingRegistry.registerEntityRenderingHandler(EntityDmitriyMeteor.class, new RenderMeteor());
 		RenderingRegistry.registerEntityRenderingHandler(EntityBoxcar.class, new RenderBoxcar());
 		RenderingRegistry.registerEntityRenderingHandler(EntityDuchessGambit.class, new RenderBoxcar());
 		RenderingRegistry.registerEntityRenderingHandler(EntityBuilding.class, new RenderBoxcar());
@@ -1955,7 +1955,7 @@ public class ClientProxy extends ServerProxy {
 			flash.setRBGColorF(0F, 1F, 1F);
 			Minecraft.getMinecraft().effectRenderer.addEffect(flash);
 		}
-		if("kerboldot".equals(type)) {
+		if("dmitriydot".equals(type)) {
 			double mX = data.getDouble("mX");
 			double mY = data.getDouble("mY");
 			double mZ = data.getDouble("mZ");
@@ -2074,7 +2074,7 @@ public class ClientProxy extends ServerProxy {
 			ParticleDust particle = new ParticleDust(world, x, y, z, mX, mY, mZ, scale);
 			Minecraft.getMinecraft().effectRenderer.addEffect(particle);
 		}
-		if("kerbolwind".equals(type)) {
+		if("dmitriywind".equals(type)) {
 			double mX = data.getDouble("mX");
 			double mY = data.getDouble("mY");
 			double mZ = data.getDouble("mZ");

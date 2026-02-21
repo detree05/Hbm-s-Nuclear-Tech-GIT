@@ -89,13 +89,13 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 			}
 
 			if(toTarget.body != null
-					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& toTarget.body.getEnum() == SolarSystem.Body.DMITRIY
 					) {
 				rocket.addIssue(EnumChatFormatting.RED + "You aren't getting there buddy");
 			}
 
 			if(toTarget.body != null
-					&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL
+					&& toTarget.body.getEnum() == SolarSystem.Body.DMITRIY
 					&& !toTarget.inOrbit
 					&& rocket.capsule != null
 					&& rocket.capsule.part == ModItems.rp_capsule_20) {
@@ -254,7 +254,7 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 	}
 
 	public void construct() {
-		if(isKerbolBlocked()) return;
+		if(isDmitriyBlocked()) return;
 		if(!rocket.validate()) return;
 
 		slots[slots.length - RocketStruct.MAX_STAGES * 2 - 1] = ItemCustomRocket.build(rocket);
@@ -264,12 +264,12 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 		}
 	}
 
-	private boolean isKerbolBlocked() {
+	private boolean isDmitriyBlocked() {
 		if(worldObj == null) return false;
 		ItemStack toStack = slots[slots.length - (RocketStruct.MAX_STAGES - currentStage) * 2 + 1];
 		Target toTarget = ItemVOTVdrive.getTarget(toStack, worldObj);
 		return toTarget.body != null
-			&& toTarget.body.getEnum() == SolarSystem.Body.KERBOL;
+			&& toTarget.body.getEnum() == SolarSystem.Body.DMITRIY;
 	}
 
 	public boolean canDeconstruct() {
@@ -355,3 +355,5 @@ public class TileEntityMachineRocketAssembly extends TileEntityMachineBase imple
 	}
 
 }
+
+

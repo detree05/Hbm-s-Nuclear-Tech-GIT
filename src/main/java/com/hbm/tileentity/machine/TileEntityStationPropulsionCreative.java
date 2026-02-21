@@ -61,7 +61,7 @@ public class TileEntityStationPropulsionCreative extends TileEntity implements I
 			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 		}
 	}
@@ -82,3 +82,4 @@ public class TileEntityStationPropulsionCreative extends TileEntity implements I
 	}
 	
 }
+
