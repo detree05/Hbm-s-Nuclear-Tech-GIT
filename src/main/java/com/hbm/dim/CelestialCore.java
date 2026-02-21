@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.hbm.hazard.HazardRegistry;
 import com.hbm.hazard.HazardSystem;
@@ -411,7 +412,8 @@ public class CelestialCore {
 	public static class CoreCategory {
 		public String name;
 		public float weight = 1.0F;
-		public ArrayList<CoreEntry> entries = new ArrayList<CoreEntry>();
+		// Packet sync can update cores while gameplay code reads them in integrated worlds.
+		public List<CoreEntry> entries = new CopyOnWriteArrayList<CoreEntry>();
 
 		public CoreCategory() { }
 
@@ -457,7 +459,8 @@ public class CelestialCore {
 		}
 	}
 
-	public ArrayList<CoreCategory> categories = new ArrayList<CoreCategory>();
+	// Copy-on-write avoids ConcurrentModificationException when core sync and tick logic overlap.
+	public List<CoreCategory> categories = new CopyOnWriteArrayList<CoreCategory>();
 	public ArrayList<MaterialMass> materialMasses = new ArrayList<MaterialMass>();
 	private static final double PLANET_MASS_SHARE_MIN = 0.65D;
 	private static final double PLANET_MASS_SHARE_MAX = 0.75D;
@@ -991,7 +994,7 @@ public class CelestialCore {
 	}
 	public void readFromNBT(NBTTagCompound nbt) {
 		invalidateComputed();
-		categories = new ArrayList<CoreCategory>();
+		categories = new CopyOnWriteArrayList<CoreCategory>();
 
 		NBTTagList categoryList = nbt.getTagList("coreCategories", Constants.NBT.TAG_COMPOUND);
 		densityScale = nbt.hasKey("densityScale") ? nbt.getDouble("densityScale") : 1.0D;
@@ -1038,7 +1041,7 @@ public class CelestialCore {
 	}
 	public void readFromBytes(ByteBuf buf) {
 		invalidateComputed();
-		categories = new ArrayList<CoreCategory>();
+		categories = new CopyOnWriteArrayList<CoreCategory>();
 
 		int categoryCount = buf.readInt();
 		densityScale = buf.readDouble();
