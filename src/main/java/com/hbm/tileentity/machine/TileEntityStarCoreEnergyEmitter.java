@@ -32,7 +32,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	private static final float TABLE_YAW_SPEED_DEG_PER_TICK = 2.0F;
 	private static final float GUN_PITCH_SPEED_DEG_PER_TICK = 2.0F;
 	private static final float AIM_LOCK_TOLERANCE_DEG = 0.75F;
-	private static final int RENDER_RADIUS = 130;
+	private static final int RENDER_RADIUS = 144;
 	private static final double LASER_OBSTRUCTION_CHECK_START_OFFSET = 4.0D;
 	private static final double LASER_OBSTRUCTION_CHECK_MAX_DISTANCE = 512.0D;
 
@@ -504,7 +504,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	@Override
 	public double getMaxRenderDistanceSquared() {
-		return 65536.0D;
+		return 262144.0D;
 	}
 }
 

@@ -382,20 +382,29 @@ public class CelestialCore {
 
 	public static class CoreEntry {
 		public String oreDict;
-		public float percentage;
+		public float value;
 
 		public CoreEntry() { }
 
-		public CoreEntry(String oreDict, float percentage) {
+		public CoreEntry(String oreDict, float value) {
 			this.oreDict = oreDict;
-			this.percentage = percentage;
+			this.value = value;
 			validate();
 		}
 
 		private void validate() {
-			if(percentage < 0.0F || percentage > 100.0F) {
-				throw new InvalidParameterException("Core entry percentage must be within [0, 100], got: " + percentage);
+			if(Float.isNaN(value) || Float.isInfinite(value) || value < 0.0F) {
+				throw new InvalidParameterException("Core entry value must be finite and >= 0, got: " + value);
 			}
+		}
+
+		public float getValue() {
+			return value;
+		}
+
+		public void setValue(float value) {
+			this.value = value;
+			validate();
 		}
 	}
 
@@ -425,10 +434,10 @@ public class CelestialCore {
 			validateTotal();
 		}
 
-		public float getTotalPercentage() {
+		public float getTotalValue() {
 			float total = 0.0F;
 			for(CoreEntry entry : entries) {
-				total += entry.percentage;
+				total += entry.value;
 			}
 			return total;
 		}
@@ -462,6 +471,8 @@ public class CelestialCore {
 	// Copy-on-write avoids ConcurrentModificationException when core sync and tick logic overlap.
 	public List<CoreCategory> categories = new CopyOnWriteArrayList<CoreCategory>();
 	public ArrayList<MaterialMass> materialMasses = new ArrayList<MaterialMass>();
+	private static final double TOTAL_MASS_MIN_KG = 1.0E18D;
+	private static final double TOTAL_MASS_MAX_KG = 1.0E24D;
 	private static final double PLANET_MASS_SHARE_MIN = 0.65D;
 	private static final double PLANET_MASS_SHARE_MAX = 0.75D;
 	private static final double PLANET_MASS_SHARE_RADIUS_MIN_KM = 60.0D;
@@ -472,11 +483,12 @@ public class CelestialCore {
 	public double computedCoreMassKg = 0.0D;
 	public double computedPlanetMassKg = 0.0D;
 	public double computedTotalMassKg = 0.0D;
-	public double computedMassKg = 0.0D;
 	public double computedBulkDensityKgPerM3 = 0.0D;
 	public double computedCoreRadioactivity = Double.NaN;
 	public double computedMagneticFieldStrength = Double.NaN;
 	public double densityScale = 1.0D;
+	public double rotationalSpeedScale = 1.0D;
+	private boolean bypassMaxMassLimit = false;
 
 	public CelestialCore() { }
 
@@ -509,15 +521,34 @@ public class CelestialCore {
 		return this;
 	}
 
+	public CelestialCore withRotationalSpeedScale(double scale) {
+		if(Double.isNaN(scale) || Double.isInfinite(scale) || scale <= 0.0D) {
+			throw new InvalidParameterException("Core rotational speed scale must be finite and > 0, got: " + scale);
+		}
+		this.rotationalSpeedScale = scale;
+		return this;
+	}
+
+	public CelestialCore withMaxMassCapBypass(boolean bypass) {
+		if(this.bypassMaxMassLimit == bypass) {
+			return this;
+		}
+		this.bypassMaxMassLimit = bypass;
+		invalidateComputed();
+		return this;
+	}
+
 	public CelestialCore copy() {
 		CelestialCore copy = new CelestialCore();
 		copy.densityScale = densityScale;
+		copy.rotationalSpeedScale = rotationalSpeedScale;
+		copy.bypassMaxMassLimit = bypassMaxMassLimit;
 		for(CoreCategory category : categories) {
 			CoreCategory categoryCopy = new CoreCategory();
 			categoryCopy.name = category.name;
 			categoryCopy.weight = category.weight;
 			for(CoreEntry entry : category.entries) {
-				categoryCopy.entries.add(new CoreEntry(entry.oreDict, entry.percentage));
+				categoryCopy.entries.add(new CoreEntry(entry.oreDict, entry.value));
 			}
 			categoryCopy.validateTotal();
 			copy.categories.add(categoryCopy);
@@ -551,7 +582,7 @@ public class CelestialCore {
 		return null;
 	}
 
-	public CelestialCore addOrUpdateEntry(String categoryName, String oreDict, float percentage) {
+	public CelestialCore addOrUpdateEntryValue(String categoryName, String oreDict, float value) {
 		CoreCategory category = getCategory(categoryName);
 		if(category == null) {
 			category = new CoreCategory();
@@ -561,17 +592,17 @@ public class CelestialCore {
 
 		CoreEntry existing = getEntry(categoryName, oreDict);
 		if(existing != null) {
-			float oldPercentage = existing.percentage;
-			existing.percentage = percentage;
+			float oldValue = existing.value;
+			existing.value = value;
 			existing.validate();
 			try {
 				category.validateTotal();
 			} catch(Exception ex) {
-				existing.percentage = oldPercentage;
+				existing.value = oldValue;
 				throw ex;
 			}
 		} else {
-			category.entries.add(new CoreEntry(oreDict, percentage));
+			category.entries.add(new CoreEntry(oreDict, value));
 			category.validateTotal();
 		}
 
@@ -579,25 +610,20 @@ public class CelestialCore {
 		return this;
 	}
 
-	@Deprecated
-	public CelestialCore addOrUpdateEntry(String categoryName, String ignoredDisplayName, String oreDict, float percentage) {
-		return addOrUpdateEntry(categoryName, oreDict, percentage);
-	}
-
-	public CelestialCore setEntryPercentage(String categoryName, String entryId, float percentage) {
+	public CelestialCore setEntryValue(String categoryName, String entryId, float value) {
 		CoreEntry entry = getEntry(categoryName, entryId);
 		if(entry == null) {
 			throw new InvalidParameterException("Core entry not found for category '" + categoryName + "' and id '" + entryId + "'");
 		}
 
 		CoreCategory category = getCategory(categoryName);
-		float oldPercentage = entry.percentage;
-		entry.percentage = percentage;
+		float oldValue = entry.value;
+		entry.value = value;
 		entry.validate();
 		try {
 			category.validateTotal();
 		} catch(Exception ex) {
-			entry.percentage = oldPercentage;
+			entry.value = oldValue;
 			throw ex;
 		}
 
@@ -785,27 +811,27 @@ public class CelestialCore {
 		return HazardRegistry.ingot;
 	}
 
-	private double getTotalWeightedPercentage() {
+	private double getTotalWeightedValue() {
 		double total = 0.0D;
 		for(CoreCategory category : categories) {
 			for(CoreEntry entry : category.entries) {
-				total += (double) category.weight * (double) entry.percentage;
+				total += (double) category.weight * (double) entry.value;
 			}
-		}
-		if(total <= 0.0D) {
-			throw new InvalidParameterException("CelestialCore has no weighted composition entries");
 		}
 		return total;
 	}
 
 	public double getAverageDensityKgPerM3() {
-		double totalWeightedPercentage = getTotalWeightedPercentage();
+		double totalWeightedValue = getTotalWeightedValue();
+		if(totalWeightedValue <= 0.0D) {
+			return 0.0D;
+		}
 		double weightedDensity = 0.0D;
 
 		for(CoreCategory category : categories) {
 			for(CoreEntry entry : category.entries) {
-				double weightedPercentage = (double) category.weight * (double) entry.percentage;
-				double volumeShare = weightedPercentage / totalWeightedPercentage;
+				double weightedValue = (double) category.weight * (double) entry.value;
+				double volumeShare = weightedValue / totalWeightedValue;
 				weightedDensity += getDensityForOreDict(entry.oreDict) * volumeShare;
 			}
 		}
@@ -815,6 +841,12 @@ public class CelestialCore {
 
 	public double calculateMassKg(double radiusKm) {
 		// `radiusKm` is the full celestial body radius, not a separate inner-core radius.
+		double totalMassKg = calculateRawTotalMassKg(radiusKm);
+		return clampTotalMassKg(totalMassKg);
+	}
+
+	public double calculateRawTotalMassKg(double radiusKm) {
+		// `radiusKm` is the full celestial body radius, not a separate inner-core radius.
 		double radiusM = radiusKm * 1_000D;
 		double volumeM3 = (4D / 3D) * Math.PI * radiusM * radiusM * radiusM;
 		double coreMassKg = getAverageDensityKgPerM3() * densityScale * volumeM3;
@@ -822,18 +854,30 @@ public class CelestialCore {
 		return coreMassKg / (1.0D - planetMassShare);
 	}
 
+	public double getMinTotalMassKg() {
+		return TOTAL_MASS_MIN_KG;
+	}
+
+	public double getMaxTotalMassKg() {
+		return bypassMaxMassLimit ? Double.POSITIVE_INFINITY : TOTAL_MASS_MAX_KG;
+	}
+
 	public double getAverageRadioactivity() {
 		if(!Double.isNaN(computedCoreRadioactivity)) {
 			return computedCoreRadioactivity;
 		}
 
-		double totalWeightedPercentage = getTotalWeightedPercentage();
+		double totalWeightedValue = getTotalWeightedValue();
+		if(totalWeightedValue <= 0.0D) {
+			computedCoreRadioactivity = 0.0D;
+			return computedCoreRadioactivity;
+		}
 		double weightedRadioactivity = 0.0D;
 
 		for(CoreCategory category : categories) {
 			for(CoreEntry entry : category.entries) {
-				double weightedPercentage = (double) category.weight * (double) entry.percentage;
-				double volumeShare = weightedPercentage / totalWeightedPercentage;
+				double weightedValue = (double) category.weight * (double) entry.value;
+				double volumeShare = weightedValue / totalWeightedValue;
 				weightedRadioactivity += (double) getRadioactivityForOreDict(entry.oreDict) * volumeShare;
 			}
 		}
@@ -849,9 +893,13 @@ public class CelestialCore {
 			return computedMagneticFieldStrength;
 		}
 
-		double totalWeightedPercentage = getTotalWeightedPercentage();
-		double lightCoupling = getCategoryConductiveCoupling(CAT_LIGHT, totalWeightedPercentage);
-		double heavyCoupling = getCategoryConductiveCoupling(CAT_HEAVY, totalWeightedPercentage);
+		double totalWeightedValue = getTotalWeightedValue();
+		if(totalWeightedValue <= 0.0D) {
+			computedMagneticFieldStrength = 0.0D;
+			return computedMagneticFieldStrength;
+		}
+		double lightCoupling = getCategoryConductiveCoupling(CAT_LIGHT, totalWeightedValue);
+		double heavyCoupling = getCategoryConductiveCoupling(CAT_HEAVY, totalWeightedValue);
 		if(lightCoupling <= 0.0D || heavyCoupling <= 0.0D) {
 			computedMagneticFieldStrength = 0.0D;
 			return computedMagneticFieldStrength;
@@ -862,13 +910,13 @@ public class CelestialCore {
 		return computedMagneticFieldStrength;
 	}
 
-	private double getCategoryConductiveCoupling(String categoryKey, double totalWeightedPercentage) {
+	private double getCategoryConductiveCoupling(String categoryKey, double totalWeightedValue) {
 		CoreCategory category = getCategory(categoryKey);
 		if(category == null) return 0.0D;
 
 		double coupling = 0.0D;
 		for(CoreEntry entry : category.entries) {
-			double weightedShare = ((double) category.weight * (double) entry.percentage) / totalWeightedPercentage;
+			double weightedShare = ((double) category.weight * (double) entry.value) / totalWeightedValue;
 			coupling += weightedShare * getDensityForOreDict(entry.oreDict);
 		}
 		return coupling;
@@ -882,15 +930,23 @@ public class CelestialCore {
 		// `radiusKm` is the full planetary radius used by gravity/orbit calcs.
 		materialMasses = calculateMaterialMasses(radiusKm);
 		computedRadiusKm = radiusKm;
-		computedCoreMassKg = 0.0D;
+		double rawCoreMassKg = 0.0D;
 		for(MaterialMass materialMass : materialMasses) {
-			computedCoreMassKg += materialMass.massKg;
+			rawCoreMassKg += materialMass.massKg;
 		}
 
 		double planetMassShare = getPlanetMassShareForRadius(radiusKm);
-		computedTotalMassKg = computedCoreMassKg / (1.0D - planetMassShare);
+		double rawTotalMassKg = rawCoreMassKg / (1.0D - planetMassShare);
+		computedTotalMassKg = clampTotalMassKg(rawTotalMassKg);
+		double massScale = rawTotalMassKg > 0.0D ? computedTotalMassKg / rawTotalMassKg : 1.0D;
+		if(Math.abs(massScale - 1.0D) > 1.0E-12D) {
+			for(MaterialMass materialMass : materialMasses) {
+				materialMass.massKg *= massScale;
+				materialMass.densityKgPerM3 *= massScale;
+			}
+		}
+		computedCoreMassKg = rawCoreMassKg * massScale;
 		computedPlanetMassKg = computedTotalMassKg - computedCoreMassKg;
-		computedMassKg = computedTotalMassKg; // Backward-compat alias for callers expecting total body mass.
 		computedCoreRadioactivity = getAverageRadioactivity();
 		computedMagneticFieldStrength = getMagneticFieldStrength();
 
@@ -900,13 +956,23 @@ public class CelestialCore {
 		return this;
 	}
 
+	private double clampTotalMassKg(double totalMassKg) {
+		if(Double.isNaN(totalMassKg) || Double.isInfinite(totalMassKg)) {
+			return TOTAL_MASS_MIN_KG;
+		}
+		double clamped = Math.max(TOTAL_MASS_MIN_KG, totalMassKg);
+		if(!bypassMaxMassLimit) {
+			clamped = Math.min(TOTAL_MASS_MAX_KG, clamped);
+		}
+		return clamped;
+	}
+
 	private void invalidateComputed() {
 		materialMasses = new ArrayList<MaterialMass>();
 		computedRadiusKm = -1.0D;
 		computedCoreMassKg = 0.0D;
 		computedPlanetMassKg = 0.0D;
 		computedTotalMassKg = 0.0D;
-		computedMassKg = 0.0D;
 		computedBulkDensityKgPerM3 = 0.0D;
 		computedCoreRadioactivity = Double.NaN;
 		computedMagneticFieldStrength = Double.NaN;
@@ -920,17 +986,20 @@ public class CelestialCore {
 
 	public ArrayList<MaterialMass> calculateMaterialMasses(double radiusKm) {
 		// `radiusKm` is the full celestial body radius.
-		double totalWeightedPercentage = getTotalWeightedPercentage();
+		double totalWeightedValue = getTotalWeightedValue();
 		double radiusM = radiusKm * 1_000D;
 		double totalVolumeM3 = (4D / 3D) * Math.PI * radiusM * radiusM * radiusM;
 
 		ArrayList<MaterialMass> masses = new ArrayList<MaterialMass>();
+		if(totalWeightedValue <= 0.0D) {
+			return masses;
+		}
 		double totalMassKg = 0.0D;
 
 		for(CoreCategory category : categories) {
 			for(CoreEntry entry : category.entries) {
-				double weightedPercentage = (double) category.weight * (double) entry.percentage;
-				double volumeShare = weightedPercentage / totalWeightedPercentage;
+				double weightedValue = (double) category.weight * (double) entry.value;
+				double volumeShare = weightedValue / totalWeightedValue;
 				double volumeM3 = totalVolumeM3 * volumeShare;
 				double densityKgPerM3 = getDensityForOreDict(entry.oreDict) * densityScale;
 				double massKg = densityKgPerM3 * volumeM3;
@@ -957,13 +1026,12 @@ public class CelestialCore {
 		return masses;
 	}
 
-	public static CoreEntry comp(String oreDict, float percentage) {
-		return new CoreEntry(oreDict, percentage);
+	public static CoreEntry value(String oreDict, float value) {
+		return new CoreEntry(oreDict, value);
 	}
 
-	@Deprecated
-	public static CoreEntry comp(String ignoredDisplayName, String oreDict, float percentage) {
-		return new CoreEntry(oreDict, percentage);
+	public static CoreEntry weight(String oreDict, float relativeWeight) {
+		return new CoreEntry(oreDict, relativeWeight);
 	}
 
 	public static CoreCategory cat(String name, CoreEntry... entries) {
@@ -981,7 +1049,7 @@ public class CelestialCore {
 			for(CoreEntry entry : category.entries) {
 				NBTTagCompound entryTag = new NBTTagCompound();
 				entryTag.setString("oreDict", entry.oreDict);
-				entryTag.setFloat("percentage", entry.percentage);
+				entryTag.setFloat("value", entry.value);
 				entryList.appendTag(entryTag);
 			}
 
@@ -991,16 +1059,21 @@ public class CelestialCore {
 
 		nbt.setTag("coreCategories", categoryList);
 		nbt.setDouble("densityScale", densityScale);
+		nbt.setDouble("rotationalSpeedScale", rotationalSpeedScale);
+		nbt.setBoolean("bypassMaxMassLimit", bypassMaxMassLimit);
 	}
 	public void readFromNBT(NBTTagCompound nbt) {
-		invalidateComputed();
-		categories = new CopyOnWriteArrayList<CoreCategory>();
-
 		NBTTagList categoryList = nbt.getTagList("coreCategories", Constants.NBT.TAG_COMPOUND);
-		densityScale = nbt.hasKey("densityScale") ? nbt.getDouble("densityScale") : 1.0D;
-		if(densityScale <= 0.0D) {
-			densityScale = 1.0D;
+		double parsedDensityScale = nbt.hasKey("densityScale") ? nbt.getDouble("densityScale") : 1.0D;
+		double parsedRotationalSpeedScale = nbt.hasKey("rotationalSpeedScale") ? nbt.getDouble("rotationalSpeedScale") : 1.0D;
+		boolean parsedBypassMaxMassLimit = nbt.hasKey("bypassMaxMassLimit") && nbt.getBoolean("bypassMaxMassLimit");
+		if(parsedDensityScale <= 0.0D) {
+			parsedDensityScale = 1.0D;
 		}
+		if(Double.isNaN(parsedRotationalSpeedScale) || Double.isInfinite(parsedRotationalSpeedScale) || parsedRotationalSpeedScale <= 0.0D) {
+			parsedRotationalSpeedScale = 1.0D;
+		}
+		List<CoreCategory> parsedCategories = new CopyOnWriteArrayList<CoreCategory>();
 		for(int i = 0; i < categoryList.tagCount(); i++) {
 			NBTTagCompound categoryTag = categoryList.getCompoundTagAt(i);
 			CoreCategory category = new CoreCategory();
@@ -1015,18 +1088,26 @@ public class CelestialCore {
 				NBTTagCompound entryTag = entryList.getCompoundTagAt(j);
 				CoreEntry entry = new CoreEntry();
 				entry.oreDict = entryTag.getString("oreDict");
-				entry.percentage = entryTag.getFloat("percentage");
+				entry.value = entryTag.hasKey("value") ? entryTag.getFloat("value") : entryTag.getFloat("percentage");
 				entry.validate();
 				category.entries.add(entry);
 			}
 
 			category.validateTotal();
-			categories.add(category);
+			parsedCategories.add(category);
 		}
+
+		densityScale = parsedDensityScale;
+		rotationalSpeedScale = parsedRotationalSpeedScale;
+		bypassMaxMassLimit = parsedBypassMaxMassLimit;
+		categories = parsedCategories;
+		invalidateComputed();
 	}
 	public void writeToBytes(ByteBuf buf) {
 		buf.writeInt(categories.size());
 		buf.writeDouble(densityScale);
+		buf.writeDouble(rotationalSpeedScale);
+		buf.writeBoolean(bypassMaxMassLimit);
 
 		for(CoreCategory category : categories) {
 			BufferUtil.writeString(buf, category.name);
@@ -1035,19 +1116,22 @@ public class CelestialCore {
 
 			for(CoreEntry entry : category.entries) {
 				BufferUtil.writeString(buf, entry.oreDict);
-				buf.writeFloat(entry.percentage);
+				buf.writeFloat(entry.value);
 			}
 		}
 	}
 	public void readFromBytes(ByteBuf buf) {
-		invalidateComputed();
-		categories = new CopyOnWriteArrayList<CoreCategory>();
-
 		int categoryCount = buf.readInt();
-		densityScale = buf.readDouble();
-		if(densityScale <= 0.0D) {
-			densityScale = 1.0D;
+		double parsedDensityScale = buf.readDouble();
+		double parsedRotationalSpeedScale = buf.readDouble();
+		boolean parsedBypassMaxMassLimit = buf.readBoolean();
+		if(parsedDensityScale <= 0.0D) {
+			parsedDensityScale = 1.0D;
 		}
+		if(Double.isNaN(parsedRotationalSpeedScale) || Double.isInfinite(parsedRotationalSpeedScale) || parsedRotationalSpeedScale <= 0.0D) {
+			parsedRotationalSpeedScale = 1.0D;
+		}
+		List<CoreCategory> parsedCategories = new CopyOnWriteArrayList<CoreCategory>();
 		for(int i = 0; i < categoryCount; i++) {
 			CoreCategory category = new CoreCategory();
 			category.name = normalizeCategoryKey(BufferUtil.readString(buf));
@@ -1060,14 +1144,20 @@ public class CelestialCore {
 			for(int j = 0; j < entryCount; j++) {
 				CoreEntry entry = new CoreEntry();
 				entry.oreDict = BufferUtil.readString(buf);
-				entry.percentage = buf.readFloat();
+				entry.value = buf.readFloat();
 				entry.validate();
 				category.entries.add(entry);
 			}
 
 			category.validateTotal();
-			categories.add(category);
+			parsedCategories.add(category);
 		}
+
+		densityScale = parsedDensityScale;
+		rotationalSpeedScale = parsedRotationalSpeedScale;
+		bypassMaxMassLimit = parsedBypassMaxMassLimit;
+		categories = parsedCategories;
+		invalidateComputed();
 	}
 
 }

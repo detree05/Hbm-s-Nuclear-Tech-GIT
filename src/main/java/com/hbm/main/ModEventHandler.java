@@ -1039,6 +1039,7 @@ public class ModEventHandler {
 		updateWaterOpacity(event.world);
 		if(!event.world.isRemote) {
 			StarcoreThroughputTracker.onWorldLoad(event.world);
+			SolarSystemWorldSavedData.get(event.world);
 		}
 
 		if(!(event.world.provider instanceof WorldProviderEarth)) {

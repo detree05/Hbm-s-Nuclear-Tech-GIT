@@ -44,6 +44,11 @@ import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 
 public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
+	private static final float SUN_MIN_SKY_DIM = 0.45F;
+	private static final float NOTHING_DIM_MULTIPLIER = 2.5F;
+	private static final float BLACKHOLE_SKY_DIM = 1.0F;
+	private static final float NOTHING_SKY_DIM = BLACKHOLE_SKY_DIM / NOTHING_DIM_MULTIPLIER;
+
 	public List<AstroMetric> metrics;
 
 	private double eclipseAmount;
@@ -211,12 +216,15 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			return 1.0F;
 		}
 		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
-			return 0.45F;
+			return SUN_MIN_SKY_DIM;
 		}
 		try {
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-			if(skyState.isBlackhole() || skyState.isNothing()) {
-				return 0.0F;
+			if(skyState.isBlackhole()) {
+				return BLACKHOLE_SKY_DIM;
+			}
+			if(skyState.isNothing()) {
+				return NOTHING_SKY_DIM;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
@@ -224,7 +232,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 					0.0F,
 					1.0F
 				);
-				return ratio;
+				return NOTHING_SKY_DIM + (SUN_MIN_SKY_DIM - NOTHING_SKY_DIM) * ratio;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
 				float ratio = MathHelper.clamp_float(
@@ -232,7 +240,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return SUN_MIN_SKY_DIM + (1.0F - SUN_MIN_SKY_DIM) * ratio;
 			}
 			return 1.0F;
 		} catch(Exception ignored) {
@@ -596,6 +604,13 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getStarBrightness(float par1) {
+		CBT_SkyState.SkyState sky = CBT_SkyState.get(worldObj).getState();
+		if(sky == CBT_SkyState.SkyState.BLACKHOLE
+			|| sky == CBT_SkyState.SkyState.NOTHING
+			|| sky == CBT_SkyState.SkyState.STARCORE) {
+			return 1.0F;
+		}
+
 		// Stars become visible during the day beyond the orbit of Duna
 		// And are fully visible during the day beyond the orbit of Jool
 		float distanceStart = 20_000_000;

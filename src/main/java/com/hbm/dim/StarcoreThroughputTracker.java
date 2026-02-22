@@ -8,8 +8,6 @@ import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.CelestialBody;
 import com.hbm.config.SpaceConfig;
-import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderEnd;
@@ -253,12 +251,7 @@ public class StarcoreThroughputTracker {
 				skyState.setSunLastSustainTick(0);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 				CBT_Dyson.clearAll(world);
-				if(world.provider != null) {
-					PacketDispatcher.wrapper.sendToDimension(
-						new StarcoreDecaySkyPacket(world.getTotalWorldTime(), world.provider.dimensionId),
-						world.provider.dimensionId
-					);
-				}
+				StarcoreSkyEffects.sendDecay(world);
 			}
 			if(skyState.getStarcoreThroughput() != 0) {
 				skyState.setStarcoreThroughput(0);

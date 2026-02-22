@@ -193,16 +193,11 @@ public class PermaSyncHandler {
 
 				for(CelestialBody body : CelestialBody.getAllBodies()) {
 					if(buf.readBoolean()) {
-						CelestialCore core = body.getCore();
-						if(core == null) {
-							core = new CelestialCore();
-						}
+						CelestialCore core = new CelestialCore();
 						core.readFromBytes(buf);
-						if(body.getCore() == null) {
-							body.withCore(core);
-						} else {
-							CelestialBody.applyMassFromCore(body, core);
-						}
+						// Keep the synced core as the active core so subsequent client ticks
+						// don't reapply stale mass/orbit dynamics from outdated local state.
+						body.withCore(core);
 					} else if(body.getCore() != null) {
 						body.withCore(null);
 					}

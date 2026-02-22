@@ -200,7 +200,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
 		boolean forceNightSky = sky == CBT_SkyState.SkyState.BLACKHOLE
 			|| sky == CBT_SkyState.SkyState.NOTHING
-			|| (sky == CBT_SkyState.SkyState.STARCORE && starcoreThroughput <= 0L);
+			|| sky == CBT_SkyState.SkyState.STARCORE;
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 
 		boolean hasAtmosphere = atmosphere != null;
@@ -1038,9 +1038,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 		Tessellator tessellator = Tessellator.instance;
 		final float bodyVisibility = visibility;
 		final CBT_SkyState.SkyState sky = skyState != null ? skyState.getState() : lastSkyState;
-		final long starcoreThroughput = skyState != null ? skyState.getStarcoreThroughput() : lastStarcoreThroughput;
 		final boolean noDirectSunlight = sky == CBT_SkyState.SkyState.NOTHING
-			|| (sky == CBT_SkyState.SkyState.STARCORE && starcoreThroughput <= 0L);
+			|| sky == CBT_SkyState.SkyState.STARCORE;
 		final float directLight = noDirectSunlight ? 0.15F : 1.0F;
 		float blendDarken = 0.1F;
 		final float redOverlayAlpha = 0.0F;
@@ -1066,7 +1065,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			boolean orbitingThis = metric.body == orbiting;
 
-			double uvOffset = orbitingThis ? 1 - ((((double)world.getWorldTime() + partialTicks) / 1024) % 1) : 0;
+			double uvOffset = getBodyUvOffset(world, partialTicks, metric.body);
 			float axialTilt = orbitingThis ? 0 : metric.body.axialTilt;
 			Vec3 bodyTextureTint = getBodyTextureTint(metric.body);
 
@@ -1580,6 +1579,21 @@ public class SkyProviderCelestial extends IRenderHandler {
 		double driftPeriod = bodyPeriod > 1.0D ? MathHelper.clamp_double(bodyPeriod * 0.35D, 4000.0D, 360000.0D) : 24000.0D;
 		double phaseOffset = (Math.abs(body.name.hashCode()) % 2048) / 2048.0D;
 		return (time / driftPeriod + phaseOffset) % 1.0D;
+	}
+
+	private double getBodyUvOffset(WorldClient world, float partialTicks, CelestialBody body) {
+		if(world == null || body == null) {
+			return 0.0D;
+		}
+
+		double bodyPeriod = body.getRotationalPeriod();
+		if(bodyPeriod <= 1.0D) {
+			return 0.0D;
+		}
+
+		double time = world.getTotalWorldTime() + partialTicks;
+		double phaseOffset = (Math.abs(body.name.hashCode()) % 4096) / 4096.0D;
+		return 1.0D - ((time / bodyPeriod + phaseOffset) % 1.0D);
 	}
 
 	private void renderAtmosphereGlow(Tessellator tessellator, Minecraft mc, CelestialBody body, double size, float visibility) {

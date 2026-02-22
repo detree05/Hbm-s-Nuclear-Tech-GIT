@@ -2,6 +2,7 @@ package com.hbm.dim;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 import com.hbm.packet.toclient.StarcoreIgnitionSkyPacket;
 
 import net.minecraft.world.World;
@@ -21,6 +22,22 @@ public class StarcoreSkyEffects {
 			}
 			PacketDispatcher.wrapper.sendToDimension(
 				new StarcoreIgnitionSkyPacket(worldTime, dim),
+				dim
+			);
+		}
+	}
+
+	public static void sendDecay(World world) {
+		if(world == null) return;
+		long worldTime = world.getTotalWorldTime();
+		for(WorldServer targetWorld : DimensionManager.getWorlds()) {
+			if(targetWorld == null || targetWorld.provider == null) continue;
+			int dim = targetWorld.provider.dimensionId;
+			if(dim == -1 || dim == 1 || dim == SpaceConfig.dmitriyDimension) {
+				continue;
+			}
+			PacketDispatcher.wrapper.sendToDimension(
+				new StarcoreDecaySkyPacket(worldTime, dim),
 				dim
 			);
 		}

@@ -58,6 +58,7 @@ public class CelestialBody {
 	// Orbital elements
 	public float massKg = 0;
 	public float radiusKm = 0;
+	private float surfaceGravityOverride = -1.0F;
 	public float semiMajorAxisKm = 0; // Distance to the parent body
 	public float semiMinorAxisFactor = 0; // has a sqrt so done ahead of time
 	public float eccentricity = 0;
@@ -72,10 +73,11 @@ public class CelestialBody {
 	private float baselineInclination = 0.0F;
 	private float baselineAscendingNode = 0.0F;
 	private float baselineArgumentPeriapsis = 0.0F;
-	private float baselineParentMassKg = -1.0F;
+	private float baselineOrbitalSpeedScale = 1.0F;
 	private int baselineRotationalPeriod = -1;
-	private double baselineCoreDensityKgPerM3 = -1.0D;
+	private double baselineCoreMassKg = -1.0D;
 	private boolean dynamicsBaselineCaptured = false;
+	private float orbitalSpeedScale = 1.0F;
 
 	public float axialTilt = 0;
 
@@ -97,10 +99,16 @@ public class CelestialBody {
 
 	public FluidType gas;
 	private CelestialCore core;
+	private CelestialCore defaultCore;
 
 	private static final double ATM_OVERPRESSURE_DISSIPATION_FACTOR = 0.02D;
 	private static final double ATM_MIN_DISSIPATION_PER_UPDATE_ATM = 0.0001D;
 	private static final double ATM_MIN_PRESENT_PRESSURE_ATM = 0.0001D;
+	private static final double CORE_DYNAMICS_INFLUENCE_MULTIPLIER = 2.5D;
+	private static final double CORE_ROTATIONAL_SPEED_SCALE_MIN = 0.02D;
+	private static final double CORE_ROTATIONAL_SPEED_SCALE_MAX = 2.0D;
+	private static final double CORE_ROTATIONAL_MASS_RATIO_MIN = 0.25D;
+	private static final double CORE_ROTATIONAL_MASS_RATIO_MAX = 8.0D;
 
 	public List<CelestialBody> satellites = new ArrayList<CelestialBody>(); // moon boyes
 	public CelestialBody parent = null;
@@ -141,6 +149,11 @@ public class CelestialBody {
 		if(this.core != null) {
 			applyMassFromCore(this, this.core);
 		}
+		return this;
+	}
+
+	public CelestialBody withSurfaceGravity(float gravity) {
+		this.surfaceGravityOverride = Math.max(0.0F, gravity);
 		return this;
 	}
 
@@ -227,6 +240,58 @@ public class CelestialBody {
 			applyMassFromCore(this, this.core);
 		}
 		return this;
+	}
+
+	public CelestialBody captureDefaultCore() {
+		this.defaultCore = this.core != null ? this.core.copy() : null;
+		return this;
+	}
+
+	public CelestialBody resetCoreToDefault() {
+		this.core = this.defaultCore != null ? this.defaultCore.copy() : null;
+		if(this.core != null && this.radiusKm > 0.0F) {
+			applyMassFromCore(this, this.core);
+		} else {
+			resetOrbitalDynamicsToBaseline();
+		}
+		return this;
+	}
+
+	private void resetOrbitalDynamicsToBaseline() {
+		if(!dynamicsBaselineCaptured) return;
+
+		if(baselineMassKg > 0.0F) {
+			massKg = baselineMassKg;
+		}
+		if(baselineSemiMajorAxisKm > 0.0F) {
+			semiMajorAxisKm = baselineSemiMajorAxisKm;
+		}
+		eccentricity = baselineEccentricity;
+		semiMinorAxisFactor = (float)Math.sqrt(Math.max(0.0D, 1.0D - eccentricity * eccentricity));
+		inclination = baselineInclination;
+		ascendingNode = baselineAscendingNode;
+		argumentPeriapsis = baselineArgumentPeriapsis;
+		orbitalSpeedScale = baselineOrbitalSpeedScale;
+		if(baselineRotationalPeriod > 0) {
+			rotationalPeriod = baselineRotationalPeriod;
+		}
+	}
+
+	private void resetOrbitalShapeAndRotationToBaseline() {
+		if(!dynamicsBaselineCaptured) return;
+
+		if(baselineSemiMajorAxisKm > 0.0F) {
+			semiMajorAxisKm = baselineSemiMajorAxisKm;
+		}
+		eccentricity = baselineEccentricity;
+		semiMinorAxisFactor = (float)Math.sqrt(Math.max(0.0D, 1.0D - eccentricity * eccentricity));
+		inclination = baselineInclination;
+		ascendingNode = baselineAscendingNode;
+		argumentPeriapsis = baselineArgumentPeriapsis;
+		orbitalSpeedScale = baselineOrbitalSpeedScale;
+		if(baselineRotationalPeriod > 0) {
+			rotationalPeriod = baselineRotationalPeriod;
+		}
 	}
 
 	public CelestialBody withSatellites(CelestialBody... bodies) {
@@ -375,8 +440,11 @@ public class CelestialBody {
 	}
 
 	public static void applyMassFromCore(CelestialBody body, CelestialCore core) {
+		if(body != null && core != null) {
+			core.withMaxMassCapBypass("dmitriy".equalsIgnoreCase(body.name));
+		}
 		core.recalculateForRadius(body.radiusKm);
-		body.massKg = (float) core.computedMassKg;
+		body.massKg = (float) core.computedTotalMassKg;
 		body.applyOrbitalDynamicsFromCore(core);
 	}
 
@@ -405,14 +473,12 @@ public class CelestialBody {
 		baselineInclination = inclination;
 		baselineAscendingNode = ascendingNode;
 		baselineArgumentPeriapsis = argumentPeriapsis;
+		baselineOrbitalSpeedScale = orbitalSpeedScale;
 		baselineRotationalPeriod = rotationalPeriod;
-		baselineParentMassKg = parent != null ? parent.massKg : -1.0F;
-		if(core != null) {
-			if(core.computedRadiusKm != radiusKm) {
-				core.recalculateForRadius(radiusKm);
-			}
-			baselineCoreDensityKgPerM3 = Math.max(core.computedBulkDensityKgPerM3, 1.0D);
+		if(core != null && core.computedRadiusKm != radiusKm) {
+			core.recalculateForRadius(radiusKm);
 		}
+		baselineCoreMassKg = core != null ? core.computedCoreMassKg : -1.0D;
 
 		dynamicsBaselineCaptured = true;
 	}
@@ -421,44 +487,56 @@ public class CelestialBody {
 		if(core == null) return;
 
 		captureDynamicsBaseline(core);
+		if(baselineRotationalPeriod > 0) {
+			double coreMassRatio = getRotationalMassRatio(core);
+			double minRotationScale = CORE_ROTATIONAL_SPEED_SCALE_MIN * coreMassRatio;
+			double maxRotationScale = CORE_ROTATIONAL_SPEED_SCALE_MAX * coreMassRatio;
+			double rotationScale = clampDouble(core.rotationalSpeedScale, minRotationScale, maxRotationScale);
+			double scaledRotationalPeriod = (double)baselineRotationalPeriod / rotationScale;
+			rotationalPeriod = (int)Math.max(1L, Math.round(scaledRotationalPeriod));
+		}
+
+		if(parent == null || satellites.isEmpty()) return;
 
 		double massRatio = baselineMassKg > 0.0F ? (double)massKg / (double)baselineMassKg : 1.0D;
 		massRatio = clampDouble(massRatio, 0.25D, 8.0D);
 
-		double densityRatio = 1.0D;
-		if(baselineCoreDensityKgPerM3 > 0.0D) {
-			densityRatio = core.computedBulkDensityKgPerM3 / baselineCoreDensityKgPerM3;
+		double childOrbitScale = clampDouble(
+			Math.pow(massRatio, (-1.0D / 3.0D) * CORE_DYNAMICS_INFLUENCE_MULTIPLIER),
+			0.5D,
+			2.0D
+		);
+		double childOrbitSpeedScale = clampDouble(
+			Math.pow(massRatio, (1.0D / 3.0D) * CORE_DYNAMICS_INFLUENCE_MULTIPLIER),
+			0.5D,
+			2.0D
+		);
+
+		for(CelestialBody satellite : satellites) {
+			if(satellite == null) continue;
+			satellite.captureDynamicsBaseline(satellite.getCore());
+			satellite.resetOrbitalShapeAndRotationToBaseline();
+			satellite.orbitalSpeedScale = (float) childOrbitSpeedScale;
+			if(satellite.baselineSemiMajorAxisKm > 0.0F) {
+				satellite.semiMajorAxisKm = satellite.baselineSemiMajorAxisKm * (float)childOrbitScale;
+			}
 		}
-		densityRatio = clampDouble(densityRatio, 0.25D, 8.0D);
-
-		double rotationScale = clampDouble(Math.pow(massRatio, 0.6D) * Math.pow(densityRatio, 0.2D), 0.5D, 4.0D);
-		if(baselineRotationalPeriod > 0) {
-			rotationalPeriod = Math.max(60, (int)Math.round((double)baselineRotationalPeriod * rotationScale));
-		}
-
-		if(parent == null || baselineSemiMajorAxisKm <= 0.0F) return;
-
-		double parentMassRatio = 1.0D;
-		if(baselineParentMassKg > 0.0F && parent.massKg > 0.0F) {
-			parentMassRatio = (double)parent.massKg / (double)baselineParentMassKg;
-		}
-		parentMassRatio = clampDouble(parentMassRatio, 0.25D, 8.0D);
-
-		double orbitalScale = clampDouble(Math.pow(parentMassRatio, -1.0D / 3.0D) * Math.pow(densityRatio, -0.05D), 0.5D, 2.0D);
-		semiMajorAxisKm = baselineSemiMajorAxisKm * (float)orbitalScale;
-
-		double eccentricityScale = clampDouble(Math.pow(densityRatio, 0.15D), 0.7D, 1.3D);
-		eccentricity = (float)clampDouble((double)baselineEccentricity * eccentricityScale, 0.0D, 0.95D);
-		semiMinorAxisFactor = (float)Math.sqrt(Math.max(0.0D, 1.0D - eccentricity * eccentricity));
-
-		double inclinationScale = clampDouble(Math.pow(densityRatio, 0.08D), 0.8D, 1.2D);
-		inclination = baselineInclination * (float)inclinationScale;
-		ascendingNode = baselineAscendingNode;
-		argumentPeriapsis = baselineArgumentPeriapsis;
 	}
 
 	private static double clampDouble(double value, double min, double max) {
 		return Math.max(min, Math.min(max, value));
+	}
+
+	private double getRotationalMassRatio(CelestialCore core) {
+		if(core == null) return 1.0D;
+		if(core.computedRadiusKm != radiusKm) {
+			core.recalculateForRadius(radiusKm);
+		}
+		if(baselineCoreMassKg <= 0.0D || core.computedCoreMassKg <= 0.0D) {
+			return 1.0D;
+		}
+		double ratio = core.computedCoreMassKg / baselineCoreMassKg;
+		return clampDouble(ratio, CORE_ROTATIONAL_MASS_RATIO_MIN, CORE_ROTATIONAL_MASS_RATIO_MAX);
 	}
 
 	// he has ceased to be
@@ -725,6 +803,18 @@ public class CelestialBody {
 		return nameToBodyMap.values();
 	}
 
+	public static void captureDefaultCores() {
+		for(CelestialBody body : getAllBodies()) {
+			body.captureDefaultCore();
+		}
+	}
+
+	public static void resetAllCoresToDefault() {
+		for(CelestialBody body : getAllBodies()) {
+			body.resetCoreToDefault();
+		}
+	}
+
 	public static Collection<CelestialBody> getLandableBodies() {
 		return dimToBodyMap.values();
 	}
@@ -830,6 +920,9 @@ public class CelestialBody {
 		CelestialBody body = getBody(world);
 		body.withCore(core);
 		applyMassFromCurrentCore(body);
+		if(world != null && !world.isRemote) {
+			SolarSystemWorldSavedData.get(world).setCore(body.name, body.getCore());
+		}
 	}
 
 	public static boolean hasDefaultTrait(World world, Class<? extends CelestialBodyTrait> trait) {
@@ -879,11 +972,15 @@ public class CelestialBody {
 		if(parent == null) return 0;
 		double semiMajorAxis = semiMajorAxisKm * 1_000;
 		double orbitalPeriod = 2 * Math.PI * Math.sqrt((semiMajorAxis * semiMajorAxis * semiMajorAxis) / (AstronomyUtil.GRAVITATIONAL_CONSTANT * parent.massKg));
-		return orbitalPeriod / (double)AstronomyUtil.SECONDS_IN_KSP_DAY;
+		double scaledPeriod = orbitalPeriod / Math.max(0.05D, (double)orbitalSpeedScale);
+		return scaledPeriod / (double)AstronomyUtil.SECONDS_IN_KSP_DAY;
 	}
 
 	// Get the gravitational force at the surface, derived from mass and radius
 	public float getSurfaceGravity() {
+		if(surfaceGravityOverride >= 0.0F) {
+			return surfaceGravityOverride;
+		}
 		float radius = radiusKm * 1000;
 		return AstronomyUtil.GRAVITATIONAL_CONSTANT * massKg / (radius * radius);
 	}
@@ -950,6 +1047,14 @@ public class CelestialBody {
 
 	public CelestialCore getCore() {
 		return core;
+	}
+
+	public double getRotationalSpeedScaleMin() {
+		return CORE_ROTATIONAL_SPEED_SCALE_MIN * getRotationalMassRatio(core);
+	}
+
+	public double getRotationalSpeedScaleMax() {
+		return CORE_ROTATIONAL_SPEED_SCALE_MAX * getRotationalMassRatio(core);
 	}
 
 	// Loads in the heightmap data for a given chunk
