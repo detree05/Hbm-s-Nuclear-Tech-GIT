@@ -28,6 +28,7 @@ import net.minecraft.world.World;
 public class CommandNtmCore extends CommandBase {
 
 	private static final double MASS_CAP_EPS = 1.0D;
+	private static final int MAX_ENTRIES_PER_CATEGORY = 4;
 
 	private static class CoreEntryRef {
 		final CoreCategory category;
@@ -147,7 +148,12 @@ public class CommandNtmCore extends CommandBase {
 		}
 
 		String query = args[1];
-		float value = (float) parseDoubleBounded(sender, args[2], 0.0D, (double) Float.MAX_VALUE);
+		float value = (float) parseDoubleBounded(
+			sender,
+			args[2],
+			(double) CelestialCore.MATERIAL_ENTRY_VALUE_MIN,
+			(double) CelestialCore.MATERIAL_ENTRY_VALUE_MAX
+		);
 		List<CoreEntryRef> matches = findEntryMatches(core, query);
 		if(matches.isEmpty()) {
 			sender.addChatMessage(new ChatComponentText(
@@ -239,6 +245,13 @@ public class CommandNtmCore extends CommandBase {
 			if(categoryKey == null) {
 				sender.addChatMessage(new ChatComponentText(
 					EnumChatFormatting.RED + "Unknown material '" + query + "'. Use a valid oreDict ID."
+				));
+				return;
+			}
+			if(getCategoryEntryCount(core, categoryKey) >= MAX_ENTRIES_PER_CATEGORY) {
+				sender.addChatMessage(new ChatComponentText(
+					EnumChatFormatting.RED + formatCategory(categoryKey) + " already has "
+					+ MAX_ENTRIES_PER_CATEGORY + " entries. Remove one before adding a new material."
 				));
 				return;
 			}
@@ -512,6 +525,9 @@ public class CommandNtmCore extends CommandBase {
 		sender.addChatMessage(new ChatComponentText(
 			EnumChatFormatting.YELLOW + "Atmosphere retention: " + EnumChatFormatting.WHITE + formatAtmosphere(CelestialBody.getAtmosphereRetentionLimitAtm(body)) + " atm"
 		));
+		sender.addChatMessage(new ChatComponentText(
+			EnumChatFormatting.DARK_GRAY + "Amounts are absolute; category/core/mass values are relative shares."
+		));
 
 		Map<String, List<MaterialMass>> massesByCategory = groupByCategory(core.materialMasses);
 		if(massesByCategory.isEmpty()) {
@@ -532,9 +548,9 @@ public class CommandNtmCore extends CommandBase {
 
 			sender.addChatMessage(new ChatComponentText(
 				EnumChatFormatting.GREEN + formatCategory(category.name)
-				+ EnumChatFormatting.GRAY + " (value " + formatValue(getCategoryTotalValue(category))
-				+ ", core " + formatPercent(totalVolumeShare)
-				+ ", mass " + formatPercent(totalMassShare) + ")"
+				+ EnumChatFormatting.GRAY + " (amount " + formatValue(getCategoryTotalValue(category))
+				+ ", core-share " + formatPercent(totalVolumeShare)
+				+ ", mass-share " + formatPercent(totalMassShare) + ")"
 			));
 
 			for(MaterialMass mass : masses) {
@@ -545,10 +561,10 @@ public class CommandNtmCore extends CommandBase {
 					EnumChatFormatting.GRAY + " - "
 					+ EnumChatFormatting.AQUA + token
 					+ EnumChatFormatting.GRAY + ": "
-					+ EnumChatFormatting.WHITE + "value " + formatValue(value) + ", "
-					+ EnumChatFormatting.WHITE + formatPercent(categoryShare) + " category, "
-					+ EnumChatFormatting.WHITE + formatPercent(mass.volumeShare) + " core, "
-					+ EnumChatFormatting.WHITE + formatPercent(mass.massShare) + " mass"
+					+ EnumChatFormatting.WHITE + "amount " + formatValue(value) + ", "
+					+ EnumChatFormatting.WHITE + formatPercent(categoryShare) + " category-share, "
+					+ EnumChatFormatting.WHITE + formatPercent(mass.volumeShare) + " core-share, "
+					+ EnumChatFormatting.WHITE + formatPercent(mass.massShare) + " mass-share"
 				));
 			}
 		}
@@ -757,7 +773,28 @@ public class CommandNtmCore extends CommandBase {
 				return oreDict.substring(i);
 			}
 		}
-		return oreDict;
+		return toDisplayToken(oreDict);
+	}
+
+	private String toDisplayToken(String token) {
+		if(token == null || token.isEmpty()) return token;
+		for(int i = 0; i < token.length(); i++) {
+			if(Character.isUpperCase(token.charAt(i))) {
+				return token;
+			}
+		}
+		char first = token.charAt(0);
+		if(Character.isLetter(first) && Character.isLowerCase(first)) {
+			return Character.toUpperCase(first) + token.substring(1);
+		}
+		return token;
+	}
+
+	private int getCategoryEntryCount(CelestialCore core, String categoryName) {
+		if(core == null || categoryName == null) return 0;
+		CoreCategory category = core.getCategory(categoryName);
+		if(category == null || category.entries == null) return 0;
+		return category.entries.size();
 	}
 
 	private String normalizeKey(String value) {

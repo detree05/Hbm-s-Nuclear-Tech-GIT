@@ -39,6 +39,8 @@ public class CelestialCore {
 	public static final String CAT_CRYSTAL = "crystal";
 	public static final String CAT_SCHRABIDIC = "schrabidic";
 	public static final String CAT_LIVING = "living";
+	public static final float MATERIAL_ENTRY_VALUE_MIN = 0.001F;
+	public static final float MATERIAL_ENTRY_VALUE_MAX = Float.MAX_VALUE;
 
 	static {
 		// Base material densities (kg/m^3)
@@ -75,6 +77,7 @@ public class CelestialCore {
 		registerDensity("Zirconium", 6_520D);
 		registerDensity("Boron", 2_460D);
 		registerDensity("NickelPure", 8_908D);
+		registerDensity("Nickel", 8_908D);
 		registerDensity("Beryllium", 1_850D);
 		registerDensity("Thorium232", 11_700D);
 		registerDensity("Radium226", 5_500D);
@@ -583,6 +586,7 @@ public class CelestialCore {
 	}
 
 	public CelestialCore addOrUpdateEntryValue(String categoryName, String oreDict, float value) {
+		float clampedValue = clampMaterialEntryValue(value);
 		CoreCategory category = getCategory(categoryName);
 		if(category == null) {
 			category = new CoreCategory();
@@ -593,7 +597,7 @@ public class CelestialCore {
 		CoreEntry existing = getEntry(categoryName, oreDict);
 		if(existing != null) {
 			float oldValue = existing.value;
-			existing.value = value;
+			existing.value = clampedValue;
 			existing.validate();
 			try {
 				category.validateTotal();
@@ -602,7 +606,7 @@ public class CelestialCore {
 				throw ex;
 			}
 		} else {
-			category.entries.add(new CoreEntry(oreDict, value));
+			category.entries.add(new CoreEntry(oreDict, clampedValue));
 			category.validateTotal();
 		}
 
@@ -611,6 +615,7 @@ public class CelestialCore {
 	}
 
 	public CelestialCore setEntryValue(String categoryName, String entryId, float value) {
+		float clampedValue = clampMaterialEntryValue(value);
 		CoreEntry entry = getEntry(categoryName, entryId);
 		if(entry == null) {
 			throw new InvalidParameterException("Core entry not found for category '" + categoryName + "' and id '" + entryId + "'");
@@ -618,7 +623,7 @@ public class CelestialCore {
 
 		CoreCategory category = getCategory(categoryName);
 		float oldValue = entry.value;
-		entry.value = value;
+		entry.value = clampedValue;
 		entry.validate();
 		try {
 			category.validateTotal();
@@ -645,6 +650,35 @@ public class CelestialCore {
 		}
 
 		return false;
+	}
+
+	public CelestialCore clampRuntimeEntryValues() {
+		boolean changed = false;
+		for(CoreCategory category : categories) {
+			if(category == null || category.entries == null) continue;
+			for(CoreEntry entry : category.entries) {
+				if(entry == null) continue;
+				float clampedValue = clampMaterialEntryValue(entry.value);
+				if(clampedValue != entry.value) {
+					entry.value = clampedValue;
+					changed = true;
+				}
+			}
+		}
+		if(changed) {
+			invalidateComputed();
+		}
+		return this;
+	}
+
+	private static float clampMaterialEntryValue(float value) {
+		if(Float.isNaN(value) || Float.isInfinite(value)) {
+			throw new InvalidParameterException("Core entry value must be finite, got: " + value);
+		}
+		if(value < 0.0F) {
+			throw new InvalidParameterException("Core entry value must be >= 0, got: " + value);
+		}
+		return Math.max(MATERIAL_ENTRY_VALUE_MIN, Math.min(MATERIAL_ENTRY_VALUE_MAX, value));
 	}
 
 	private void addAutoCategorizedEntry(CoreEntry entry) {
@@ -826,17 +860,16 @@ public class CelestialCore {
 		if(totalWeightedValue <= 0.0D) {
 			return 0.0D;
 		}
-		double weightedDensity = 0.0D;
+		double effectiveDensity = 0.0D;
 
 		for(CoreCategory category : categories) {
 			for(CoreEntry entry : category.entries) {
 				double weightedValue = (double) category.weight * (double) entry.value;
-				double volumeShare = weightedValue / totalWeightedValue;
-				weightedDensity += getDensityForOreDict(entry.oreDict) * volumeShare;
+				effectiveDensity += getDensityForOreDict(entry.oreDict) * weightedValue;
 			}
 		}
 
-		return weightedDensity;
+		return effectiveDensity;
 	}
 
 	public double calculateMassKg(double radiusKm) {
@@ -1000,7 +1033,7 @@ public class CelestialCore {
 			for(CoreEntry entry : category.entries) {
 				double weightedValue = (double) category.weight * (double) entry.value;
 				double volumeShare = weightedValue / totalWeightedValue;
-				double volumeM3 = totalVolumeM3 * volumeShare;
+				double volumeM3 = totalVolumeM3 * weightedValue;
 				double densityKgPerM3 = getDensityForOreDict(entry.oreDict) * densityScale;
 				double massKg = densityKgPerM3 * volumeM3;
 
@@ -1088,7 +1121,8 @@ public class CelestialCore {
 				NBTTagCompound entryTag = entryList.getCompoundTagAt(j);
 				CoreEntry entry = new CoreEntry();
 				entry.oreDict = entryTag.getString("oreDict");
-				entry.value = entryTag.hasKey("value") ? entryTag.getFloat("value") : entryTag.getFloat("percentage");
+				float rawValue = entryTag.hasKey("value") ? entryTag.getFloat("value") : entryTag.getFloat("percentage");
+				entry.value = clampMaterialEntryValue(rawValue);
 				entry.validate();
 				category.entries.add(entry);
 			}
@@ -1144,7 +1178,7 @@ public class CelestialCore {
 			for(int j = 0; j < entryCount; j++) {
 				CoreEntry entry = new CoreEntry();
 				entry.oreDict = BufferUtil.readString(buf);
-				entry.value = buf.readFloat();
+				entry.value = clampMaterialEntryValue(buf.readFloat());
 				entry.validate();
 				category.entries.add(entry);
 			}

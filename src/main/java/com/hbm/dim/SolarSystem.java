@@ -1,13 +1,11 @@
 package com.hbm.dim;
 
-import static com.hbm.dim.CelestialCore.weight;
+import static com.hbm.dim.CelestialCore.value;
 import static com.hbm.inventory.OreDictManager.*;
 
 import java.security.InvalidParameterException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Random;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
@@ -49,8 +47,6 @@ public class SolarSystem {
 	private static final float MUN_SHATTER_RING_R = 171.0F / 255.0F;
 	private static final float MUN_SHATTER_RING_G = 235.0F / 255.0F;
 	private static final float MUN_SHATTER_RING_B = 209.0F / 255.0F;
-	private static final float CORE_MIN_ENTRY_VALUE = 0.001F;
-	private static final float CORE_CATEGORY_RANDOM_SWING = 0.18F;
 
 	public static void applyMinmusShatterState() {
 		applyMinmusShatterState(null);
@@ -135,473 +131,328 @@ public class SolarSystem {
 	private static CelestialCore getKerbinCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(IRON.ingot(), 53F),
-			weight(CU.ingot(), 25F),
-			weight(AL.ingot(), 12F),
-			weight(NA.ingot(), 10F),
+			value(IRON.ingot(), 0.5F),
+			value(CU.ingot(), 0.2395F),
+			value(AL.ingot(), 0.1186F),
+			value(NA.ingot(), 0.1F),
 			// Heavy category
-			weight(W.ingot(), 91F),
-			weight(ZI.ingot(), 9F),
+			value(W.ingot(), 0.5F),
+			value(ZI.ingot(), 0.1F),
 			// Nonmetal category
-			weight(COAL.gem(), 52F),
-			weight(LIGNITE.gem(), 26F),
-			weight(S.dust(), 13F),
-			weight(KNO.dust(), 9F),
+			value(COAL.gem(), 0.5F),
+			value(LIGNITE.gem(), 0.2581F),
+			value(S.dust(), 0.1372F),
+			value(KNO.dust(), 0.1F),
 			// Crystal category
-			weight(REDSTONE.dust(), 51F),
-			weight(ASBESTOS.ingot(), 27F),
-			weight(DIAMOND.gem(), 13F),
-			weight(EMERALD.gem(), 9F)
+			value(REDSTONE.dust(), 0.5F),
+			value(ASBESTOS.ingot(), 0.2714F),
+			value(DIAMOND.gem(), 0.1381F),
+			value(EMERALD.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getMunCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(LI.ingot(), 52F),
-			weight(IRON.ingot(), 26F),
-			weight(NA.ingot(), 13F),
-			weight(CHLOROCALCITE.dust(), 9F),
+			value(LI.ingot(), 0.5F),
+			value(IRON.ingot(), 0.2581F),
+			value(NA.ingot(), 0.1372F),
+			value(CHLOROCALCITE.dust(), 0.1F),
 			// Heavy category
-			weight(PB.ingot(), 53F),
-			weight(ZI.ingot(), 25F),
-			weight(GOLD.ingot(), 12F),
-			weight(BI.ingot(), 10F),
+			value(PB.ingot(), 0.5F),
+			value(ZI.ingot(), 0.2395F),
+			value(GOLD.ingot(), 0.1186F),
+			value(BI.ingot(), 0.1F),
 			// Rare category
-			weight(CO.ingot(), 54F),
-			weight(RAREEARTH.ingot(), 24F),
-			weight(ND.dust(), 13F),
-			weight(ST.dust(), 9F),
+			value(CO.ingot(), 0.5F),
+			value(RAREEARTH.ingot(), 0.2333F),
+			value(ND.dust(), 0.1356F),
+			value(ST.dust(), 0.1F),
 			// Nonmetal category
-			weight(S.dust(), 55F),
-			weight(F.dust(), 22F),
-			weight(KNO.dust(), 14F),
-			weight(SI.ingot(), 9F),
+			value(S.dust(), 0.5F),
+			value(F.dust(), 0.213F),
+			value(KNO.dust(), 0.1435F),
+			value(SI.ingot(), 0.1F),
 			// Crystal category
-			weight(QUARTZ.gem(), 52F),
-			weight(SODALITE.gem(), 26F),
-			weight(EMERALD.gem(), 13F),
-			weight(CINNABAR.gem(), 9F)
+			value(QUARTZ.gem(), 0.5F),
+			value(SODALITE.gem(), 0.2581F),
+			value(EMERALD.gem(), 0.1372F),
+			value(CINNABAR.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getMinmusCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(CU.ingot(), 64F),
-			weight(TI.ingot(), 22F),
-			weight(CHLOROCALCITE.dust(), 14F),
+			value(CU.ingot(), 0.5F),
+			value(TI.ingot(), 0.164F),
+			value(CHLOROCALCITE.dust(), 0.1F),
 			// Heavy category
-			weight(PB.ingot(), 51F),
-			weight(GOLD.ingot(), 27F),
-			weight(W.ingot(), 13F),
-			weight(BI.ingot(), 9F),
+			value(PB.ingot(), 0.5F),
+			value(GOLD.ingot(), 0.2714F),
+			value(W.ingot(), 0.1381F),
+			value(BI.ingot(), 0.1F),
 			// Rare category
-			weight(ZR.ingot(), 53F),
-			weight(B.ingot(), 25F),
-			weight(CO.ingot(), 12F),
-			weight(ST.dust(), 10F),
+			value(ZR.ingot(), 0.5F),
+			value(B.ingot(), 0.2395F),
+			value(CO.ingot(), 0.1186F),
+			value(ST.dust(), 0.1F),
 			// Nonmetal category
-			weight(S.dust(), 54F),
-			weight(KNO.dust(), 24F),
-			weight(F.dust(), 13F),
-			weight(SI.ingot(), 9F),
+			value(S.dust(), 0.5F),
+			value(KNO.dust(), 0.2333F),
+			value(F.dust(), 0.1356F),
+			value(SI.ingot(), 0.1F),
 			// Crystal category
-			weight(EMERALD.gem(), 65F),
-			weight(SODALITE.gem(), 22F),
-			weight(DIAMOND.gem(), 13F)
+			value(EMERALD.gem(), 0.5F),
+			value(SODALITE.gem(), 0.1692F),
+			value(DIAMOND.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getDunaCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(IRON.ingot(), 53F),
-			weight(NI.ingot(), 25F),
-			weight(TI.ingot(), 12F),
-			weight(CHLOROCALCITE.dust(), 10F),
+			value(IRON.ingot(), 0.5F),
+			value(NI.ingot(), 0.2395F),
+			value(TI.ingot(), 0.1186F),
+			value(CHLOROCALCITE.dust(), 0.1F),
 			// Heavy category
-			weight(BE.ingot(), 50F),
-			weight(W.ingot(), 28F),
-			weight(ZI.ingot(), 13F),
-			weight(BI.ingot(), 9F),
+			value(BE.ingot(), 0.5F),
+			value(W.ingot(), 0.2854F),
+			value(ZI.ingot(), 0.139F),
+			value(BI.ingot(), 0.1F),
 			// Rare category
-			weight(RAREEARTH.ingot(), 54F),
-			weight(B.ingot(), 24F),
-			weight(ZR.ingot(), 13F),
-			weight(ST.dust(), 9F),
+			value(RAREEARTH.ingot(), 0.5F),
+			value(B.ingot(), 0.2333F),
+			value(ZR.ingot(), 0.1356F),
+			value(ST.dust(), 0.1F),
 			// Actinide category
-			weight(TH232.ingot(), 52F),
-			weight(RA226.ingot(), 26F),
-			weight(PO210.ingot(), 13F),
-			weight(U233.ingot(), 9F),
+			value(TH232.ingot(), 0.5F),
+			value(RA226.ingot(), 0.2581F),
+			value(PO210.ingot(), 0.1372F),
+			value(U233.ingot(), 0.1F),
 			// Nonmetal category
-			weight(F.dust(), 53F),
-			weight(S.dust(), 25F),
-			weight(SI.ingot(), 12F),
-			weight(P_RED.dust(), 10F),
+			value(F.dust(), 0.5F),
+			value(S.dust(), 0.2395F),
+			value(SI.ingot(), 0.1186F),
+			value(P_RED.dust(), 0.1F),
 			// Crystal category
-			weight(REDSTONE.dust(), 51F),
-			weight(CINNABAR.gem(), 27F),
-			weight(DIAMOND.gem(), 13F),
-			weight(MOLYSITE.gem(), 9F)
+			value(REDSTONE.dust(), 0.5F),
+			value(CINNABAR.gem(), 0.2714F),
+			value(DIAMOND.gem(), 0.1381F),
+			value(MOLYSITE.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getMohoCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(TI.ingot(), 54F),
-			weight(CHLOROCALCITE.dust(), 24F),
-			weight(NI.ingot(), 13F),
-			weight(LI.ingot(), 9F),
+			value(TI.ingot(), 0.5F),
+			value(CHLOROCALCITE.dust(), 0.2333F),
+			value(NI.ingot(), 0.1356F),
+			value(LI.ingot(), 0.1F),
 			// Heavy category
-			weight(GOLD.ingot(), 52F),
-			weight(ZI.ingot(), 26F),
-			weight(PB.ingot(), 13F),
-			weight(BI.ingot(), 9F),
+			value(GOLD.ingot(), 0.5F),
+			value(ZI.ingot(), 0.2581F),
+			value(PB.ingot(), 0.1372F),
+			value(BI.ingot(), 0.1F),
 			// Rare category
-			weight(ND.dust(), 53F),
-			weight(ZR.ingot(), 25F),
-			weight(BR.dust(), 12F),
-			weight(ST.dust(), 10F),
+			value(ND.dust(), 0.5F),
+			value(ZR.ingot(), 0.2395F),
+			value(BR.dust(), 0.1186F),
+			value(ST.dust(), 0.1F),
 			// Actinide category
-			weight(AUSTRALIUM.ingot(), 77F),
-			weight(TASMANITE.ingot(), 14F),
-			weight(AYERITE.ingot(), 9F),
+			value(AUSTRALIUM.ingot(), 0.5F),
+			value(TASMANITE.ingot(), 0.1294F),
+			value(AYERITE.ingot(), 0.1F),
 			// Nonmetal category
-			weight(GLOWSTONE.dust(), 52F),
-			weight(P_RED.dust(), 26F),
-			weight(S.dust(), 13F),
-			weight(P_WHITE.ingot(), 9F),
+			value(GLOWSTONE.dust(), 0.5F),
+			value(P_RED.dust(), 0.2581F),
+			value(S.dust(), 0.1372F),
+			value(P_WHITE.ingot(), 0.1F),
 			// Crystal category
-			weight(CINNABAR.gem(), 53F),
-			weight(REDSTONE.dust(), 25F),
-			weight(QUARTZ.gem(), 12F),
-			weight(MOLYSITE.gem(), 10F)
+			value(CINNABAR.gem(), 0.5F),
+			value(REDSTONE.dust(), 0.2395F),
+			value(QUARTZ.gem(), 0.1186F),
+			value(MOLYSITE.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getDresCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(NI.ingot(), 52F),
-			weight(TI.ingot(), 26F),
-			weight(CD.ingot(), 13F),
-			weight(GALLIUM.ingot(), 9F),
+			value(NI.ingot(), 0.5F),
+			value(TI.ingot(), 0.2581F),
+			value(CD.ingot(), 0.1372F),
+			value(GALLIUM.ingot(), 0.1F),
 			// Heavy category
-			weight(ZI.ingot(), 54F),
-			weight(GOLD.ingot(), 24F),
-			weight(BI.ingot(), 13F),
-			weight(AS.ingot(), 9F),
+			value(ZI.ingot(), 0.5F),
+			value(GOLD.ingot(), 0.2333F),
+			value(BI.ingot(), 0.1356F),
+			value(AS.ingot(), 0.1F),
 			// Rare category
-			weight(TA.ingot(), 53F),
-			weight(LA.ingot(), 25F),
-			weight(NB.ingot(), 12F),
-			weight(ST.dust(), 10F),
+			value(TA.ingot(), 0.5F),
+			value(LA.ingot(), 0.2395F),
+			value(NB.ingot(), 0.1186F),
+			value(ST.dust(), 0.1F),
 			// Actinide category
-			weight(U.ingot(), 52F),
-			weight(RA226.ingot(), 26F),
-			weight(TC99.ingot(), 13F),
-			weight(U238.ingot(), 9F),
+			value(U.ingot(), 0.5F),
+			value(RA226.ingot(), 0.2581F),
+			value(TC99.ingot(), 0.1372F),
+			value(U238.ingot(), 0.1F),
 			// Nonmetal category
-			weight(SI.ingot(), 77F),
-			weight(F.dust(), 23F),
+			value(SI.ingot(), 0.5F),
+			value(F.dust(), 0.1F),
 			// Crystal category
-			weight(DIAMOND.gem(), 51F),
-			weight(BORAX.gem(), 27F),
-			weight(MOLYSITE.gem(), 22F)
+			value(DIAMOND.gem(), 0.5F),
+			value(BORAX.gem(), 0.169F),
+			value(MOLYSITE.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getEveCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(NA.ingot(), 58F),
-			weight(CHLOROCALCITE.dust(), 28F),
-			weight(IRON.ingot(), 14F),
+			value(NA.ingot(), 0.5F),
+			value(CHLOROCALCITE.dust(), 0.2273F),
+			value(IRON.ingot(), 0.1F),
 			// Heavy category
-			weight(W.ingot(), 59F),
-			weight(PB.ingot(), 26F),
-			weight(AS.ingot(), 15F),
+			value(W.ingot(), 0.5F),
+			value(PB.ingot(), 0.2F),
+			value(AS.ingot(), 0.1F),
 			// Rare category
-			weight(NB.ingot(), 57F),
-			weight(ST.dust(), 29F),
-			weight(I.dust(), 14F),
+			value(NB.ingot(), 0.5F),
+			value(ST.dust(), 0.2395F),
+			value(I.dust(), 0.1F),
 			// Actinide category
-			weight(PO210.ingot(), 39F),
-			weight(NP237.ingot(), 29F),
-			weight(PB209.ingot(), 17F),
-			weight(AU198.ingot(), 15F),
+			value(PO210.ingot(), 0.5F),
+			value(NP237.ingot(), 0.3333F),
+			value(PB209.ingot(), 0.1333F),
+			value(AU198.ingot(), 0.1F),
 			// Schrabidic category
-			weight(SA326.ingot(), 65F),
-			weight(SA327.ingot(), 22F),
-			weight(GH336.ingot(), 13F),
+			value(SA326.ingot(), 0.5F),
+			value(SA327.ingot(), 0.1692F),
+			value(GH336.ingot(), 0.1F),
 			// Crystal category
-			weight(SODALITE.gem(), 52F),
-			weight(MOLYSITE.gem(), 26F),
-			weight(DIAMOND.gem(), 13F),
-			weight(BORAX.gem(), 9F)
+			value(SODALITE.gem(), 0.5F),
+			value(MOLYSITE.gem(), 0.2581F),
+			value(DIAMOND.gem(), 0.1372F),
+			value(BORAX.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getIkeCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(CU.ingot(), 53F),
-			weight(BAUXITE.gem(), 25F),
-			weight(NI.ingot(), 12F),
-			weight(NA.ingot(), 10F),
+			value(CU.ingot(), 0.5F),
+			value(BAUXITE.gem(), 0.2395F),
+			value(NI.ingot(), 0.1186F),
+			value(NA.ingot(), 0.1F),
 			// Heavy category
-			weight(PB.ingot(), 54F),
-			weight(ZI.ingot(), 24F),
-			weight(GOLD.ingot(), 13F),
-			weight(AS.ingot(), 9F),
+			value(PB.ingot(), 0.5F),
+			value(ZI.ingot(), 0.2333F),
+			value(GOLD.ingot(), 0.1356F),
+			value(AS.ingot(), 0.1F),
 			// Rare category
-			weight(B.ingot(), 52F),
-			weight(ND.dust(), 26F),
-			weight(ST.dust(), 13F),
-			weight(LA.ingot(), 9F),
+			value(B.ingot(), 0.5F),
+			value(ND.dust(), 0.2581F),
+			value(ST.dust(), 0.1372F),
+			value(LA.ingot(), 0.1F),
 			// Actinide category
-			weight(U.ingot(), 53F),
-			weight(U238.ingot(), 25F),
-			weight(PU.ingot(), 12F),
-			weight(TC99.ingot(), 10F)
+			value(U.ingot(), 0.5F),
+			value(U238.ingot(), 0.2395F),
+			value(PU.ingot(), 0.1186F),
+			value(TC99.ingot(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getLaytheCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(AL.ingot(), 54F),
-			weight(TI.ingot(), 24F),
-			weight(GALLIUM.ingot(), 13F),
-			weight(HAFNIUM.ingot(), 9F),
+			value(AL.ingot(), 0.5F),
+			value(TI.ingot(), 0.2333F),
+			value(GALLIUM.ingot(), 0.1356F),
+			value(HAFNIUM.ingot(), 0.1F),
 			// Heavy category
-			weight(BE.ingot(), 52F),
-			weight(W.ingot(), 26F),
-			weight(PB.ingot(), 13F),
-			weight(AS.ingot(), 9F),
+			value(BE.ingot(), 0.5F),
+			value(W.ingot(), 0.2581F),
+			value(PB.ingot(), 0.1372F),
+			value(AS.ingot(), 0.1F),
 			// Rare category
-			weight(RAREEARTH.ingot(), 53F),
-			weight(ND.dust(), 25F),
-			weight(ST.dust(), 12F),
-			weight(NB.ingot(), 10F),
+			value(RAREEARTH.ingot(), 0.5F),
+			value(ND.dust(), 0.2395F),
+			value(ST.dust(), 0.1186F),
+			value(NB.ingot(), 0.1F),
 			// Actinide category
-			weight(U.ingot(), 52F),
-			weight(TH232.ingot(), 26F),
-			weight(PO210.ingot(), 13F),
-			weight(U235.ingot(), 9F),
+			value(U.ingot(), 0.5F),
+			value(TH232.ingot(), 0.2581F),
+			value(PO210.ingot(), 0.1372F),
+			value(U235.ingot(), 0.1F),
 			// Nonmetal category
-			weight(CHLOROCALCITE.dust(), 55F),
-			weight(COAL.gem(), 22F),
-			weight(F.dust(), 14F),
-			weight(SI.ingot(), 9F),
+			value(CHLOROCALCITE.dust(), 0.5F),
+			value(COAL.gem(), 0.213F),
+			value(F.dust(), 0.1435F),
+			value(SI.ingot(), 0.1F),
 			// Crystal category
-			weight(ASBESTOS.ingot(), 51F),
-			weight(SODALITE.gem(), 36F),
-			weight(DIAMOND.gem(), 13F)
+			value(ASBESTOS.ingot(), 0.5F),
+			value(SODALITE.gem(), 0.3421F),
+			value(DIAMOND.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getTektoCoreTrait() {
 		return new CelestialCore(
 			// Light category
-			weight(TI.ingot(), 53F),
-			weight(CU.ingot(), 25F),
-			weight(NI.ingot(), 12F),
-			weight(LI.ingot(), 10F),
+			value(TI.ingot(), 0.5F),
+			value(CU.ingot(), 0.2395F),
+			value(NI.ingot(), 0.1186F),
+			value(LI.ingot(), 0.1F),
 			// Heavy category
-			weight(BE.ingot(), 52F),
-			weight(PB.ingot(), 26F),
-			weight(ZI.ingot(), 22F),
+			value(BE.ingot(), 0.5F),
+			value(PB.ingot(), 0.1533F),
+			value(ZI.ingot(), 0.1F),
 			// Rare category
-			weight(B.ingot(), 54F),
-			weight(RAREEARTH.ingot(), 24F),
-			weight(TA.ingot(), 13F),
-			weight(BI.ingot(), 9F),
+			value(B.ingot(), 0.5F),
+			value(RAREEARTH.ingot(), 0.2333F),
+			value(TA.ingot(), 0.1356F),
+			value(BI.ingot(), 0.1F),
 			// Actinide category
-			weight(U.ingot(), 52F),
-			weight(NP237.ingot(), 26F),
-			weight(RA226.ingot(), 13F),
-			weight(TC99.ingot(), 9F),
+			value(U.ingot(), 0.5F),
+			value(NP237.ingot(), 0.2581F),
+			value(RA226.ingot(), 0.1372F),
+			value(TC99.ingot(), 0.1F),
 			// Nonmetal category
-			weight(POLYMER.ingot(), 55F),
-			weight(RUBBER.ingot(), 22F),
-			weight(SEMTEX.ingot(), 14F),
-			weight(PVC.ingot(), 9F),
+			value(POLYMER.ingot(), 0.5F),
+			value(RUBBER.ingot(), 0.213F),
+			value(SEMTEX.ingot(), 0.1435F),
+			value(PVC.ingot(), 0.1F),
 			// Crystal category
-			weight(EMERALD.gem(), 52F),
-			weight(SI.ingot(), 26F),
-			weight(MOLYSITE.gem(), 13F),
-			weight(BORAX.gem(), 9F)
+			value(EMERALD.gem(), 0.5F),
+			value(SI.ingot(), 0.2581F),
+			value(MOLYSITE.gem(), 0.1372F),
+			value(BORAX.gem(), 0.1F)
 		);
 	}
 
 	private static CelestialCore getDmitriyCoreTrait() {
-		return randomizeCoreComposition("dmitriy", new CelestialCore(
+		return new CelestialCore(
 			// Heavy category
-			weight(BIGMT.ingot(), 75F),
-			weight(YHARONITE.ingot(), 17F),
-			weight(ETHYROITE.ingot(), 8F),
+			value(BIGMT.ingot(), 0.5F),
+			value(YHARONITE.ingot(), 0.1537F),
+			value(ETHYROITE.ingot(), 0.1F),
 			// Light category
-			weight(DESH.ingot(), 100F),
+			value(DESH.ingot(), 0.5F),
 			// Schrabidic category
-			weight(SA326.ingot(), 67F),
-			weight(EUPH.ingot(), 33F),
+			value(SA326.ingot(), 0.5F),
+			value(EUPH.ingot(), 0.1F),
 			// Living category
-			weight(RIFT.ingot(), 50F),
-			weight(ABYSS.ingot(), 50F)
-		)).withMaxMassCapBypass(true);
+			value(RIFT.ingot(), 0.5F),
+			value(ABYSS.ingot(), 0.5F)
+		).withMaxMassCapBypass(true);
 	}
 
-	private static CorePlanetSpec corePlanet(String bodyName, CelestialCore core, float planetRadiusKm, double densityScale) {
-		return new CorePlanetSpec(randomizeCoreComposition(bodyName, core), planetRadiusKm, densityScale);
-	}
-
-	private static CelestialCore randomizeCoreComposition(String bodyName, CelestialCore core) {
-		if(core == null || core.categories == null || core.categories.isEmpty()) {
-			return core;
-		}
-
-		long seed = 0x9E3779B97F4A7C15L;
-		if(bodyName != null) {
-			seed ^= ((long) bodyName.hashCode()) * 0xBF58476D1CE4E5B9L;
-		}
-		Random random = new Random(seed);
-		HashMap<CelestialCore.CoreCategory, Float> categoryScores = new HashMap<CelestialCore.CoreCategory, Float>();
-		float totalCategoryScore = 0.0F;
-
-		for(CelestialCore.CoreCategory category : core.categories) {
-			if(category == null || category.entries == null || category.entries.isEmpty()) continue;
-			float categoryEntryWeightSum = 0.0F;
-			for(CelestialCore.CoreEntry entry : category.entries) {
-				if(entry == null) continue;
-				categoryEntryWeightSum += Math.max(0.0F, entry.value);
-			}
-			if(categoryEntryWeightSum <= 0.0F) continue;
-
-			float randomFactor = 1.0F - CORE_CATEGORY_RANDOM_SWING + random.nextFloat() * (CORE_CATEGORY_RANDOM_SWING * 2.0F);
-			float score = categoryEntryWeightSum * getCategoryAbundanceBias(category.name) * randomFactor;
-			categoryScores.put(category, score);
-			totalCategoryScore += score;
-		}
-
-		if(totalCategoryScore <= 0.0F) {
-			return core;
-		}
-
-		ArrayList<CelestialCore.CoreEntry> allEntries = new ArrayList<CelestialCore.CoreEntry>();
-		for(CelestialCore.CoreCategory category : core.categories) {
-			if(category == null || category.entries == null || category.entries.isEmpty()) continue;
-
-			Float score = categoryScores.get(category);
-			if(score == null || score.floatValue() <= 0.0F) continue;
-
-			float categoryEntryWeightSum = 0.0F;
-			for(CelestialCore.CoreEntry entry : category.entries) {
-				if(entry == null) continue;
-				categoryEntryWeightSum += Math.max(0.0F, entry.value);
-			}
-			if(categoryEntryWeightSum <= 0.0F) continue;
-
-			float categoryShare = score.floatValue() / totalCategoryScore;
-			for(CelestialCore.CoreEntry entry : category.entries) {
-				if(entry == null) continue;
-				float entryWeight = Math.max(0.0F, entry.value);
-				float entryShareInCategory = entryWeight / categoryEntryWeightSum;
-				entry.value = categoryShare * entryShareInCategory;
-				allEntries.add(entry);
-			}
-		}
-
-		applyMinimumEntryValue(allEntries, CORE_MIN_ENTRY_VALUE);
-		normalizeEntryValues(allEntries);
-		return core;
-	}
-
-	private static float getCategoryAbundanceBias(String categoryKey) {
-		if(categoryKey == null) return 0.70F;
-
-		if(CelestialCore.CAT_LIGHT.equals(categoryKey)) return 1.90F;
-		if(CelestialCore.CAT_HEAVY.equals(categoryKey)) return 1.90F;
-		if(CelestialCore.CAT_SCHRABIDIC.equals(categoryKey)) return 2.10F;
-		if(CelestialCore.CAT_RARE.equals(categoryKey)) return 0.65F;
-		if(CelestialCore.CAT_ACTINIDE.equals(categoryKey)) return 0.55F;
-		if(CelestialCore.CAT_NONMETAL.equals(categoryKey)) return 0.70F;
-		if(CelestialCore.CAT_CRYSTAL.equals(categoryKey)) return 0.70F;
-		if(CelestialCore.CAT_LIVING.equals(categoryKey)) return 0.45F;
-
-		return 0.70F;
-	}
-
-	private static void applyMinimumEntryValue(List<CelestialCore.CoreEntry> entries, float minimum) {
-		if(entries == null || entries.isEmpty() || minimum <= 0.0F) return;
-
-		float safeMinimum = Math.min(minimum, 1.0F / (float) entries.size() * 0.95F);
-		float deficit = 0.0F;
-		float available = 0.0F;
-		for(CelestialCore.CoreEntry entry : entries) {
-			if(entry == null) continue;
-			if(entry.value < safeMinimum) {
-				deficit += safeMinimum - entry.value;
-				entry.value = safeMinimum;
-			} else {
-				available += entry.value - safeMinimum;
-			}
-		}
-
-		if(deficit <= 0.0F || available <= 0.0F) {
-			return;
-		}
-
-		float takeRatio = deficit / available;
-		for(CelestialCore.CoreEntry entry : entries) {
-			if(entry == null || entry.value <= safeMinimum) continue;
-			float removable = entry.value - safeMinimum;
-			entry.value -= removable * takeRatio;
-		}
-	}
-
-	private static void normalizeEntryValues(List<CelestialCore.CoreEntry> entries) {
-		if(entries == null || entries.isEmpty()) return;
-
-		float total = 0.0F;
-		CelestialCore.CoreEntry largest = null;
-		for(CelestialCore.CoreEntry entry : entries) {
-			if(entry == null) continue;
-			entry.value = Math.max(0.0F, entry.value);
-			total += entry.value;
-			if(largest == null || entry.value > largest.value) {
-				largest = entry;
-			}
-		}
-
-		if(total <= 0.0F) {
-			float each = 1.0F / (float) entries.size();
-			for(CelestialCore.CoreEntry entry : entries) {
-				if(entry != null) {
-					entry.value = each;
-				}
-			}
-			return;
-		}
-
-		float normalizedTotal = 0.0F;
-		largest = null;
-		for(CelestialCore.CoreEntry entry : entries) {
-			if(entry == null) continue;
-			entry.value /= total;
-			normalizedTotal += entry.value;
-			if(largest == null || entry.value > largest.value) {
-				largest = entry;
-			}
-		}
-
-		float delta = 1.0F - normalizedTotal;
-		if(largest != null) {
-			largest.value = Math.max(0.0F, largest.value + delta);
-		}
+	private static CorePlanetSpec corePlanet(CelestialCore core, float planetRadiusKm, double targetTotalMassKg) {
+		return new CorePlanetSpec(core, planetRadiusKm, targetTotalMassKg);
 	}
 
 	private static class CorePlanetSpec {
@@ -609,26 +460,31 @@ public class SolarSystem {
 		final float planetRadiusKm;
 		final float totalMassKg;
 
-		CorePlanetSpec(CelestialCore core, float planetRadiusKm, double densityScale) {
-			this.core = core.withDensityScale(densityScale);
+		CorePlanetSpec(CelestialCore core, float planetRadiusKm, double targetTotalMassKg) {
+			this.core = core.withDensityScale(1.0D);
 			this.planetRadiusKm = planetRadiusKm;
 			this.core.recalculateForRadius(planetRadiusKm);
+			double rawTotalMassKg = this.core.computedTotalMassKg;
+			if(rawTotalMassKg > 0.0D && targetTotalMassKg > 0.0D) {
+				this.core.withDensityScale(targetTotalMassKg / rawTotalMassKg);
+				this.core.recalculateForRadius(planetRadiusKm);
+			}
 			this.totalMassKg = (float) this.core.computedTotalMassKg;
 		}
 	}
 
 	public static void init() {
-		// Calibrated so dynamic core-driven masses match intended gravity targets at stock radii.
-		CorePlanetSpec moho = corePlanet("moho", getMohoCoreTrait(), 250F, 1.469161107751D);
-		CorePlanetSpec eve = corePlanet("eve", getEveCoreTrait(), 700F, 1.938047657016D);
-		CorePlanetSpec kerbin = corePlanet("kerbin", getKerbinCoreTrait(), 600F, 2.125219521622D);
-		CorePlanetSpec mun = corePlanet("mun", getMunCoreTrait(), 200F, 1.781592988856D);
-		CorePlanetSpec minmus = corePlanet("minmus", getMinmusCoreTrait(), 60F, 1.608448614261D);
-		CorePlanetSpec duna = corePlanet("duna", getDunaCoreTrait(), 320F, 1.590476965197D);
-		CorePlanetSpec ike = corePlanet("ike", getIkeCoreTrait(), 130F, 1.029864110889D);
-		CorePlanetSpec dres = corePlanet("dres", getDresCoreTrait(), 138F, 1.191662616939D);
-		CorePlanetSpec laythe = corePlanet("laythe", getLaytheCoreTrait(), 500F, 2.381467979214D);
-		CorePlanetSpec tekto = corePlanet("tekto", getTektoCoreTrait(), 480F, 0.277912852481D);
+		// Calibrated to explicit target total masses using absolute core amounts at stock radii.
+		CorePlanetSpec moho = corePlanet(getMohoCoreTrait(), 250F, 2.526E21D);
+		CorePlanetSpec eve = corePlanet(getEveCoreTrait(), 700F, 1.224E23D);
+		CorePlanetSpec kerbin = corePlanet(getKerbinCoreTrait(), 600F, 5.292E22D);
+		CorePlanetSpec mun = corePlanet(getMunCoreTrait(), 200F, 9.76E20D);
+		CorePlanetSpec minmus = corePlanet(getMinmusCoreTrait(), 60F, 2.646E19D);
+		CorePlanetSpec duna = corePlanet(getDunaCoreTrait(), 320F, 4.515E21D);
+		CorePlanetSpec ike = corePlanet(getIkeCoreTrait(), 130F, 2.782E20D);
+		CorePlanetSpec dres = corePlanet(getDresCoreTrait(), 138F, 3.219E20D);
+		CorePlanetSpec laythe = corePlanet(getLaytheCoreTrait(), 500F, 2.94E22D);
+		CorePlanetSpec tekto = corePlanet(getTektoCoreTrait(), 480F, 2.883E21D);
 
 		// All values pulled directly from KSP, most values are auto-converted to MC friendly ones
 		kerbol = new CelestialBody("kerbol")

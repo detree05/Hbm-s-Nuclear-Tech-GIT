@@ -236,6 +236,9 @@ public class CelestialBody {
 
 	public CelestialBody withCore(CelestialCore core) {
 		this.core = core != null ? core.copy() : null;
+		if(this.core != null) {
+			this.core.clampRuntimeEntryValues();
+		}
 		if(this.core != null && this.radiusKm > 0.0F) {
 			applyMassFromCore(this, this.core);
 		}
@@ -441,6 +444,7 @@ public class CelestialBody {
 
 	public static void applyMassFromCore(CelestialBody body, CelestialCore core) {
 		if(body != null && core != null) {
+			core.clampRuntimeEntryValues();
 			core.withMaxMassCapBypass("dmitriy".equalsIgnoreCase(body.name));
 		}
 		core.recalculateForRadius(body.radiusKm);
