@@ -72,6 +72,14 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final ResourceLocation cloudsTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/clouds.png");
 	private static final ResourceLocation coreTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/core.png");
 	private static final ResourceLocation coreDmitriyTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/core_dmitriy.png");
+	private static final String NBT_KEY_MACHINE_ENABLED = "machineEnabled";
+	private static final int MODE_BUTTON_X = 10;
+	private static final int MODE_BUTTON_Y = 67;
+	private static final int MODE_BUTTON_WIDTH = 16;
+	private static final int MODE_BUTTON_HEIGHT = 25;
+	private static final int POWER_BUTTON_X = 30;
+	private static final int POWER_BUTTON_Y = 71;
+	private static final int POWER_BUTTON_SIZE = 18;
 
 	private final TileEntityCoreManipulator coreManipulator;
 	private final Map<String, ResourceLocation> planetTextureCache = new HashMap<String, ResourceLocation>();
@@ -132,7 +140,10 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
 		func_146110_a(guiLeft, guiTop, 20, 0, Math.min(xSize, 252), ySize, 272, 256);
 		if(coreManipulator != null && coreManipulator.isCoreChangeModePull()) {
-			func_146110_a(guiLeft + 10, guiTop + 67, 0, 0, 16, 25, 272, 256);
+			func_146110_a(guiLeft + MODE_BUTTON_X, guiTop + MODE_BUTTON_Y, 0, 0, MODE_BUTTON_WIDTH, MODE_BUTTON_HEIGHT, 272, 256);
+		}
+		if(coreManipulator != null && coreManipulator.isMachineEnabled()) {
+			func_146110_a(guiLeft + POWER_BUTTON_X, guiTop + POWER_BUTTON_Y, 0, 42, POWER_BUTTON_SIZE, POWER_BUTTON_SIZE, 272, 256);
 		}
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 
@@ -192,21 +203,30 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		if(button != 0 || coreManipulator == null) {
 			return;
 		}
-		if(mouseX < guiLeft + 10 || mouseX >= guiLeft + 26) {
+
+		if(mouseX >= guiLeft + MODE_BUTTON_X && mouseX < guiLeft + MODE_BUTTON_X + MODE_BUTTON_WIDTH
+			&& mouseY >= guiTop + MODE_BUTTON_Y && mouseY < guiTop + MODE_BUTTON_Y + MODE_BUTTON_HEIGHT) {
+			String nextMode = coreManipulator.isCoreChangeModePull() ? "push" : "pull";
+			coreManipulator.setCoreChangeModeById(nextMode);
+
+			NBTTagCompound control = new NBTTagCompound();
+			control.setString("coreChangeMode", nextMode);
+			PacketDispatcher.wrapper.sendToServer(new NBTControlPacket(control, coreManipulator.xCoord, coreManipulator.yCoord, coreManipulator.zCoord));
+
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:block.chungusLever"), 1.0F));
 			return;
 		}
-		if(mouseY < guiTop + 67 || mouseY >= guiTop + 92) {
-			return;
+
+		if(mouseX >= guiLeft + POWER_BUTTON_X && mouseX < guiLeft + POWER_BUTTON_X + POWER_BUTTON_SIZE
+			&& mouseY >= guiTop + POWER_BUTTON_Y && mouseY < guiTop + POWER_BUTTON_Y + POWER_BUTTON_SIZE) {
+			coreManipulator.toggleMachineEnabled();
+
+			NBTTagCompound control = new NBTTagCompound();
+			control.setBoolean(NBT_KEY_MACHINE_ENABLED, coreManipulator.isMachineEnabled());
+			PacketDispatcher.wrapper.sendToServer(new NBTControlPacket(control, coreManipulator.xCoord, coreManipulator.yCoord, coreManipulator.zCoord));
+
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:block.vaultThud"), 1.0F));
 		}
-
-		String nextMode = coreManipulator.isCoreChangeModePull() ? "push" : "pull";
-		coreManipulator.setCoreChangeModeById(nextMode);
-
-		NBTTagCompound control = new NBTTagCompound();
-		control.setString("coreChangeMode", nextMode);
-		PacketDispatcher.wrapper.sendToServer(new NBTControlPacket(control, coreManipulator.xCoord, coreManipulator.yCoord, coreManipulator.zCoord));
-
-		mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:block.chungusLever"), 1.0F));
 	}
 
 	private void drawCoreSpeedGauge(World world) {

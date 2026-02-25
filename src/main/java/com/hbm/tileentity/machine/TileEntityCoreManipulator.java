@@ -38,7 +38,9 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	}
 
 	private static final String NBT_KEY_CORE_CHANGE_MODE = "coreChangeMode";
+	private static final String NBT_KEY_MACHINE_ENABLED = "machineEnabled";
 	private CoreChangeMode coreChangeMode = CoreChangeMode.PUSH;
+	private boolean machineEnabled = false;
 
 	public TileEntityCoreManipulator() {
 		super(0);
@@ -96,16 +98,37 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.setCoreChangeMode(this.coreChangeMode == CoreChangeMode.PULL ? CoreChangeMode.PUSH : CoreChangeMode.PULL);
 	}
 
+	public boolean isMachineEnabled() {
+		return this.machineEnabled;
+	}
+
+	public void setMachineEnabled(boolean enabled) {
+		if(this.machineEnabled == enabled) {
+			return;
+		}
+
+		this.machineEnabled = enabled;
+		if(this.worldObj != null && !this.worldObj.isRemote) {
+			this.markChanged();
+		}
+	}
+
+	public void toggleMachineEnabled() {
+		this.setMachineEnabled(!this.machineEnabled);
+	}
+
 	@Override
 	public void readFromNBT(NBTTagCompound nbt) {
 		super.readFromNBT(nbt);
 		this.coreChangeMode = CoreChangeMode.fromId(nbt.getString(NBT_KEY_CORE_CHANGE_MODE));
+		this.machineEnabled = nbt.getBoolean(NBT_KEY_MACHINE_ENABLED);
 	}
 
 	@Override
 	public void writeToNBT(NBTTagCompound nbt) {
 		super.writeToNBT(nbt);
 		nbt.setString(NBT_KEY_CORE_CHANGE_MODE, this.coreChangeMode.getId());
+		nbt.setBoolean(NBT_KEY_MACHINE_ENABLED, this.machineEnabled);
 	}
 
 	@Override
@@ -117,6 +140,9 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	public void receiveControl(NBTTagCompound data) {
 		if(data != null && data.hasKey(NBT_KEY_CORE_CHANGE_MODE)) {
 			this.setCoreChangeModeById(data.getString(NBT_KEY_CORE_CHANGE_MODE));
+		}
+		if(data != null && data.hasKey(NBT_KEY_MACHINE_ENABLED)) {
+			this.setMachineEnabled(data.getBoolean(NBT_KEY_MACHINE_ENABLED));
 		}
 	}
 }
