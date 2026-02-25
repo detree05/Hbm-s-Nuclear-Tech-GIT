@@ -18,13 +18,17 @@ import com.hbm.inventory.container.ContainerCoreManipulator;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.lib.RefStrings;
+import com.hbm.packet.PacketDispatcher;
+import com.hbm.packet.toserver.NBTControlPacket;
 import com.hbm.render.util.GaugeUtil;
 import com.hbm.tileentity.machine.TileEntityCoreManipulator;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.resources.IResource;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.ResourceLocation;
@@ -68,76 +72,6 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final ResourceLocation cloudsTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/clouds.png");
 	private static final ResourceLocation coreTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/core.png");
 	private static final ResourceLocation coreDmitriyTexture = new ResourceLocation(RefStrings.MODID + ":textures/gui/coremanipulator/core_dmitriy.png");
-
-	private static final int PLANET_SIZE = 64;
-	private static final int PLANET_X = 77;
-	private static final int PLANET_Y = 33;
-	private static final int PLANET_CENTER_X = 109;
-	private static final int PLANET_CENTER_Y = 64;
-	private static final float PLANET_RENDER_SCALE = 1.0F / 1.5F;
-	private static final double BASE_SCROLL_PIXELS_PER_TICK = 0.4D;
-	private static final double CORE_SPEED_MULTIPLIER = 1.01D;
-	private static final double CORE_SPIN_RATIO = 0.5D;
-	private static final float CORE_BLOCK_LAYER_SIZE_DIVISOR = 1.2F;
-	private static final float CORE_TEXTURE_SHRINK = 2.0F;
-	private static final float MANTLE_TEXTURE_SIZE_MULTIPLIER = 1.5F;
-	private static final int CORE_TEXTURE_SIZE = 36;
-	private static final int COMPOSITION_REFRESH_TICKS = 4;
-	private static final long COMPOSITION_REFRESH_MS = 200L;
-	private static final double REGION_VALUE_MIN = 0.5D;
-	private static final double REGION_VALUE_BASE = 1.2D;
-	private static final double REGION_VALUE_MAX = 3.0D;
-	private static final float REGION_SCALE_MIN = 0.5F;
-	private static final float REGION_SCALE_BASE = 1.0F;
-	private static final float REGION_SCALE_MAX = 1.5F;
-	private static final float CORE_MATERIAL_RECOLOR_SCALE = 6.0F;
-	private static final Vec3 CORE_TINT_SCHRABIDIUM = Vec3.createVectorHelper(0.63D, 0.86D, 1.0D);
-	private static final Vec3 CORE_TINT_EUPHEMIUM = Vec3.createVectorHelper(1.0D, 0.62D, 0.86D);
-	private static final Vec3 MANTLE_RED_TINT = Vec3.createVectorHelper(1.0D, 0.42D, 0.42D);
-	private static final Vec3 DMITRIY_MANTLE_TINT = Vec3.createVectorHelper(1.0D, 0.34D, 0.34D);
-	private static final Vec3 DMITRIY_CORE_RED_TINT = Vec3.createVectorHelper(1.0D, 0.45D, 0.45D);
-	private static final int DMITRIY_FACE_MIN_SIZE = 24;
-	private static final float DMITRIY_FACE_OPACITY_MIN = 0.2F;
-	private static final float DMITRIY_FACE_OPACITY_MAX = 0.4F;
-	private static final long DMITRIY_FACE_OPACITY_PERIOD_TICKS = 240L;
-	private static final int INFO_TEXT_COLOR = 0x39FF14;
-	private static final float INFO_TEXT_SCALE = 0.5F;
-	private static final int INFO_RADIUS_X1 = 179;
-	private static final int INFO_RADIUS_Y1 = 27;
-	private static final int INFO_RADIUS_X2 = 242;
-	private static final int INFO_RADIUS_Y2 = 32;
-	private static final int INFO_CORE_MASS_X1 = 179;
-	private static final int INFO_CORE_MASS_Y1 = 47;
-	private static final int INFO_CORE_MASS_X2 = 242;
-	private static final int INFO_CORE_MASS_Y2 = 52;
-	private static final int INFO_CORE_RAD_X1 = 179;
-	private static final int INFO_CORE_RAD_Y1 = 67;
-	private static final int INFO_CORE_RAD_X2 = 242;
-	private static final int INFO_CORE_RAD_Y2 = 72;
-	private static final int CORE_SPEED_GAUGE_X1 = 175;
-	private static final int CORE_SPEED_GAUGE_Y1 = 93;
-	private static final int CORE_SPEED_GAUGE_X2 = 198;
-	private static final int CORE_SPEED_GAUGE_Y2 = 116;
-	private static final int CORE_SPEED_GAUGE_CENTER_X = (CORE_SPEED_GAUGE_X1 + CORE_SPEED_GAUGE_X2 + 1) / 2;
-	private static final int CORE_SPEED_GAUGE_CENTER_Y = (CORE_SPEED_GAUGE_Y1 + CORE_SPEED_GAUGE_Y2 + 1) / 2;
-	private static final double CORE_SPEED_GAUGE_MIN = 0.0D;
-	private static final double CORE_SPEED_GAUGE_MAX = 10.0D;
-	private static final int MAGNETIC_FIELD_GAUGE_X1 = 200;
-	private static final int MAGNETIC_FIELD_GAUGE_Y1 = 93;
-	private static final int MAGNETIC_FIELD_GAUGE_X2 = 223;
-	private static final int MAGNETIC_FIELD_GAUGE_Y2 = 116;
-	private static final int MAGNETIC_FIELD_GAUGE_CENTER_X = (MAGNETIC_FIELD_GAUGE_X1 + MAGNETIC_FIELD_GAUGE_X2 + 1) / 2;
-	private static final int MAGNETIC_FIELD_GAUGE_CENTER_Y = (MAGNETIC_FIELD_GAUGE_Y1 + MAGNETIC_FIELD_GAUGE_Y2 + 1) / 2;
-	private static final int ATM_RETENTION_GAUGE_X1 = 225;
-	private static final int ATM_RETENTION_GAUGE_Y1 = 93;
-	private static final int ATM_RETENTION_GAUGE_X2 = 248;
-	private static final int ATM_RETENTION_GAUGE_Y2 = 116;
-	private static final int ATM_RETENTION_GAUGE_CENTER_X = (ATM_RETENTION_GAUGE_X1 + ATM_RETENTION_GAUGE_X2 + 1) / 2;
-	private static final int ATM_RETENTION_GAUGE_CENTER_Y = (ATM_RETENTION_GAUGE_Y1 + ATM_RETENTION_GAUGE_Y2 + 1) / 2;
-	private static final double ATM_RETENTION_GAUGE_MIN = 0.0D;
-	private static final double ATM_RETENTION_GAUGE_MAX = 10.0D;
-	private static final double CORE_SPEED_GAUGE_SMOOTHING = 0.2D;
-	private static final int CORE_SPEED_GAUGE_COLOR = 0xA00000;
 
 	private final TileEntityCoreManipulator coreManipulator;
 	private final Map<String, ResourceLocation> planetTextureCache = new HashMap<String, ResourceLocation>();
@@ -187,16 +121,19 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			}
 		}
 
-		drawLeftValueInRect(radiusText, INFO_RADIUS_X1, INFO_RADIUS_X2, INFO_RADIUS_Y1, INFO_RADIUS_Y2, INFO_TEXT_COLOR);
-		drawLeftValueInRect(coreMassText, INFO_CORE_MASS_X1, INFO_CORE_MASS_X2, INFO_CORE_MASS_Y1, INFO_CORE_MASS_Y2, INFO_TEXT_COLOR);
-		drawLeftValueInRect(coreRadioactivityText, INFO_CORE_RAD_X1, INFO_CORE_RAD_X2, INFO_CORE_RAD_Y1, INFO_CORE_RAD_Y2, INFO_TEXT_COLOR);
+		drawLeftValueInRect(radiusText, 175, 238, 27, 32, 0x39FF14);
+		drawLeftValueInRect(coreMassText, 175, 238, 47, 52, 0x39FF14);
+		drawLeftValueInRect(coreRadioactivityText, 175, 238, 67, 72, 0x39FF14);
 	}
 
 	@Override
 	protected void drawGuiContainerBackgroundLayer(float interp, int mouseX, int mouseY) {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
-		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
+		func_146110_a(guiLeft, guiTop, 20, 0, Math.min(xSize, 252), ySize, 272, 256);
+		if(coreManipulator != null && coreManipulator.isCoreChangeModePull()) {
+			func_146110_a(guiLeft + 10, guiTop + 67, 0, 0, 16, 25, 272, 256);
+		}
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 
 		drawCoreSpeedGauge(world);
@@ -206,9 +143,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		ResourceLocation planetTexture = getCurrentPlanetTexture();
 
 		if(planetTexture != null) {
-			int px = guiLeft + PLANET_X;
-			int py = guiTop + PLANET_Y;
-			float half = PLANET_SIZE / 2.0F;
+			int px = guiLeft + 73;
+			int py = guiTop + 33;
+			float half = 64 / 2.0F;
 			CelestialBody body = getCurrentBody(world);
 			CompositionMetrics composition = getLiveCompositionMetrics(world, body);
 			int baseScroll = getCurrentScrollOffset(world, interp);
@@ -216,7 +153,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 
 			GL11.glPushMatrix();
 			GL11.glTranslatef(px + half, py + half, 0.0F);
-			GL11.glScalef(PLANET_RENDER_SCALE, PLANET_RENDER_SCALE, 1.0F);
+			GL11.glScalef((1.0F / 1.5F), (1.0F / 1.5F), 1.0F);
 			GL11.glTranslatef(-half, -half, 0.0F);
 
 			Vec3 bodyTint = getBodyTextureTint(body);
@@ -226,7 +163,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 
 			float cloudAlpha = getCloudAlpha(body);
 			if(cloudAlpha > 0.001F) {
-				int cloudScroll = (baseScroll + getCloudScrollOffset(world, interp, body)) % PLANET_SIZE;
+				int cloudScroll = (baseScroll + getCloudScrollOffset(world, interp, body)) % 64;
 				Vec3 cloudTint = getBodyCloudTint(body);
 				GL11.glEnable(GL11.GL_BLEND);
 				GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -244,91 +181,115 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		} else {
 			String text = "?";
 			int textWidth = fontRendererObj.getStringWidth(text);
-			fontRendererObj.drawStringWithShadow(text, guiLeft + PLANET_CENTER_X - textWidth / 2, guiTop + PLANET_CENTER_Y - 4, 0xFFFFFF);
+			fontRendererObj.drawStringWithShadow(text, guiLeft + 105 - textWidth / 2, guiTop + 64 - 4, 0xFFFFFF);
 		}
+	}
+
+	@Override
+	protected void mouseClicked(int mouseX, int mouseY, int button) {
+		super.mouseClicked(mouseX, mouseY, button);
+
+		if(button != 0 || coreManipulator == null) {
+			return;
+		}
+		if(mouseX < guiLeft + 10 || mouseX >= guiLeft + 26) {
+			return;
+		}
+		if(mouseY < guiTop + 67 || mouseY >= guiTop + 92) {
+			return;
+		}
+
+		String nextMode = coreManipulator.isCoreChangeModePull() ? "push" : "pull";
+		coreManipulator.setCoreChangeModeById(nextMode);
+
+		NBTTagCompound control = new NBTTagCompound();
+		control.setString("coreChangeMode", nextMode);
+		PacketDispatcher.wrapper.sendToServer(new NBTControlPacket(control, coreManipulator.xCoord, coreManipulator.yCoord, coreManipulator.zCoord));
+
+		mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:block.chungusLever"), 1.0F));
 	}
 
 	private void drawCoreSpeedGauge(World world) {
 		double coreSpeed = getCurrentCoreRotationScale(world);
 		double targetGauge = getCoreSpeedGaugeProgress(coreSpeed);
-		animatedCoreSpeedGauge += (targetGauge - animatedCoreSpeedGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedCoreSpeedGauge += (targetGauge - animatedCoreSpeedGauge) * 0.2D;
 		animatedCoreSpeedGauge = MathHelper.clamp_double(animatedCoreSpeedGauge, 0.0D, 1.0D);
 
 		GaugeUtil.drawSmoothGauge(
-			guiLeft + CORE_SPEED_GAUGE_CENTER_X,
-			guiTop + CORE_SPEED_GAUGE_CENTER_Y,
+			guiLeft + 183,
+			guiTop + 105,
 			this.zLevel,
 			animatedCoreSpeedGauge,
 			6,
 			2.5D,
 			1.25D,
-			CORE_SPEED_GAUGE_COLOR
+			0xA00000
 		);
 	}
 
 	private void drawMagneticFieldGauge(World world) {
 		double magneticField = getCurrentMagneticFieldStrength(world);
 		double targetGauge = MathHelper.clamp_double(magneticField, 0.0D, 1.0D);
-		animatedMagneticFieldGauge += (targetGauge - animatedMagneticFieldGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedMagneticFieldGauge += (targetGauge - animatedMagneticFieldGauge) * 0.2D;
 		animatedMagneticFieldGauge = MathHelper.clamp_double(animatedMagneticFieldGauge, 0.0D, 1.0D);
 
 		GaugeUtil.drawSmoothGauge(
-			guiLeft + MAGNETIC_FIELD_GAUGE_CENTER_X,
-			guiTop + MAGNETIC_FIELD_GAUGE_CENTER_Y,
+			guiLeft + 208,
+			guiTop + 105,
 			this.zLevel,
 			animatedMagneticFieldGauge,
 			6,
 			2.5D,
 			1.25D,
-			CORE_SPEED_GAUGE_COLOR
+			0xA00000
 		);
 	}
 
 	private void drawAtmosphereRetentionGauge(World world) {
 		double atmosphereRetention = getCurrentAtmosphereRetention(world);
 		double targetGauge = getAtmosphereRetentionGaugeProgress(atmosphereRetention);
-		animatedAtmosphereRetentionGauge += (targetGauge - animatedAtmosphereRetentionGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedAtmosphereRetentionGauge += (targetGauge - animatedAtmosphereRetentionGauge) * 0.2D;
 		animatedAtmosphereRetentionGauge = MathHelper.clamp_double(animatedAtmosphereRetentionGauge, 0.0D, 1.0D);
 
 		GaugeUtil.drawSmoothGauge(
-			guiLeft + ATM_RETENTION_GAUGE_CENTER_X,
-			guiTop + ATM_RETENTION_GAUGE_CENTER_Y,
+			guiLeft + 233,
+			guiTop + 105,
 			this.zLevel,
 			animatedAtmosphereRetentionGauge,
 			6,
 			2.5D,
 			1.25D,
-			CORE_SPEED_GAUGE_COLOR
+			0xA00000
 		);
 	}
 
 	private double getCoreSpeedGaugeProgress(double coreSpeed) {
-		double range = CORE_SPEED_GAUGE_MAX - CORE_SPEED_GAUGE_MIN;
+		double range = 10.0D - 0.0D;
 		if(range <= 0.0D) {
 			return 0.0D;
 		}
-		return MathHelper.clamp_double((coreSpeed - CORE_SPEED_GAUGE_MIN) / range, 0.0D, 1.0D);
+		return MathHelper.clamp_double((coreSpeed - 0.0D) / range, 0.0D, 1.0D);
 	}
 
 	private double getAtmosphereRetentionGaugeProgress(double atmosphereRetention) {
-		double range = ATM_RETENTION_GAUGE_MAX - ATM_RETENTION_GAUGE_MIN;
+		double range = 10.0D - 0.0D;
 		if(range <= 0.0D) {
 			return 0.0D;
 		}
-		return MathHelper.clamp_double((atmosphereRetention - ATM_RETENTION_GAUGE_MIN) / range, 0.0D, 1.0D);
+		return MathHelper.clamp_double((atmosphereRetention - 0.0D) / range, 0.0D, 1.0D);
 	}
 
 	private void drawCoreSpeedTooltip(int mouseX, int mouseY) {
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 		double coreSpeed = getCurrentCoreRotationScale(world);
-		int width = CORE_SPEED_GAUGE_X2 - CORE_SPEED_GAUGE_X1 + 1;
-		int height = CORE_SPEED_GAUGE_Y2 - CORE_SPEED_GAUGE_Y1 + 1;
+		int width = 24;
+		int height = 24;
 
 		drawCustomInfoStat(
 			mouseX,
 			mouseY,
-			guiLeft + CORE_SPEED_GAUGE_X1,
-			guiTop + CORE_SPEED_GAUGE_Y1,
+			guiLeft + 171,
+			guiTop + 93,
 			width,
 			height,
 			mouseX,
@@ -340,14 +301,14 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private void drawMagneticFieldTooltip(int mouseX, int mouseY) {
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 		double magneticField = getCurrentMagneticFieldStrength(world);
-		int width = MAGNETIC_FIELD_GAUGE_X2 - MAGNETIC_FIELD_GAUGE_X1 + 1;
-		int height = MAGNETIC_FIELD_GAUGE_Y2 - MAGNETIC_FIELD_GAUGE_Y1 + 1;
+		int width = 24;
+		int height = 24;
 
 		drawCustomInfoStat(
 			mouseX,
 			mouseY,
-			guiLeft + MAGNETIC_FIELD_GAUGE_X1,
-			guiTop + MAGNETIC_FIELD_GAUGE_Y1,
+			guiLeft + 196,
+			guiTop + 93,
 			width,
 			height,
 			mouseX,
@@ -359,14 +320,14 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private void drawAtmosphereRetentionTooltip(int mouseX, int mouseY) {
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 		double atmosphereRetention = getCurrentAtmosphereRetention(world);
-		int width = ATM_RETENTION_GAUGE_X2 - ATM_RETENTION_GAUGE_X1 + 1;
-		int height = ATM_RETENTION_GAUGE_Y2 - ATM_RETENTION_GAUGE_Y1 + 1;
+		int width = 24;
+		int height = 24;
 
 		drawCustomInfoStat(
 			mouseX,
 			mouseY,
-			guiLeft + ATM_RETENTION_GAUGE_X1,
-			guiTop + ATM_RETENTION_GAUGE_Y1,
+			guiLeft + 221,
+			guiTop + 93,
 			width,
 			height,
 			mouseX,
@@ -407,22 +368,22 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawScrollingPlanet(int scroll) {
-		int uStart = (PLANET_SIZE - scroll) % PLANET_SIZE;
-		int firstWidth = PLANET_SIZE - uStart;
+		int uStart = (64 - scroll) % 64;
+		int firstWidth = 64 - uStart;
 
 		if(firstWidth > 0) {
-			func_146110_a(0, 0, uStart, 0, firstWidth, PLANET_SIZE, PLANET_SIZE, PLANET_SIZE);
+			func_146110_a(0, 0, uStart, 0, firstWidth, 64, 64, 64);
 		}
 
 		if(uStart > 0) {
-			func_146110_a(firstWidth, 0, 0, 0, uStart, PLANET_SIZE, PLANET_SIZE, PLANET_SIZE);
+			func_146110_a(firstWidth, 0, 0, 0, uStart, 64, 64, 64);
 		}
 	}
 
 	private void drawCoreLayers(int coreScroll, CelestialBody body, CompositionMetrics composition) {
 		boolean dmitriy = isDmitriyBody(body);
-		Vec3 mantleTint = dmitriy ? DMITRIY_MANTLE_TINT : MANTLE_RED_TINT;
-		Vec3 coreTint = dmitriy ? applyTint(getCoreTextureRecolor(body), DMITRIY_CORE_RED_TINT, 0.45F) : getCoreTextureRecolor(body);
+		Vec3 mantleTint = dmitriy ? Vec3.createVectorHelper(1.0D, 0.34D, 0.34D) : Vec3.createVectorHelper(1.0D, 0.42D, 0.42D);
+		Vec3 coreTint = dmitriy ? applyTint(getCoreTextureRecolor(body), Vec3.createVectorHelper(1.0D, 0.45D, 0.45D), 0.45F) : getCoreTextureRecolor(body);
 
 		if(composition.mantleVisible) {
 			drawCenteredCoreTexture(coreScroll, composition.mantleSize, mantleTint);
@@ -431,9 +392,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			drawCenteredCoreTexture(coreScroll, composition.coreSize, coreTint);
 		}
 		if(dmitriy) {
-			int fallbackCoreSize = Math.max(1, Math.round(CORE_TEXTURE_SIZE / CORE_TEXTURE_SHRINK));
+			int fallbackCoreSize = Math.max(1, Math.round(36 / 2.0F));
 			int overlaySize = composition.coreVisible ? composition.coreSize : fallbackCoreSize;
-			overlaySize = Math.max(DMITRIY_FACE_MIN_SIZE, overlaySize);
+			overlaySize = Math.max(24, overlaySize);
 			drawCenteredStaticTexture(coreDmitriyTexture, overlaySize, Vec3.createVectorHelper(1.0D, 1.0D, 1.0D), getDmitriyFaceOpacity());
 		}
 	}
@@ -441,10 +402,10 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private float getDmitriyFaceOpacity() {
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 		double ticks = world != null ? (double) world.getTotalWorldTime() : (double) Minecraft.getSystemTime() / 50.0D;
-		double period = Math.max(1.0D, (double) DMITRIY_FACE_OPACITY_PERIOD_TICKS);
+		double period = Math.max(1.0D, (double) 240L);
 		double cycle = (ticks % period) / period;
 		double pingPong = cycle <= 0.5D ? cycle * 2.0D : (1.0D - cycle) * 2.0D;
-		return DMITRIY_FACE_OPACITY_MIN + (float) pingPong * (DMITRIY_FACE_OPACITY_MAX - DMITRIY_FACE_OPACITY_MIN);
+		return 0.2F + (float) pingPong * (0.4F - 0.2F);
 	}
 
 	private void drawCenteredBodyBlockLayer(CelestialBody body, CompositionMetrics composition, int scroll) {
@@ -454,7 +415,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		}
 
 		int renderSize = composition.stoneSize;
-		float center = PLANET_SIZE * 0.5F;
+		float center = 64 * 0.5F;
 		float start = center - (renderSize * 0.5F);
 		float stoneAlpha = 0.7F;
 
@@ -485,7 +446,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawScrollingTexturedQuad(float x, float y, float width, float height, int scroll) {
-		float uOffset = (float) ((PLANET_SIZE - (scroll % PLANET_SIZE)) % PLANET_SIZE) / (float) PLANET_SIZE;
+		float uOffset = (float) ((64 - (scroll % 64)) % 64) / (float) 64;
 		if(uOffset < 0.0F) {
 			uOffset += 1.0F;
 		}
@@ -518,8 +479,8 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawCenteredCoreTexture(int scroll, int renderSize, Vec3 tint) {
-		float scale = renderSize / (float) CORE_TEXTURE_SIZE;
-		float center = PLANET_SIZE * 0.5F;
+		float scale = renderSize / (float) 36;
+		float center = 64 * 0.5F;
 		float start = center - (renderSize * 0.5F);
 		Vec3 textureTint = tint != null ? tint : Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
 
@@ -541,7 +502,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			return;
 		}
 
-		float center = PLANET_SIZE * 0.5F;
+		float center = 64 * 0.5F;
 		float start = center - (renderSize * 0.5F);
 		Vec3 textureTint = tint != null ? tint : Vec3.createVectorHelper(1.0D, 1.0D, 1.0D);
 		float clampedAlpha = MathHelper.clamp_float(alpha, 0.0F, 1.0F);
@@ -578,8 +539,8 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		double schrabidiumShare = getCoreMaterialShare(core, "schrabidium");
 		double euphemiumShare = getCoreMaterialShare(core, "euphemium");
 
-		float schrabidiumStrength = MathHelper.clamp_float((float) (schrabidiumShare * CORE_MATERIAL_RECOLOR_SCALE), 0.0F, 1.0F);
-		float euphemiumStrength = MathHelper.clamp_float((float) (euphemiumShare * CORE_MATERIAL_RECOLOR_SCALE), 0.0F, 1.0F);
+		float schrabidiumStrength = MathHelper.clamp_float((float) (schrabidiumShare * 6.0F), 0.0F, 1.0F);
+		float euphemiumStrength = MathHelper.clamp_float((float) (euphemiumShare * 6.0F), 0.0F, 1.0F);
 		float totalStrength = MathHelper.clamp_float(schrabidiumStrength + euphemiumStrength, 0.0F, 1.0F);
 
 		if(totalStrength <= 0.0F) {
@@ -590,9 +551,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		float schrabidiumMix = sum > 0.0F ? schrabidiumStrength / sum : 0.0F;
 		float euphemiumMix = sum > 0.0F ? euphemiumStrength / sum : 0.0F;
 
-		float targetR = (float) (CORE_TINT_SCHRABIDIUM.xCoord * schrabidiumMix + CORE_TINT_EUPHEMIUM.xCoord * euphemiumMix);
-		float targetG = (float) (CORE_TINT_SCHRABIDIUM.yCoord * schrabidiumMix + CORE_TINT_EUPHEMIUM.yCoord * euphemiumMix);
-		float targetB = (float) (CORE_TINT_SCHRABIDIUM.zCoord * schrabidiumMix + CORE_TINT_EUPHEMIUM.zCoord * euphemiumMix);
+		float targetR = (float) (Vec3.createVectorHelper(0.63D, 0.86D, 1.0D).xCoord * schrabidiumMix + Vec3.createVectorHelper(1.0D, 0.62D, 0.86D).xCoord * euphemiumMix);
+		float targetG = (float) (Vec3.createVectorHelper(0.63D, 0.86D, 1.0D).yCoord * schrabidiumMix + Vec3.createVectorHelper(1.0D, 0.62D, 0.86D).yCoord * euphemiumMix);
+		float targetB = (float) (Vec3.createVectorHelper(0.63D, 0.86D, 1.0D).zCoord * schrabidiumMix + Vec3.createVectorHelper(1.0D, 0.62D, 0.86D).zCoord * euphemiumMix);
 
 		float r = blendChannel(1.0F, targetR, totalStrength);
 		float g = blendChannel(1.0F, targetG, totalStrength);
@@ -671,9 +632,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		double mantleTotal = getCategoryGroupTotal(core, CelestialCore.CAT_RARE, CelestialCore.CAT_ACTINIDE);
 		double stoneTotal = getCategoryGroupTotal(core, CelestialCore.CAT_NONMETAL, CelestialCore.CAT_CRYSTAL);
 
-		int baseCoreSize = Math.max(1, Math.round(CORE_TEXTURE_SIZE / CORE_TEXTURE_SHRINK));
-		int baseMantleSize = Math.max(1, Math.round(baseCoreSize * MANTLE_TEXTURE_SIZE_MULTIPLIER));
-		int baseStoneSize = Math.max(1, Math.round(PLANET_SIZE / CORE_BLOCK_LAYER_SIZE_DIVISOR));
+		int baseCoreSize = Math.max(1, Math.round(36 / 2.0F));
+		int baseMantleSize = Math.max(1, Math.round(baseCoreSize * 1.5F));
+		int baseStoneSize = Math.max(1, Math.round(64 / 1.2F));
 
 		boolean coreVisible = coreTotal > 0.0D;
 		boolean mantleVisible = mantleTotal > 0.0D;
@@ -688,19 +649,19 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private float getRegionSizeScale(double totalValue) {
-		if(totalValue <= REGION_VALUE_MIN) {
-			return REGION_SCALE_MIN;
+		if(totalValue <= 0.5D) {
+			return 0.5F;
 		}
-		if(totalValue >= REGION_VALUE_MAX) {
-			return REGION_SCALE_MAX;
+		if(totalValue >= 3.0D) {
+			return 1.5F;
 		}
-		if(totalValue <= REGION_VALUE_BASE) {
-			double t = (totalValue - REGION_VALUE_MIN) / (REGION_VALUE_BASE - REGION_VALUE_MIN);
-			return (float) (REGION_SCALE_MIN + t * (REGION_SCALE_BASE - REGION_SCALE_MIN));
+		if(totalValue <= 1.2D) {
+			double t = (totalValue - 0.5D) / (1.2D - 0.5D);
+			return (float) (0.5F + t * (1.0F - 0.5F));
 		}
 
-		double t = (totalValue - REGION_VALUE_BASE) / (REGION_VALUE_MAX - REGION_VALUE_BASE);
-		return (float) (REGION_SCALE_BASE + t * (REGION_SCALE_MAX - REGION_SCALE_BASE));
+		double t = (totalValue - 1.2D) / (3.0D - 1.2D);
+		return (float) (1.0F + t * (1.5F - 1.0F));
 	}
 
 	private double getCategoryGroupTotal(CelestialCore core, String... categoryKeys) {
@@ -764,13 +725,13 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			return CompositionRegion.NONE;
 		}
 
-		float half = PLANET_SIZE * 0.5F;
-		float centerX = guiLeft + PLANET_X + half;
-		float centerY = guiTop + PLANET_Y + half;
-		float localX = (mouseX - centerX) / PLANET_RENDER_SCALE + half;
-		float localY = (mouseY - centerY) / PLANET_RENDER_SCALE + half;
+		float half = 64 * 0.5F;
+		float centerX = guiLeft + 73 + half;
+		float centerY = guiTop + 33 + half;
+		float localX = (mouseX - centerX) / (1.0F / 1.5F) + half;
+		float localY = (mouseY - centerY) / (1.0F / 1.5F) + half;
 
-		if(localX < 0.0F || localY < 0.0F || localX >= PLANET_SIZE || localY >= PLANET_SIZE) {
+		if(localX < 0.0F || localY < 0.0F || localX >= 64 || localY >= 64) {
 			return CompositionRegion.NONE;
 		}
 
@@ -790,7 +751,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private boolean isInsideCenteredSquare(float x, float y, int size) {
-		float start = PLANET_SIZE * 0.5F - size * 0.5F;
+		float start = 64 * 0.5F - size * 0.5F;
 		float end = start + size;
 		return x >= start && x < end && y >= start && y < end;
 	}
@@ -866,7 +827,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 
 		if(world != null) {
 			long tick = world.getTotalWorldTime();
-			if(lastCompositionRefreshTick == Long.MIN_VALUE || tick - lastCompositionRefreshTick >= COMPOSITION_REFRESH_TICKS) {
+			if(lastCompositionRefreshTick == Long.MIN_VALUE || tick - lastCompositionRefreshTick >= 4) {
 				shouldRefresh = true;
 			}
 			if(shouldRefresh) {
@@ -875,7 +836,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			}
 		} else {
 			long nowMs = Minecraft.getSystemTime();
-			if(lastCompositionRefreshMs == Long.MIN_VALUE || nowMs - lastCompositionRefreshMs >= COMPOSITION_REFRESH_MS) {
+			if(lastCompositionRefreshMs == Long.MIN_VALUE || nowMs - lastCompositionRefreshMs >= 200L) {
 				shouldRefresh = true;
 				lastCompositionRefreshMs = nowMs;
 			}
@@ -962,15 +923,15 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawScrollingCore(int scroll) {
-		int uStart = (CORE_TEXTURE_SIZE - scroll) % CORE_TEXTURE_SIZE;
-		int firstWidth = CORE_TEXTURE_SIZE - uStart;
+		int uStart = (36 - scroll) % 36;
+		int firstWidth = 36 - uStart;
 
 		if(firstWidth > 0) {
-			func_146110_a(0, 0, uStart, 0, firstWidth, CORE_TEXTURE_SIZE, CORE_TEXTURE_SIZE, CORE_TEXTURE_SIZE);
+			func_146110_a(0, 0, uStart, 0, firstWidth, 36, 36, 36);
 		}
 
 		if(uStart > 0) {
-			func_146110_a(firstWidth, 0, 0, 0, uStart, CORE_TEXTURE_SIZE, CORE_TEXTURE_SIZE, CORE_TEXTURE_SIZE);
+			func_146110_a(firstWidth, 0, 0, 0, uStart, 36, 36, 36);
 		}
 	}
 
@@ -982,21 +943,21 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private int getCurrentScrollOffset(World world, float partialTicks) {
 		double rotationScale = getCurrentCoreRotationScale(world);
 		double ticks = world != null ? (double) world.getTotalWorldTime() + (double) partialTicks : (double) Minecraft.getSystemTime() / 50.0D;
-		double traveled = ticks * BASE_SCROLL_PIXELS_PER_TICK * rotationScale * CORE_SPEED_MULTIPLIER;
-		int scroll = (int) Math.floor(traveled) % PLANET_SIZE;
-		if(scroll < 0) scroll += PLANET_SIZE;
+		double traveled = ticks * 0.4D * rotationScale * 1.01D;
+		int scroll = (int) Math.floor(traveled) % 64;
+		if(scroll < 0) scroll += 64;
 		return scroll;
 	}
 
 	private int getCurrentCoreScrollOffset(World world, float partialTicks) {
 		double rotationScale = getCurrentCoreRotationScale(world);
 		double ticks = world != null ? (double) world.getTotalWorldTime() + (double) partialTicks : (double) Minecraft.getSystemTime() / 50.0D;
-		double planetCycles = (ticks * BASE_SCROLL_PIXELS_PER_TICK * rotationScale * CORE_SPEED_MULTIPLIER) / PLANET_SIZE;
-		double coreCycles = planetCycles * CORE_SPIN_RATIO;
+		double planetCycles = (ticks * 0.4D * rotationScale * 1.01D) / 64;
+		double coreCycles = planetCycles * 0.5D;
 		double wrappedCoreCycle = coreCycles - Math.floor(coreCycles);
 
-		int scroll = (int) Math.floor(wrappedCoreCycle * CORE_TEXTURE_SIZE) % CORE_TEXTURE_SIZE;
-		if(scroll < 0) scroll += CORE_TEXTURE_SIZE;
+		int scroll = (int) Math.floor(wrappedCoreCycle * 36) % 36;
+		if(scroll < 0) scroll += 36;
 		return scroll;
 	}
 
@@ -1009,8 +970,8 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		double phaseOffset = (Math.abs(body.name.hashCode()) % 2048) / 2048.0D;
 		double uvOffset = (time / driftPeriod + phaseOffset) % 1.0D;
 
-		int scroll = (int) Math.floor(uvOffset * PLANET_SIZE) % PLANET_SIZE;
-		if(scroll < 0) scroll += PLANET_SIZE;
+		int scroll = (int) Math.floor(uvOffset * 64) % 64;
+		if(scroll < 0) scroll += 64;
 		return scroll;
 	}
 
@@ -1233,12 +1194,12 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		String drawText = (text == null || text.isEmpty()) ? "-" : text;
 		int rectHeight = Math.max(1, y2 - y1 + 1);
 		float drawX = (float) (x1 + 1);
-		float effectiveScaledHeight = (fontRendererObj.FONT_HEIGHT + 1.0F) * INFO_TEXT_SCALE;
+		float effectiveScaledHeight = (fontRendererObj.FONT_HEIGHT + 1.0F) * 0.5F;
 		float drawY = (float) (y1 + ((float) rectHeight - effectiveScaledHeight) * 0.5F + 1);
 
 		GL11.glPushMatrix();
 		GL11.glTranslatef(drawX, drawY, 0.0F);
-		GL11.glScalef(INFO_TEXT_SCALE, INFO_TEXT_SCALE, 1.0F);
+		GL11.glScalef(0.5F, 0.5F, 1.0F);
 		fontRendererObj.drawStringWithShadow(drawText, 0, 0, color);
 		GL11.glPopMatrix();
 	}
@@ -1284,3 +1245,4 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		return String.format(Locale.US, "%.2f", Math.max(0.0D, retention));
 	}
 }
+
