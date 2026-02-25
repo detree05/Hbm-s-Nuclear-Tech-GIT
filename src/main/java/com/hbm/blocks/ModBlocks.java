@@ -1059,6 +1059,7 @@ public class ModBlocks {
 	public static Block machine_hephaestus;
 	public static Block machine_solar;
 	public static Block machine_stardar;
+	public static Block machine_core_manipulator;
 	public static Block machine_drive_processor;
 	public static Block machine_alkylation;
 
@@ -2175,6 +2176,7 @@ public class ModBlocks {
 		machine_hephaestus = new MachineHephaestus(Material.iron).setBlockName("machine_hephaestus").setHardness(10.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 		machine_solar = new MachineSolar(Material.iron).setBlockName("machine_solar").setHardness(5.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 		machine_stardar = new MachineStardar(Material.iron).setBlockName("machine_stardar").setHardness(5.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
+		machine_core_manipulator = new MachineCoreManipulator(Material.iron).setBlockName("machine_core_manipulator").setHardness(5.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":air");
 		machine_drive_processor = new MachineDriveProcessor(Material.iron).setBlockName("machine_drive_processor").setHardness(5.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 		machine_alkylation = new MachineAlkylation(Material.iron).setBlockName("machine_alkylation").setHardness(5.0F).setResistance(10.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel_machine");
 
@@ -3601,6 +3603,7 @@ public class ModBlocks {
 		GameRegistry.registerBlock(machine_hephaestus, machine_hephaestus.getUnlocalizedName());
 		GameRegistry.registerBlock(machine_solar, machine_solar.getUnlocalizedName());
 		register(machine_stardar);
+		register(machine_core_manipulator);
 		register(machine_drive_processor);
 		GameRegistry.registerBlock(machine_alkylation, machine_alkylation.getUnlocalizedName());
 

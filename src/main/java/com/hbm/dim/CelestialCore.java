@@ -250,7 +250,6 @@ public class CelestialCore {
 		registerCategory("Nickel", CAT_LIGHT);
 		registerCategory("Cadmium", CAT_LIGHT);
 		registerCategory("Gallium", CAT_LIGHT);
-		registerCategory("Cobalt", CAT_LIGHT);
 		registerCategory("Bauxite", CAT_LIGHT);
 		registerCategory("Hafnium", CAT_LIGHT);
 		registerCategory("IndustrialGradeCopper", CAT_LIGHT);
@@ -284,6 +283,7 @@ public class CelestialCore {
 		registerCategory("RareEarthOreChunk", CAT_RARE);
 		registerCategory("Neodymium", CAT_RARE);
 		registerCategory("Strontium", CAT_RARE);
+		registerCategory("Cobalt", CAT_RARE);
 		registerCategory("Zirconium", CAT_RARE);
 		registerCategory("Boron", CAT_RARE);
 		registerCategory("Bromine", CAT_RARE);

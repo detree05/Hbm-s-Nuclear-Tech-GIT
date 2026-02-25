@@ -4,9 +4,12 @@ import static com.hbm.inventory.material.Mats.*;
 import static com.hbm.items.special.ItemBedrockOreNew.ProcessingTrait.*;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import com.hbm.items.ModItems;
 import com.hbm.util.EnumUtil;
@@ -16,8 +19,13 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 import com.hbm.inventory.material.Mats.MaterialStack;
+import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialCore;
+import com.hbm.dim.CelestialCore.CoreCategory;
+import com.hbm.dim.CelestialCore.CoreEntry;
 import com.hbm.dim.SolarSystem;
 import com.hbm.inventory.material.MaterialShapes;
+import com.hbm.inventory.material.Mats;
 import com.hbm.inventory.material.NTMMaterial;
 import com.hbm.inventory.material.NTMMaterial.SmeltingBehavior;
 import com.hbm.lib.RefStrings;
@@ -30,13 +38,22 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.StatCollector;
+import net.minecraftforge.oredict.OreDictionary;
 
 public class ItemBedrockOreNew extends Item {
 
 	public IIcon[] icons = new IIcon[CelestialBedrockOre.oreTypes.size() * BedrockOreGrade.values().length];
 	public IIcon[] overlays = new IIcon[ProcessingTrait.values().length];
+	public static final float MIN_PROCESSABLE_CORE_VALUE = 0.1F;
+	private static final Comparator<ResolvedCoreEntry> CORE_VALUE_DESC = new Comparator<ResolvedCoreEntry>() {
+		@Override
+		public int compare(ResolvedCoreEntry left, ResolvedCoreEntry right) {
+			return Float.compare(right.value, left.value);
+		}
+	};
 
 	public ItemBedrockOreNew() {
 		this.setHasSubtypes(true);
@@ -113,10 +130,33 @@ public class ItemBedrockOreNew extends Item {
 
 	@Override
 	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean bool) {
+		int meta = stack.getItemDamage();
+		BedrockOreGrade grade = this.getGrade(meta);
+		CelestialBedrockOreType type = this.getType(meta);
 
-		for(ProcessingTrait trait : this.getGrade(stack.getItemDamage()).traits) {
+		for(ProcessingTrait trait : grade.traits) {
 			list.add(I18nUtil.resolveKey(this.getUnlocalizedNameInefficiently(stack) + ".trait." + trait.name().toLowerCase(Locale.US)));
 		}
+
+		List<ResolvedCoreEntry> entries = getRankedCoreEntries(type);
+		if(entries.isEmpty()) {
+			return;
+		}
+
+		list.add(EnumChatFormatting.DARK_GRAY + "Core composition:");
+		for(ResolvedCoreEntry entry : entries) {
+			list.add(EnumChatFormatting.GRAY + "- " + getMaterialDisplayName(entry.material, entry.oreDict) + ": " + formatCoreValue(entry.value));
+		}
+
+		BedrockOreOutput primary = getPrimaryOutput(type);
+		BedrockOreOutput sulfuric = getSulfuricOutput(type);
+		BedrockOreOutput solvent = getSolventOutput(type);
+		BedrockOreOutput rad = getRadOutput(type);
+		list.add(EnumChatFormatting.DARK_GRAY + "Processing levels:");
+		list.add(EnumChatFormatting.GRAY + "Main: " + describeOutput(primary));
+		list.add(EnumChatFormatting.GRAY + "Sulfuric: " + describeOutput(sulfuric));
+		list.add(EnumChatFormatting.GRAY + "Solvent: " + describeOutput(solvent));
+		list.add(EnumChatFormatting.GRAY + "HPS: " + describeOutput(rad));
 	}
 
 	public static class BedrockOreOutput {
@@ -130,6 +170,266 @@ public class ItemBedrockOreNew extends Item {
 
 	public static BedrockOreOutput o(NTMMaterial mat, int amount) {
 		return new BedrockOreOutput(mat, amount);
+	}
+
+	private static class ResolvedCoreEntry {
+		public final String oreDict;
+		public final float value;
+		public final NTMMaterial material;
+
+		private ResolvedCoreEntry(String oreDict, float value, NTMMaterial material) {
+			this.oreDict = oreDict;
+			this.value = value;
+			this.material = material;
+		}
+	}
+
+	private static CelestialCore getLiveCore(CelestialBedrockOreType type) {
+		if(type == null || type.body == null) {
+			return null;
+		}
+
+		CelestialBody body = type.body.getBody();
+		if(body == null) {
+			return null;
+		}
+
+		return body.getCore();
+	}
+
+	private static boolean isCoreDriven(CelestialBedrockOreType type) {
+		if(type == null || type.suffix == null) {
+			return false;
+		}
+
+		CelestialCore core = getLiveCore(type);
+		if(core == null) {
+			return false;
+		}
+
+		return core.getCategory(type.suffix) != null;
+	}
+
+	public static boolean isCoreDrivenType(CelestialBedrockOreType type) {
+		return isCoreDriven(type);
+	}
+
+	public static boolean hasCategoryInCore(CelestialBedrockOreType type) {
+		if(type == null || type.suffix == null) {
+			return false;
+		}
+
+		CelestialCore core = getLiveCore(type);
+		if(core == null) {
+			// Non-core planets keep legacy bedrock ore visibility.
+			return true;
+		}
+
+		CoreCategory category = core.getCategory(type.suffix);
+		if(category == null || category.entries == null || category.entries.isEmpty()) {
+			return false;
+		}
+
+		for(CoreEntry entry : category.entries) {
+			if(entry != null && entry.value >= MIN_PROCESSABLE_CORE_VALUE) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	private static List<ResolvedCoreEntry> getRankedCoreEntries(CelestialBedrockOreType type) {
+		if(!isCoreDriven(type)) {
+			return Collections.emptyList();
+		}
+
+		CelestialCore core = getLiveCore(type);
+		CoreCategory category = core.getCategory(type.suffix);
+		if(category == null || category.entries == null || category.entries.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		ArrayList<ResolvedCoreEntry> entries = new ArrayList<ResolvedCoreEntry>();
+		for(CoreEntry entry : category.entries) {
+			if(entry == null || entry.oreDict == null || entry.oreDict.isEmpty() || entry.value < MIN_PROCESSABLE_CORE_VALUE) {
+				continue;
+			}
+
+			entries.add(new ResolvedCoreEntry(entry.oreDict, entry.value, getMaterialFromOreDict(entry.oreDict)));
+		}
+
+		if(entries.isEmpty()) {
+			return Collections.emptyList();
+		}
+
+		Collections.sort(entries, CORE_VALUE_DESC);
+		return entries;
+	}
+
+	private static String getMaterialToken(String oreDict) {
+		if(oreDict == null || oreDict.isEmpty()) return oreDict;
+		for(int i = 0; i < oreDict.length(); i++) {
+			if(Character.isUpperCase(oreDict.charAt(i))) {
+				return oreDict.substring(i);
+			}
+		}
+		return oreDict;
+	}
+
+	private static NTMMaterial getMaterialFromOreDict(String oreDict) {
+		String token = getMaterialToken(oreDict);
+		if(token == null || token.isEmpty()) {
+			return null;
+		}
+
+		NTMMaterial direct = Mats.matByName.get(token);
+		if(direct != null) {
+			return direct;
+		}
+
+		if("Aluminum".equals(token)) {
+			direct = Mats.matByName.get("Aluminium");
+			if(direct != null) return direct;
+		}
+		if("Lanthanum".equals(token)) {
+			direct = Mats.matByName.get("Lanthanium");
+			if(direct != null) return direct;
+		}
+
+		for(Map.Entry<String, NTMMaterial> entry : Mats.matByName.entrySet()) {
+			if(entry.getKey() != null && entry.getKey().equalsIgnoreCase(token)) {
+				return entry.getValue();
+			}
+		}
+
+		try {
+			List<ItemStack> dictEntries = OreDictionary.getOres(oreDict);
+			if(dictEntries != null) {
+				for(ItemStack dictStack : dictEntries) {
+					if(dictStack == null) continue;
+					List<MaterialStack> mats = Mats.getMaterialsFromItem(dictStack);
+					if(mats == null) continue;
+					for(MaterialStack matStack : mats) {
+						if(matStack != null && matStack.material != null) {
+							return matStack.material;
+						}
+					}
+				}
+			}
+		} catch(Exception ignored) { }
+
+		return null;
+	}
+
+	private static BedrockOreOutput resolveDynamicOutput(CelestialBedrockOreType type, int stage) {
+		BedrockOreOutput fallback = getFallbackOutput(type, stage);
+		List<ResolvedCoreEntry> entries = getRankedCoreEntries(type);
+		if(entries.isEmpty()) {
+			if(isCoreDriven(type)) {
+				return null;
+			}
+			return fallback;
+		}
+
+		ResolvedCoreEntry first = entries.get(0);
+		ResolvedCoreEntry second = entries.size() > 1 ? entries.get(1) : first;
+		ResolvedCoreEntry third = entries.size() > 2 ? entries.get(2) : second;
+		ResolvedCoreEntry last = entries.get(entries.size() - 1);
+		ResolvedCoreEntry selected;
+
+		if(entries.size() == 1) {
+			selected = first;
+		} else if(entries.size() == 2) {
+			selected = stage <= 1 ? first : last;
+		} else if(entries.size() == 3) {
+			if(stage <= 1) {
+				selected = first;
+			} else if(stage == 2) {
+				selected = second;
+			} else {
+				selected = last;
+			}
+		} else {
+			if(stage == 0) {
+				selected = first;
+			} else if(stage == 1) {
+				selected = second;
+			} else if(stage == 2) {
+				selected = third;
+			} else {
+				selected = last;
+			}
+		}
+
+		if(selected == null || selected.material == null) {
+			if(isCoreDriven(type)) {
+				return null;
+			}
+			return fallback;
+		}
+		int amount = getStageAmount(selected.value, stage);
+
+		return new BedrockOreOutput(selected.material, amount);
+	}
+
+	private static int getStageAmount(float value, int stage) {
+		int amount = value <= MIN_PROCESSABLE_CORE_VALUE ? 1 : Math.max(1, Math.round(value * 36.0F));
+		for(int i = 0; i < stage; i++) {
+			amount = Math.max(1, (int) Math.floor(amount / 1.4D));
+		}
+		return amount;
+	}
+
+	private static BedrockOreOutput getFallbackOutput(CelestialBedrockOreType type, int stage) {
+		if(type == null) return null;
+		if(stage == 0) return type.primary;
+		if(stage == 1) return type.byproductAcid;
+		if(stage == 2) return type.byproductSolvent;
+		return type.byproductRad;
+	}
+
+	public static BedrockOreOutput getPrimaryOutput(CelestialBedrockOreType type) {
+		return resolveDynamicOutput(type, 0);
+	}
+
+	public static BedrockOreOutput getSulfuricOutput(CelestialBedrockOreType type) {
+		return resolveDynamicOutput(type, 1);
+	}
+
+	public static BedrockOreOutput getSolventOutput(CelestialBedrockOreType type) {
+		return resolveDynamicOutput(type, 2);
+	}
+
+	public static BedrockOreOutput getRadOutput(CelestialBedrockOreType type) {
+		return resolveDynamicOutput(type, 3);
+	}
+
+	private static String formatCoreValue(float value) {
+		return String.format(Locale.US, "%.4f", value);
+	}
+
+	private static String getMaterialDisplayName(NTMMaterial material, String oreDict) {
+		if(material != null) {
+			String translated = StatCollector.translateToLocal(material.getUnlocalizedName());
+			if(translated != null && !translated.equals(material.getUnlocalizedName())) {
+				return translated;
+			}
+
+			if(material.names != null && material.names.length > 0 && material.names[0] != null) {
+				return material.names[0];
+			}
+		}
+
+		String token = getMaterialToken(oreDict);
+		return token == null || token.isEmpty() ? "Unknown" : token;
+	}
+
+	private static String describeOutput(BedrockOreOutput output) {
+		if(output == null || output.mat == null) {
+			return "Unknown";
+		}
+		return getMaterialDisplayName(output.mat, null) + " (" + output.amount + ")";
 	}
 
 	// public static enum BedrockOreType {
@@ -250,7 +550,7 @@ public class ItemBedrockOreNew extends Item {
 				T("light",		o(MAT_COPPER, 18),			o(MAT_BAUXITE, 9),			o(MAT_NICKEL, 6),			o(MAT_SODIUM, 3)),
 				T("heavy",		o(MAT_LEAD, 18),			o(MAT_ZINC, 9),				o(MAT_GOLD, 6),				o(MAT_ARSENIC, 3)),
 				T("rare",		o(MAT_BORON, 18),			o(MAT_NEODYMIUM, 9),		o(MAT_STRONTIUM, 6),		o(MAT_LANTHANIUM, 3)),
-				T("hazard",		o(MAT_URANIUM, 18),			o(MAT_U238, 9),				o(MAT_PLUTONIUM, 6),		o(MAT_TECHNETIUM, 3))
+				T("actinide", "hazard",	o(MAT_URANIUM, 18),			o(MAT_U238, 9),				o(MAT_PLUTONIUM, 6),		o(MAT_TECHNETIUM, 3))
 			);
 
 			register(
@@ -269,12 +569,14 @@ public class ItemBedrockOreNew extends Item {
 				T("rare",		o(MAT_BORON, 18),			o(MAT_RAREEARTH, 9),		o(MAT_TANTALIUM, 6),		o(MAT_BISMUTH, 3)),
 				T("actinide",	o(MAT_URANIUM, 18),			o(MAT_NEPTUNIUM, 9),		o(MAT_RADIUM, 6),			o(MAT_TECHNETIUM, 3)),
 				T("crystal",	o(MAT_EMERALD, 18),			o(MAT_SILICON, 9),			o(MAT_MOLYSITE, 6),			o(MAT_BORAX, 3)),
-				T("plastic",	o(MAT_POLYMER, 18),			o(MAT_RUBBER, 9),			o(MAT_SEMTEX, 6),			o(MAT_PVC, 3))
+				T("nonmetal", "plastic",	o(MAT_POLYMER, 18),			o(MAT_RUBBER, 9),			o(MAT_SEMTEX, 6),			o(MAT_PVC, 3))
 			);
 			register(
 				SolarSystem.Body.DMITRIY,
-				T("rift", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_SATURN, 18),			o(MAT_SCHRABIDIUM, 4),		o(MAT_EUPHEMIUM, 2),		o(MAT_RIFT, 1)),
-				T("abyss", "heavy",		0xE8E8E8, 0xC8C8C8,	o(MAT_DESH, 18),			o(MAT_YHARONITE, 4),		o(MAT_ETHYROITE, 2),		o(MAT_ABYSS, 1))
+				T("light",		o(MAT_DESH, 18),			o(MAT_DESH, 9),				o(MAT_DESH, 6),				o(MAT_DESH, 3)),
+				T("heavy",		o(MAT_SATURN, 18),			o(MAT_SATURN, 9),			o(MAT_YHARONITE, 6),		o(MAT_ETHYROITE, 3)),
+				T("schrabidic",	o(MAT_SCHRABIDIUM, 18),		o(MAT_SCHRABIDIUM, 9),		o(MAT_EUPHEMIUM, 6),		o(MAT_EUPHEMIUM, 3)),
+				T("living", "schrabidic", 0x2A2A2A, 0x0A0A0A,	o(MAT_RIFT, 18),			o(MAT_RIFT, 9),				o(MAT_ABYSS, 6),			o(MAT_ABYSS, 3))
 			);
 			/*
 			register(
@@ -287,6 +589,8 @@ public class ItemBedrockOreNew extends Item {
 				T("crystal",		o(MAT_ASBESTOS, 24),		o(MAT_SODALITE, 12),			o(MAT_DIAMOND, 6),		o(MAT_SODALITE, 3))
 				);
 				*/
+
+			ensureCoreCategoryCoverage();
 		}
 
 		public CelestialBedrockOreType[] types;
@@ -306,6 +610,90 @@ public class ItemBedrockOreNew extends Item {
 				type.body = body;
 				oreTypes.add(type);
 			}
+		}
+
+		private static String[] getCoreCategorySuffixes() {
+			return new String[] {
+				CelestialCore.CAT_LIGHT,
+				CelestialCore.CAT_HEAVY,
+				CelestialCore.CAT_RARE,
+				CelestialCore.CAT_ACTINIDE,
+				CelestialCore.CAT_NONMETAL,
+				CelestialCore.CAT_CRYSTAL,
+				CelestialCore.CAT_SCHRABIDIC,
+				CelestialCore.CAT_LIVING
+			};
+		}
+
+		private static void ensureCoreCategoryCoverage() {
+			if(oreMap == null || oreTypes == null) return;
+
+			for(SolarSystem.Body body : SolarSystem.Body.values()) {
+				if(body == SolarSystem.Body.ORBIT) continue;
+				CelestialBedrockOre ore = oreMap.get(body);
+				if(ore == null || ore.types == null) continue;
+
+				List<CelestialBedrockOreType> additions = new ArrayList<CelestialBedrockOreType>();
+				for(String categorySuffix : getCoreCategorySuffixes()) {
+					if(hasTypeWithSuffix(ore.types, categorySuffix)) {
+						continue;
+					}
+
+					CelestialBedrockOreType added = makeCoreFallbackType(categorySuffix);
+					added.body = body;
+					additions.add(added);
+					oreTypes.add(added);
+				}
+
+				if(!additions.isEmpty()) {
+					CelestialBedrockOreType[] merged = new CelestialBedrockOreType[ore.types.length + additions.size()];
+					System.arraycopy(ore.types, 0, merged, 0, ore.types.length);
+					for(int i = 0; i < additions.size(); i++) {
+						merged[ore.types.length + i] = additions.get(i);
+					}
+					ore.types = merged;
+				}
+			}
+		}
+
+		private static boolean hasTypeWithSuffix(CelestialBedrockOreType[] types, String suffix) {
+			if(types == null || suffix == null) return false;
+			for(CelestialBedrockOreType type : types) {
+				if(type != null && suffix.equals(type.suffix)) {
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private static String getTextureSuffixForCategory(String categorySuffix) {
+			if(CelestialCore.CAT_LIVING.equals(categorySuffix)) return CelestialCore.CAT_SCHRABIDIC;
+			return categorySuffix;
+		}
+
+		private static CelestialBedrockOreType makeCoreFallbackType(String categorySuffix) {
+			if(CelestialCore.CAT_HEAVY.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_TUNGSTEN, 18), o(MAT_LEAD, 9), o(MAT_GOLD, 6), o(MAT_ZINC, 3));
+			}
+			if(CelestialCore.CAT_RARE.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_COBALT, 18), o(MAT_RAREEARTH, 9), o(MAT_NEODYMIUM, 6), o(MAT_STRONTIUM, 3));
+			}
+			if(CelestialCore.CAT_ACTINIDE.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_URANIUM, 18), o(MAT_THORIUM, 9), o(MAT_POLONIUM, 6), o(MAT_U238, 3));
+			}
+			if(CelestialCore.CAT_NONMETAL.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_COAL, 18), o(MAT_SULFUR, 9), o(MAT_FLUORITE, 6), o(MAT_SILICON, 3));
+			}
+			if(CelestialCore.CAT_CRYSTAL.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_REDSTONE, 18), o(MAT_ASBESTOS, 9), o(MAT_DIAMOND, 6), o(MAT_EMERALD, 3));
+			}
+			if(CelestialCore.CAT_SCHRABIDIC.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_SCHRABIDIUM, 18), o(MAT_SOLINIUM, 9), o(MAT_GHIORSIUM, 6), o(MAT_SCHRABIDIUM, 3));
+			}
+			if(CelestialCore.CAT_LIVING.equals(categorySuffix)) {
+				return T(categorySuffix, getTextureSuffixForCategory(categorySuffix), o(MAT_RIFT, 18), o(MAT_RIFT, 9), o(MAT_ABYSS, 6), o(MAT_ABYSS, 3));
+			}
+			return T(CelestialCore.CAT_LIGHT, getTextureSuffixForCategory(CelestialCore.CAT_LIGHT), o(MAT_IRON, 18), o(MAT_COPPER, 9), o(MAT_TITANIUM, 6), o(MAT_SODIUM, 3));
 		}
 
 		public static CelestialBedrockOre get(SolarSystem.Body body) {
@@ -366,6 +754,9 @@ public class ItemBedrockOreNew extends Item {
 	}
 
 	public static MaterialStack toFluid(BedrockOreOutput o, double amount) {
+		if(o == null || o.mat == null) {
+			return null;
+		}
 		if(o.mat != null && o.mat.smeltable == SmeltingBehavior.SMELTABLE) {
 			return new MaterialStack(o.mat, (int) Math.ceil(MaterialShapes.FRAGMENT.q(o.amount) * amount));
 		}
@@ -373,6 +764,9 @@ public class ItemBedrockOreNew extends Item {
 	}
 
 	public static ItemStack extract(BedrockOreOutput o, double amount) {
+		if(o == null || o.mat == null) {
+			return new ItemStack(ModItems.dust);
+		}
 		return new ItemStack(ModItems.bedrock_ore_fragment, Math.min((int) Math.ceil(o.amount * amount), 64), o.mat.id);
 	}
 

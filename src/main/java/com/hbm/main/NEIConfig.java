@@ -113,6 +113,10 @@ public class NEIConfig implements IConfigureNEI {
 				API.hideItem(ItemBedrockOreNew.make(grade, type));
 			}
 		}
+		for(CelestialBedrockOreType type : CelestialBedrockOre.getAllTypes()) {
+			if(ItemBedrockOreNew.hasCategoryInCore(type)) continue;
+			API.hideItem(ItemBedrockOreNew.make(BedrockOreGrade.BASE, type));
+		}
 
 		API.registerHighlightIdentifier(ModBlocks.plushie, new IHighlightHandler() {
 			@Override public ItemStack identifyHighlight(World world, EntityPlayer player, MovingObjectPosition mop) {
