@@ -18,6 +18,7 @@ import com.hbm.inventory.container.ContainerCoreManipulator;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.lib.RefStrings;
+import com.hbm.render.util.GaugeUtil;
 import com.hbm.tileentity.machine.TileEntityCoreManipulator;
 
 import net.minecraft.client.Minecraft;
@@ -99,6 +100,44 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final float DMITRIY_FACE_OPACITY_MIN = 0.2F;
 	private static final float DMITRIY_FACE_OPACITY_MAX = 0.4F;
 	private static final long DMITRIY_FACE_OPACITY_PERIOD_TICKS = 240L;
+	private static final int INFO_TEXT_COLOR = 0x39FF14;
+	private static final float INFO_TEXT_SCALE = 0.5F;
+	private static final int INFO_RADIUS_X1 = 179;
+	private static final int INFO_RADIUS_Y1 = 27;
+	private static final int INFO_RADIUS_X2 = 242;
+	private static final int INFO_RADIUS_Y2 = 32;
+	private static final int INFO_CORE_MASS_X1 = 179;
+	private static final int INFO_CORE_MASS_Y1 = 47;
+	private static final int INFO_CORE_MASS_X2 = 242;
+	private static final int INFO_CORE_MASS_Y2 = 52;
+	private static final int INFO_CORE_RAD_X1 = 179;
+	private static final int INFO_CORE_RAD_Y1 = 67;
+	private static final int INFO_CORE_RAD_X2 = 242;
+	private static final int INFO_CORE_RAD_Y2 = 72;
+	private static final int CORE_SPEED_GAUGE_X1 = 175;
+	private static final int CORE_SPEED_GAUGE_Y1 = 93;
+	private static final int CORE_SPEED_GAUGE_X2 = 198;
+	private static final int CORE_SPEED_GAUGE_Y2 = 116;
+	private static final int CORE_SPEED_GAUGE_CENTER_X = (CORE_SPEED_GAUGE_X1 + CORE_SPEED_GAUGE_X2 + 1) / 2;
+	private static final int CORE_SPEED_GAUGE_CENTER_Y = (CORE_SPEED_GAUGE_Y1 + CORE_SPEED_GAUGE_Y2 + 1) / 2;
+	private static final double CORE_SPEED_GAUGE_MIN = 0.0D;
+	private static final double CORE_SPEED_GAUGE_MAX = 10.0D;
+	private static final int MAGNETIC_FIELD_GAUGE_X1 = 200;
+	private static final int MAGNETIC_FIELD_GAUGE_Y1 = 93;
+	private static final int MAGNETIC_FIELD_GAUGE_X2 = 223;
+	private static final int MAGNETIC_FIELD_GAUGE_Y2 = 116;
+	private static final int MAGNETIC_FIELD_GAUGE_CENTER_X = (MAGNETIC_FIELD_GAUGE_X1 + MAGNETIC_FIELD_GAUGE_X2 + 1) / 2;
+	private static final int MAGNETIC_FIELD_GAUGE_CENTER_Y = (MAGNETIC_FIELD_GAUGE_Y1 + MAGNETIC_FIELD_GAUGE_Y2 + 1) / 2;
+	private static final int ATM_RETENTION_GAUGE_X1 = 225;
+	private static final int ATM_RETENTION_GAUGE_Y1 = 93;
+	private static final int ATM_RETENTION_GAUGE_X2 = 248;
+	private static final int ATM_RETENTION_GAUGE_Y2 = 116;
+	private static final int ATM_RETENTION_GAUGE_CENTER_X = (ATM_RETENTION_GAUGE_X1 + ATM_RETENTION_GAUGE_X2 + 1) / 2;
+	private static final int ATM_RETENTION_GAUGE_CENTER_Y = (ATM_RETENTION_GAUGE_Y1 + ATM_RETENTION_GAUGE_Y2 + 1) / 2;
+	private static final double ATM_RETENTION_GAUGE_MIN = 0.0D;
+	private static final double ATM_RETENTION_GAUGE_MAX = 10.0D;
+	private static final double CORE_SPEED_GAUGE_SMOOTHING = 0.2D;
+	private static final int CORE_SPEED_GAUGE_COLOR = 0xA00000;
 
 	private final TileEntityCoreManipulator coreManipulator;
 	private final Map<String, ResourceLocation> planetTextureCache = new HashMap<String, ResourceLocation>();
@@ -106,6 +145,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private long lastCompositionRefreshTick = Long.MIN_VALUE;
 	private long lastCompositionRefreshMs = Long.MIN_VALUE;
 	private int lastCompositionDimensionId = Integer.MIN_VALUE;
+	private double animatedCoreSpeedGauge = 0.0D;
+	private double animatedMagneticFieldGauge = 0.0D;
+	private double animatedAtmosphereRetentionGauge = 0.0D;
 
 	public GUICoreManipulator(InventoryPlayer playerInv, TileEntityCoreManipulator coreManipulator) {
 		super(new ContainerCoreManipulator(playerInv, coreManipulator));
@@ -117,7 +159,37 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 		super.drawScreen(mouseX, mouseY, partialTicks);
+		drawCoreSpeedTooltip(mouseX, mouseY);
+		drawMagneticFieldTooltip(mouseX, mouseY);
+		drawAtmosphereRetentionTooltip(mouseX, mouseY);
 		drawCompositionTooltip(mouseX, mouseY);
+	}
+
+	@Override
+	protected void drawGuiContainerForegroundLayer(int mouseX, int mouseY) {
+		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+		CelestialBody body = getCurrentBody(world);
+
+		String radiusText = "-";
+		String coreMassText = "-";
+		String coreRadioactivityText = "-";
+
+		if(body != null) {
+			radiusText = formatGuiNumber(body.radiusKm) + " km";
+
+			CelestialCore core = body.getCore();
+			if(core != null) {
+				if(core.computedRadiusKm != body.radiusKm) {
+					core.recalculateForRadius(body.radiusKm);
+				}
+				coreMassText = formatGuiMass(core.computedCoreMassKg) + " kg";
+				coreRadioactivityText = formatGuiRadiation(core.getAverageRadioactivity()) + " rad/s";
+			}
+		}
+
+		drawLeftValueInRect(radiusText, INFO_RADIUS_X1, INFO_RADIUS_X2, INFO_RADIUS_Y1, INFO_RADIUS_Y2, INFO_TEXT_COLOR);
+		drawLeftValueInRect(coreMassText, INFO_CORE_MASS_X1, INFO_CORE_MASS_X2, INFO_CORE_MASS_Y1, INFO_CORE_MASS_Y2, INFO_TEXT_COLOR);
+		drawLeftValueInRect(coreRadioactivityText, INFO_CORE_RAD_X1, INFO_CORE_RAD_X2, INFO_CORE_RAD_Y1, INFO_CORE_RAD_Y2, INFO_TEXT_COLOR);
 	}
 
 	@Override
@@ -125,6 +197,11 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 		Minecraft.getMinecraft().getTextureManager().bindTexture(texture);
 		drawTexturedModalRect(guiLeft, guiTop, 0, 0, xSize, ySize);
+		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+
+		drawCoreSpeedGauge(world);
+		drawMagneticFieldGauge(world);
+		drawAtmosphereRetentionGauge(world);
 
 		ResourceLocation planetTexture = getCurrentPlanetTexture();
 
@@ -132,7 +209,6 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			int px = guiLeft + PLANET_X;
 			int py = guiTop + PLANET_Y;
 			float half = PLANET_SIZE / 2.0F;
-			World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
 			CelestialBody body = getCurrentBody(world);
 			CompositionMetrics composition = getLiveCompositionMetrics(world, body);
 			int baseScroll = getCurrentScrollOffset(world, interp);
@@ -170,6 +246,164 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			int textWidth = fontRendererObj.getStringWidth(text);
 			fontRendererObj.drawStringWithShadow(text, guiLeft + PLANET_CENTER_X - textWidth / 2, guiTop + PLANET_CENTER_Y - 4, 0xFFFFFF);
 		}
+	}
+
+	private void drawCoreSpeedGauge(World world) {
+		double coreSpeed = getCurrentCoreRotationScale(world);
+		double targetGauge = getCoreSpeedGaugeProgress(coreSpeed);
+		animatedCoreSpeedGauge += (targetGauge - animatedCoreSpeedGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedCoreSpeedGauge = MathHelper.clamp_double(animatedCoreSpeedGauge, 0.0D, 1.0D);
+
+		GaugeUtil.drawSmoothGauge(
+			guiLeft + CORE_SPEED_GAUGE_CENTER_X,
+			guiTop + CORE_SPEED_GAUGE_CENTER_Y,
+			this.zLevel,
+			animatedCoreSpeedGauge,
+			6,
+			2.5D,
+			1.25D,
+			CORE_SPEED_GAUGE_COLOR
+		);
+	}
+
+	private void drawMagneticFieldGauge(World world) {
+		double magneticField = getCurrentMagneticFieldStrength(world);
+		double targetGauge = MathHelper.clamp_double(magneticField, 0.0D, 1.0D);
+		animatedMagneticFieldGauge += (targetGauge - animatedMagneticFieldGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedMagneticFieldGauge = MathHelper.clamp_double(animatedMagneticFieldGauge, 0.0D, 1.0D);
+
+		GaugeUtil.drawSmoothGauge(
+			guiLeft + MAGNETIC_FIELD_GAUGE_CENTER_X,
+			guiTop + MAGNETIC_FIELD_GAUGE_CENTER_Y,
+			this.zLevel,
+			animatedMagneticFieldGauge,
+			6,
+			2.5D,
+			1.25D,
+			CORE_SPEED_GAUGE_COLOR
+		);
+	}
+
+	private void drawAtmosphereRetentionGauge(World world) {
+		double atmosphereRetention = getCurrentAtmosphereRetention(world);
+		double targetGauge = getAtmosphereRetentionGaugeProgress(atmosphereRetention);
+		animatedAtmosphereRetentionGauge += (targetGauge - animatedAtmosphereRetentionGauge) * CORE_SPEED_GAUGE_SMOOTHING;
+		animatedAtmosphereRetentionGauge = MathHelper.clamp_double(animatedAtmosphereRetentionGauge, 0.0D, 1.0D);
+
+		GaugeUtil.drawSmoothGauge(
+			guiLeft + ATM_RETENTION_GAUGE_CENTER_X,
+			guiTop + ATM_RETENTION_GAUGE_CENTER_Y,
+			this.zLevel,
+			animatedAtmosphereRetentionGauge,
+			6,
+			2.5D,
+			1.25D,
+			CORE_SPEED_GAUGE_COLOR
+		);
+	}
+
+	private double getCoreSpeedGaugeProgress(double coreSpeed) {
+		double range = CORE_SPEED_GAUGE_MAX - CORE_SPEED_GAUGE_MIN;
+		if(range <= 0.0D) {
+			return 0.0D;
+		}
+		return MathHelper.clamp_double((coreSpeed - CORE_SPEED_GAUGE_MIN) / range, 0.0D, 1.0D);
+	}
+
+	private double getAtmosphereRetentionGaugeProgress(double atmosphereRetention) {
+		double range = ATM_RETENTION_GAUGE_MAX - ATM_RETENTION_GAUGE_MIN;
+		if(range <= 0.0D) {
+			return 0.0D;
+		}
+		return MathHelper.clamp_double((atmosphereRetention - ATM_RETENTION_GAUGE_MIN) / range, 0.0D, 1.0D);
+	}
+
+	private void drawCoreSpeedTooltip(int mouseX, int mouseY) {
+		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+		double coreSpeed = getCurrentCoreRotationScale(world);
+		int width = CORE_SPEED_GAUGE_X2 - CORE_SPEED_GAUGE_X1 + 1;
+		int height = CORE_SPEED_GAUGE_Y2 - CORE_SPEED_GAUGE_Y1 + 1;
+
+		drawCustomInfoStat(
+			mouseX,
+			mouseY,
+			guiLeft + CORE_SPEED_GAUGE_X1,
+			guiTop + CORE_SPEED_GAUGE_Y1,
+			width,
+			height,
+			mouseX,
+			mouseY,
+			EnumChatFormatting.GREEN + "CORE SPEED: " + EnumChatFormatting.RESET + formatGuiCoreSpeed(coreSpeed)
+		);
+	}
+
+	private void drawMagneticFieldTooltip(int mouseX, int mouseY) {
+		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+		double magneticField = getCurrentMagneticFieldStrength(world);
+		int width = MAGNETIC_FIELD_GAUGE_X2 - MAGNETIC_FIELD_GAUGE_X1 + 1;
+		int height = MAGNETIC_FIELD_GAUGE_Y2 - MAGNETIC_FIELD_GAUGE_Y1 + 1;
+
+		drawCustomInfoStat(
+			mouseX,
+			mouseY,
+			guiLeft + MAGNETIC_FIELD_GAUGE_X1,
+			guiTop + MAGNETIC_FIELD_GAUGE_Y1,
+			width,
+			height,
+			mouseX,
+			mouseY,
+			EnumChatFormatting.GREEN + "MAGNETIC FIELD: " + EnumChatFormatting.RESET + formatGuiPercent(magneticField)
+		);
+	}
+
+	private void drawAtmosphereRetentionTooltip(int mouseX, int mouseY) {
+		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+		double atmosphereRetention = getCurrentAtmosphereRetention(world);
+		int width = ATM_RETENTION_GAUGE_X2 - ATM_RETENTION_GAUGE_X1 + 1;
+		int height = ATM_RETENTION_GAUGE_Y2 - ATM_RETENTION_GAUGE_Y1 + 1;
+
+		drawCustomInfoStat(
+			mouseX,
+			mouseY,
+			guiLeft + ATM_RETENTION_GAUGE_X1,
+			guiTop + ATM_RETENTION_GAUGE_Y1,
+			width,
+			height,
+			mouseX,
+			mouseY,
+			EnumChatFormatting.GREEN + "ATM RETENTION: " + EnumChatFormatting.RESET + formatGuiAtmosphereRetention(atmosphereRetention)
+		);
+	}
+
+	private double getCurrentMagneticFieldStrength(World world) {
+		CelestialBody body = getCurrentBody(world);
+		if(body == null) {
+			return 0.0D;
+		}
+
+		CelestialCore core = body.getCore();
+		if(core == null) {
+			return 0.0D;
+		}
+
+		if(core.computedRadiusKm != body.radiusKm) {
+			core.recalculateForRadius(body.radiusKm);
+		}
+
+		return MathHelper.clamp_double(core.getMagneticFieldStrength(), 0.0D, 1.0D);
+	}
+
+	private double getCurrentAtmosphereRetention(World world) {
+		CelestialBody body = getCurrentBody(world);
+		if(body == null) {
+			return 0.0D;
+		}
+
+		double retention = CelestialBody.getAtmosphereRetentionLimitAtm(body);
+		if(Double.isNaN(retention) || Double.isInfinite(retention)) {
+			return 0.0D;
+		}
+		return Math.max(0.0D, retention);
 	}
 
 	private void drawScrollingPlanet(int scroll) {
@@ -500,20 +734,20 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		switch(hoveredRegion) {
 		case CORE:
 			lines.add(EnumChatFormatting.YELLOW + "CORE");
-			addCategoryPercentLine(lines, core, "Heavy Metal", CelestialCore.CAT_HEAVY);
-			addCategoryPercentLine(lines, core, "Schrabidic", CelestialCore.CAT_SCHRABIDIC);
-			addCategoryPercentLine(lines, core, "Light Metal", CelestialCore.CAT_LIGHT);
-			addCategoryPercentLine(lines, core, "Living", CelestialCore.CAT_LIVING);
+			addCategoryMaterialBlock(lines, core, "Heavy Metal", CelestialCore.CAT_HEAVY);
+			addCategoryMaterialBlock(lines, core, "Schrabidic", CelestialCore.CAT_SCHRABIDIC);
+			addCategoryMaterialBlock(lines, core, "Light Metal", CelestialCore.CAT_LIGHT);
+			addCategoryMaterialBlock(lines, core, "Living", CelestialCore.CAT_LIVING);
 			break;
 		case MANTLE:
 			lines.add(EnumChatFormatting.GOLD + "MANTLE");
-			addCategoryPercentLine(lines, core, "Rare Earth", CelestialCore.CAT_RARE);
-			addCategoryPercentLine(lines, core, "Actinide", CelestialCore.CAT_ACTINIDE);
+			addCategoryMaterialBlock(lines, core, "Rare Earth", CelestialCore.CAT_RARE);
+			addCategoryMaterialBlock(lines, core, "Actinide", CelestialCore.CAT_ACTINIDE);
 			break;
 		case STONE:
 			lines.add(EnumChatFormatting.GRAY + "STONE");
-			addCategoryPercentLine(lines, core, "Non-Metal", CelestialCore.CAT_NONMETAL);
-			addCategoryPercentLine(lines, core, "Crystalline", CelestialCore.CAT_CRYSTAL);
+			addCategoryMaterialBlock(lines, core, "Non-Metal", CelestialCore.CAT_NONMETAL);
+			addCategoryMaterialBlock(lines, core, "Crystalline", CelestialCore.CAT_CRYSTAL);
 			if(lines.size() <= 1) {
 				lines.add("No ores found.");
 			}
@@ -565,12 +799,56 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		return body != null && body.name != null && "dmitriy".equalsIgnoreCase(body.name);
 	}
 
-	private void addCategoryPercentLine(List<String> lines, CelestialCore core, String label, String categoryKey) {
+	private void addCategoryMaterialBlock(List<String> lines, CelestialCore core, String label, String categoryKey) {
 		double share = getCoreCategoryShare(core, categoryKey);
 		if(share <= 0.0005D) {
 			return;
 		}
-		lines.add(label + ": " + String.format(Locale.ROOT, "%.1f%%", share * 100.0D));
+		lines.add(EnumChatFormatting.WHITE + "- " + label + ": " + String.format(Locale.ROOT, "%.1f%%", share * 100.0D));
+
+		CelestialCore.CoreCategory category = core != null ? core.getCategory(categoryKey) : null;
+		if(category == null || category.entries == null || category.entries.isEmpty()) {
+			lines.add(EnumChatFormatting.GRAY + "   - No materials");
+			return;
+		}
+
+		boolean hasMaterial = false;
+		for(CelestialCore.CoreEntry entry : category.entries) {
+			if(entry == null || entry.oreDict == null) continue;
+
+			double value = Math.max(0.0D, (double) entry.value);
+			if(value <= 0.0D) continue;
+
+			hasMaterial = true;
+			String materialToken = extractMaterialToken(entry.oreDict);
+			String materialName = formatMaterialName(materialToken);
+			lines.add(EnumChatFormatting.GRAY + "   - " + materialName + ": " + formatGuiCoreMaterialValue(value));
+		}
+
+		if(!hasMaterial) {
+			lines.add(EnumChatFormatting.GRAY + "   - No materials");
+		}
+	}
+
+	private String formatMaterialName(String materialToken) {
+		if(materialToken == null || materialToken.isEmpty()) {
+			return "Unknown";
+		}
+
+		StringBuilder out = new StringBuilder(materialToken.length() + 8);
+		for(int i = 0; i < materialToken.length(); i++) {
+			char c = materialToken.charAt(i);
+			if(i > 0) {
+				char prev = materialToken.charAt(i - 1);
+				if(Character.isUpperCase(c) && Character.isLowerCase(prev)) {
+					out.append(' ');
+				} else if(Character.isDigit(c) && !Character.isDigit(prev)) {
+					out.append(' ');
+				}
+			}
+			out.append(c);
+		}
+		return out.toString();
 	}
 
 	private CompositionMetrics getLiveCompositionMetrics(World world, CelestialBody body) {
@@ -949,5 +1227,60 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		}
 
 		return normalized.toString();
+	}
+
+	private void drawLeftValueInRect(String text, int x1, int x2, int y1, int y2, int color) {
+		String drawText = (text == null || text.isEmpty()) ? "-" : text;
+		int rectHeight = Math.max(1, y2 - y1 + 1);
+		float drawX = (float) (x1 + 1);
+		float effectiveScaledHeight = (fontRendererObj.FONT_HEIGHT + 1.0F) * INFO_TEXT_SCALE;
+		float drawY = (float) (y1 + ((float) rectHeight - effectiveScaledHeight) * 0.5F + 1);
+
+		GL11.glPushMatrix();
+		GL11.glTranslatef(drawX, drawY, 0.0F);
+		GL11.glScalef(INFO_TEXT_SCALE, INFO_TEXT_SCALE, 1.0F);
+		fontRendererObj.drawStringWithShadow(drawText, 0, 0, color);
+		GL11.glPopMatrix();
+	}
+
+	private String formatGuiNumber(double value) {
+		if(Double.isNaN(value) || Double.isInfinite(value)) return "0";
+		return String.format(Locale.US, "%,.0f", value);
+	}
+
+	private String formatGuiMass(double kg) {
+		if(Double.isNaN(kg) || Double.isInfinite(kg)) return "0";
+		if(Math.abs(kg) >= 1.0E12D) {
+			return String.format(Locale.US, "%.3e", kg);
+		}
+		return String.format(Locale.US, "%,.0f", kg);
+	}
+
+	private String formatGuiRadiation(double radiation) {
+		if(Double.isNaN(radiation) || Double.isInfinite(radiation)) return "0";
+		if(Math.abs(radiation) >= 10_000.0D) {
+			return String.format(Locale.US, "%.3e", radiation);
+		}
+		return String.format(Locale.US, "%.3f", radiation);
+	}
+
+	private String formatGuiCoreSpeed(double coreSpeed) {
+		if(Double.isNaN(coreSpeed) || Double.isInfinite(coreSpeed)) return "0.00";
+		return String.format(Locale.US, "%.2f", coreSpeed);
+	}
+
+	private String formatGuiCoreMaterialValue(double value) {
+		if(Double.isNaN(value) || Double.isInfinite(value)) return "0.000";
+		return String.format(Locale.US, "%.3f", Math.max(0.0D, value));
+	}
+
+	private String formatGuiPercent(double value01) {
+		if(Double.isNaN(value01) || Double.isInfinite(value01)) return "0.00%";
+		return String.format(Locale.US, "%.2f%%", MathHelper.clamp_double(value01, 0.0D, 1.0D) * 100.0D);
+	}
+
+	private String formatGuiAtmosphereRetention(double retention) {
+		if(Double.isNaN(retention) || Double.isInfinite(retention)) return "0.00";
+		return String.format(Locale.US, "%.2f", Math.max(0.0D, retention));
 	}
 }
