@@ -17,17 +17,21 @@ import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.inventory.container.ContainerCoreManipulator;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.recipes.CoreManipulatorMaterialRecipes;
+import com.hbm.items.machine.ItemBlueprints;
 import com.hbm.lib.RefStrings;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toserver.NBTControlPacket;
 import com.hbm.render.util.GaugeUtil;
 import com.hbm.tileentity.machine.TileEntityCoreManipulator;
+import com.hbm.util.i18n.I18nUtil;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.resources.IResource;
 import net.minecraft.entity.player.InventoryPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MathHelper;
@@ -80,6 +84,13 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final int POWER_BUTTON_X = 30;
 	private static final int POWER_BUTTON_Y = 71;
 	private static final int POWER_BUTTON_SIZE = 18;
+	private static final int BLUEPRINT_AREA_X = 8;
+	private static final int BLUEPRINT_AREA_Y = 105;
+	private static final int BLUEPRINT_AREA_WIDTH = 62;
+	private static final int BLUEPRINT_AREA_HEIGHT = 26;
+	private static final int MATERIAL_SELECTOR_X = 11;
+	private static final int MATERIAL_SELECTOR_Y = 107;
+	private static final int MATERIAL_SELECTOR_SIZE = 16;
 
 	private final TileEntityCoreManipulator coreManipulator;
 	private final Map<String, ResourceLocation> planetTextureCache = new HashMap<String, ResourceLocation>();
@@ -101,6 +112,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
 		super.drawScreen(mouseX, mouseY, partialTicks);
+		drawMaterialSelectorTooltip(mouseX, mouseY);
 		drawCoreSpeedTooltip(mouseX, mouseY);
 		drawMagneticFieldTooltip(mouseX, mouseY);
 		drawAtmosphereRetentionTooltip(mouseX, mouseY);
@@ -194,6 +206,9 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			int textWidth = fontRendererObj.getStringWidth(text);
 			fontRendererObj.drawStringWithShadow(text, guiLeft + 105 - textWidth / 2, guiTop + 64 - 4, 0xFFFFFF);
 		}
+
+		ItemStack selectedStack = coreManipulator != null ? coreManipulator.getSelectedMaterialDisplayStack() : null;
+		this.renderItem(selectedStack != null ? selectedStack : TEMPLATE_FOLDER, MATERIAL_SELECTOR_X, MATERIAL_SELECTOR_Y);
 	}
 
 	@Override
@@ -226,6 +241,15 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			PacketDispatcher.wrapper.sendToServer(new NBTControlPacket(control, coreManipulator.xCoord, coreManipulator.yCoord, coreManipulator.zCoord));
 
 			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:block.vaultThud"), 1.0F));
+			return;
+		}
+
+		if(mouseX >= guiLeft + MATERIAL_SELECTOR_X && mouseX < guiLeft + MATERIAL_SELECTOR_X + MATERIAL_SELECTOR_SIZE
+			&& mouseY >= guiTop + MATERIAL_SELECTOR_Y && mouseY < guiTop + MATERIAL_SELECTOR_Y + MATERIAL_SELECTOR_SIZE) {
+			CoreManipulatorMaterialRecipes recipes = CoreManipulatorMaterialRecipes.fromBlueprint(coreManipulator.getBlueprintStack());
+			if(!recipes.recipeOrderedList.isEmpty()) {
+				GUIScreenRecipeSelector.openSelector(recipes, coreManipulator, coreManipulator.getSelectedMaterialOreDict(), 0, null, this);
+			}
 		}
 	}
 
@@ -354,6 +378,35 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			mouseY,
 			EnumChatFormatting.GREEN + "ATM RETENTION: " + EnumChatFormatting.RESET + formatGuiAtmosphereRetention(atmosphereRetention)
 		);
+	}
+
+	private void drawMaterialSelectorTooltip(int mouseX, int mouseY) {
+		if(coreManipulator == null) {
+			return;
+		}
+
+		boolean insideArea = mouseX >= guiLeft + BLUEPRINT_AREA_X && mouseX < guiLeft + BLUEPRINT_AREA_X + BLUEPRINT_AREA_WIDTH
+			&& mouseY >= guiTop + BLUEPRINT_AREA_Y && mouseY < guiTop + BLUEPRINT_AREA_Y + BLUEPRINT_AREA_HEIGHT;
+		if(!insideArea) {
+			return;
+		}
+
+		String selectedOreDict = coreManipulator.getSelectedMaterialOreDict();
+		ItemStack selectedStack = coreManipulator.getSelectedMaterialDisplayStack();
+
+		if(selectedOreDict != null && selectedStack != null) {
+			drawInfo(new String[] {
+				EnumChatFormatting.YELLOW + selectedStack.getDisplayName(),
+				EnumChatFormatting.GRAY + selectedOreDict
+			}, mouseX, mouseY);
+			return;
+		}
+
+		if(ItemBlueprints.isCoreManipulatorBlueprint(coreManipulator.getBlueprintStack())) {
+			drawCreativeTabHoveringText(EnumChatFormatting.YELLOW + I18nUtil.resolveKey("gui.recipe.setRecipe"), mouseX, mouseY);
+		} else {
+			drawInfo(new String[] { EnumChatFormatting.RED + "Insert a core-category blueprint" }, mouseX, mouseY);
+		}
 	}
 
 	private double getCurrentMagneticFieldStrength(World world) {
@@ -1265,4 +1318,3 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		return String.format(Locale.US, "%.2f", Math.max(0.0D, retention));
 	}
 }
-
