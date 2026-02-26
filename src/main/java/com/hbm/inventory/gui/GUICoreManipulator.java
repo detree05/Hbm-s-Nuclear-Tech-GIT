@@ -84,6 +84,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final int POWER_BUTTON_X = 30;
 	private static final int POWER_BUTTON_Y = 71;
 	private static final int POWER_BUTTON_SIZE = 18;
+	private static final int GUI_SHIFT_X = 18;
 	private static final int BLUEPRINT_AREA_X = 8;
 	private static final int BLUEPRINT_AREA_Y = 105;
 	private static final int BLUEPRINT_AREA_WIDTH = 62;
@@ -110,7 +111,15 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	@Override
+	public void initGui() {
+		super.initGui();
+		this.guiLeft += GUI_SHIFT_X;
+	}
+
+	@Override
 	public void drawScreen(int mouseX, int mouseY, float partialTicks) {
+		this.guiLeft = (this.width - this.xSize) / 2 + GUI_SHIFT_X;
+		this.guiTop = (this.height - this.ySize) / 2;
 		super.drawScreen(mouseX, mouseY, partialTicks);
 		drawMaterialSelectorTooltip(mouseX, mouseY);
 		drawCoreSpeedTooltip(mouseX, mouseY);
@@ -396,8 +405,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 
 		if(selectedOreDict != null && selectedStack != null) {
 			drawInfo(new String[] {
-				EnumChatFormatting.YELLOW + selectedStack.getDisplayName(),
-				EnumChatFormatting.GRAY + selectedOreDict
+				EnumChatFormatting.YELLOW + selectedStack.getDisplayName()
 			}, mouseX, mouseY);
 			return;
 		}

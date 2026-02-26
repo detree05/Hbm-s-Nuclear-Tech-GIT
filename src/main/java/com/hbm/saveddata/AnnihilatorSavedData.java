@@ -1,8 +1,6 @@
 package com.hbm.saveddata;
 
-import java.util.ArrayList;
 import java.math.BigInteger;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
@@ -150,15 +148,12 @@ public class AnnihilatorSavedData extends WorldSavedData {
 
 	private static int getCoreOreDictPriority(String oreDict) {
 		if(oreDict.startsWith("ingot")) return 0;
-		if(oreDict.startsWith("dust")) return 1;
-		if(oreDict.startsWith("powder")) return 2;
 		return Integer.MAX_VALUE;
 	}
 	
 	public static class AnnihilatorPool {
 
 		private static final String CORE_CATEGORY_COUNTER_PREFIX = "$corecat$";
-		private static final String CORE_CATEGORY_MATERIAL_PREFIX = "$coremat$";
 		private static final BigInteger CORE_BLUEPRINT_STEP = BigInteger.valueOf(16L);
 		
 		/**
@@ -207,13 +202,6 @@ public class AnnihilatorSavedData extends WorldSavedData {
 			BigInteger currentAmount = previousAmount.add(BigInteger.valueOf(amount));
 			items.put(categoryCounterKey, currentAmount);
 
-			String materialKey = CORE_CATEGORY_MATERIAL_PREFIX + category + "|" + oreDict;
-			BigInteger existingMaterialAmount = items.get(materialKey);
-			if(existingMaterialAmount == null) {
-				existingMaterialAmount = BigInteger.ZERO;
-			}
-			items.put(materialKey, existingMaterialAmount.add(BigInteger.valueOf(amount)));
-
 			BigInteger previousStep = previousAmount.divide(CORE_BLUEPRINT_STEP);
 			BigInteger currentStep = currentAmount.divide(CORE_BLUEPRINT_STEP);
 			if(currentStep.compareTo(previousStep) > 0) {
@@ -224,26 +212,11 @@ public class AnnihilatorSavedData extends WorldSavedData {
 		}
 
 		private ItemStack createCoreCategoryBlueprint(String category) {
-			String prefix = CORE_CATEGORY_MATERIAL_PREFIX + category + "|";
-			ArrayList<String> materials = new ArrayList<String>();
-
-			for(Object keyObj : items.keySet()) {
-				if(!(keyObj instanceof String)) continue;
-
-				String key = (String) keyObj;
-				if(!key.startsWith(prefix)) continue;
-
-				String oreDict = key.substring(prefix.length());
-				if(oreDict != null && !oreDict.isEmpty()) {
-					materials.add(oreDict);
-				}
-			}
-
+			List<String> materials = ItemBlueprints.getAllCoreCategoryMaterials(category);
 			if(materials.isEmpty()) {
 				return null;
 			}
 
-			Collections.sort(materials, String.CASE_INSENSITIVE_ORDER);
 			return ItemBlueprints.makeCoreManipulatorBlueprint(category, materials);
 		}
 		

@@ -17,8 +17,8 @@ public class ContainerCoreManipulator extends ContainerBase {
 		this.addSlotToContainer(new SlotNonRetarded(coreManipulator, 0, 38, 107));
 
 		// Inventory panel is at X:56..231, Y:138..237.
-		// Slot grid remains centered inside that panel.
-		playerInv(player, 62, 156, 214);
+		// Shifted left by one slot column to match the custom GUI frame alignment.
+		playerInv(player, 44, 156, 214);
 	}
 
 	@Override

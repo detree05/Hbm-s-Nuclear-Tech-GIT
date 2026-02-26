@@ -2,11 +2,14 @@ package com.hbm.items.machine;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import com.hbm.dim.CelestialCore;
 import com.hbm.inventory.recipes.loader.GenericRecipe;
 import com.hbm.inventory.recipes.loader.GenericRecipes;
 import com.hbm.items.ModItems;
@@ -129,7 +132,9 @@ public class ItemBlueprints extends Item {
 				list.add(EnumChatFormatting.YELLOW + "Unlocked materials:");
 				int maxLines = Math.min(6, materials.size());
 				for(int i = 0; i < maxLines; i++) {
-					list.add(EnumChatFormatting.GRAY + "- " + materials.get(i));
+					String material = materials.get(i);
+					ItemStack display = getPreferredCoreMaterialDisplayStack(material);
+					list.add(EnumChatFormatting.GRAY + "- " + (display != null ? display.getDisplayName() : material));
 				}
 				if(materials.size() > maxLines) {
 					list.add(EnumChatFormatting.GRAY + "...and " + (materials.size() - maxLines) + " more");
@@ -248,7 +253,15 @@ public class ItemBlueprints extends Item {
 			}
 		}
 		out.addAll(unique);
-		Collections.sort(out, String.CASE_INSENSITIVE_ORDER);
+		String category = getCoreManipulatorCategory(stack);
+		if(category != null && !category.isEmpty()) {
+			List<String> categoryMaterials = getAllCoreCategoryMaterials(category);
+			if(!categoryMaterials.isEmpty()) {
+				return categoryMaterials;
+			}
+		}
+
+		sortMaterialsByDisplayName(out);
 		return out;
 	}
 
@@ -272,19 +285,27 @@ public class ItemBlueprints extends Item {
 
 		ArrayList<String> candidates = new ArrayList<String>();
 		candidates.add(oreDict);
+		String token = extractMaterialToken(oreDict);
 
 		if(oreDict.startsWith("ingot")) {
-			String token = oreDict.substring("ingot".length());
 			candidates.add("dust" + token);
 			candidates.add("powder" + token);
 		} else if(oreDict.startsWith("dust")) {
-			String token = oreDict.substring("dust".length());
 			candidates.add("ingot" + token);
 			candidates.add("powder" + token);
 		} else if(oreDict.startsWith("powder")) {
-			String token = oreDict.substring("powder".length());
 			candidates.add("ingot" + token);
 			candidates.add("dust" + token);
+		}
+
+		if(token != null && !token.isEmpty()) {
+			candidates.add("ingot" + token);
+			candidates.add("dust" + token);
+			candidates.add("powder" + token);
+			candidates.add("gem" + token);
+			candidates.add("crystal" + token);
+			candidates.add("billet" + token);
+			candidates.add("nugget" + token);
 		}
 
 		for(String name : candidates) {
@@ -299,5 +320,103 @@ public class ItemBlueprints extends Item {
 		}
 
 		return null;
+	}
+
+	public static List<String> getAllCoreCategoryMaterials(String category) {
+		ArrayList<String> out = new ArrayList<String>();
+		if(category == null || category.isEmpty()) {
+			return out;
+		}
+
+		HashMap<String, String> bestByToken = new HashMap<String, String>();
+		String[] oreNames = OreDictionary.getOreNames();
+		for(String oreDict : oreNames) {
+			if(oreDict == null || oreDict.isEmpty()) continue;
+			if(!category.equals(CelestialCore.getCategoryForOreDict(oreDict))) continue;
+
+			String prefix = getOreDictPrefix(oreDict);
+			if(getCoreMaterialPrefixPriority(prefix) == Integer.MAX_VALUE) continue;
+
+			String token = extractMaterialToken(oreDict);
+			String tokenKey = normalizeToken(token);
+			if(tokenKey == null || tokenKey.isEmpty()) continue;
+
+			String existing = bestByToken.get(tokenKey);
+			if(existing == null || compareMaterialCandidates(oreDict, existing) < 0) {
+				bestByToken.put(tokenKey, oreDict);
+			}
+		}
+
+		out.addAll(bestByToken.values());
+		sortMaterialsByDisplayName(out);
+		return out;
+	}
+
+	private static int compareMaterialCandidates(String a, String b) {
+		String aPrefix = getOreDictPrefix(a);
+		String bPrefix = getOreDictPrefix(b);
+		int aPriority = getCoreMaterialPrefixPriority(aPrefix);
+		int bPriority = getCoreMaterialPrefixPriority(bPrefix);
+		if(aPriority != bPriority) return aPriority - bPriority;
+		return a.compareToIgnoreCase(b);
+	}
+
+	private static int getCoreMaterialPrefixPriority(String prefix) {
+		if("ingot".equals(prefix)) return 0;
+		if("dust".equals(prefix)) return 1;
+		if("powder".equals(prefix)) return 2;
+		if("gem".equals(prefix)) return 3;
+		if("crystal".equals(prefix)) return 4;
+		if("billet".equals(prefix)) return 5;
+		if("nugget".equals(prefix)) return 6;
+		return Integer.MAX_VALUE;
+	}
+
+	private static String getOreDictPrefix(String oreDict) {
+		if(oreDict == null) return "";
+		for(int i = 0; i < oreDict.length(); i++) {
+			if(Character.isUpperCase(oreDict.charAt(i))) {
+				return oreDict.substring(0, i).toLowerCase();
+			}
+		}
+		return oreDict.toLowerCase();
+	}
+
+	private static String extractMaterialToken(String oreDict) {
+		if(oreDict == null || oreDict.isEmpty()) return oreDict;
+		for(int i = 0; i < oreDict.length(); i++) {
+			if(Character.isUpperCase(oreDict.charAt(i))) {
+				return oreDict.substring(i);
+			}
+		}
+		return oreDict;
+	}
+
+	private static String normalizeToken(String token) {
+		if(token == null) return null;
+		String lower = token.toLowerCase();
+		StringBuilder out = new StringBuilder(lower.length());
+		for(int i = 0; i < lower.length(); i++) {
+			char c = lower.charAt(i);
+			if((c >= 'a' && c <= 'z') || (c >= '0' && c <= '9')) {
+				out.append(c);
+			}
+		}
+		return out.toString();
+	}
+
+	private static void sortMaterialsByDisplayName(List<String> materials) {
+		Collections.sort(materials, new Comparator<String>() {
+			@Override
+			public int compare(String a, String b) {
+				ItemStack sa = getPreferredCoreMaterialDisplayStack(a);
+				ItemStack sb = getPreferredCoreMaterialDisplayStack(b);
+				String da = sa != null ? sa.getDisplayName() : a;
+				String db = sb != null ? sb.getDisplayName() : b;
+				int cmp = da.compareToIgnoreCase(db);
+				if(cmp != 0) return cmp;
+				return a.compareToIgnoreCase(b);
+			}
+		});
 	}
 }

@@ -3,6 +3,7 @@ package com.hbm.inventory.recipes;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 import com.google.gson.JsonElement;
 import com.hbm.inventory.recipes.loader.GenericRecipe;
@@ -11,8 +12,31 @@ import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemBlueprints;
 
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumChatFormatting;
 
-public class CoreManipulatorMaterialRecipes extends GenericRecipes<GenericRecipe> {
+public class CoreManipulatorMaterialRecipes extends GenericRecipes<CoreManipulatorMaterialRecipes.CoreMaterialRecipe> {
+
+	public static class CoreMaterialRecipe extends GenericRecipe {
+
+		public CoreMaterialRecipe(String oreDict, ItemStack icon) {
+			super(oreDict);
+			this.setIcon(icon != null ? icon : new ItemStack(ModItems.nothing));
+		}
+
+		@Override
+		public List<String> print() {
+			List<String> list = new ArrayList<String>();
+			list.add(EnumChatFormatting.YELLOW + this.getLocalizedName());
+			return list;
+		}
+
+		@Override
+		public boolean matchesSearch(String substring) {
+			String needle = substring == null ? "" : substring.toLowerCase(Locale.US);
+			return this.getLocalizedName().toLowerCase(Locale.US).contains(needle)
+				|| this.getInternalName().toLowerCase(Locale.US).contains(needle);
+		}
+	}
 
 	public CoreManipulatorMaterialRecipes() { }
 
@@ -31,9 +55,8 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<GenericRecipe
 		for(String oreDict : materials) {
 			if(oreDict == null || oreDict.isEmpty()) continue;
 
-			GenericRecipe recipe = new GenericRecipe(oreDict);
 			ItemStack icon = ItemBlueprints.getPreferredCoreMaterialDisplayStack(oreDict);
-			recipe.setIcon(icon != null ? icon : new ItemStack(ModItems.nothing));
+			CoreMaterialRecipe recipe = new CoreMaterialRecipe(oreDict, icon);
 			this.register(recipe);
 		}
 	}
@@ -67,8 +90,8 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<GenericRecipe
 	public void registerDefaults() { }
 
 	@Override
-	public GenericRecipe instantiateRecipe(String name) {
-		return new GenericRecipe(name);
+	public CoreMaterialRecipe instantiateRecipe(String name) {
+		return new CoreMaterialRecipe(name, new ItemStack(ModItems.nothing));
 	}
 
 	@Override
