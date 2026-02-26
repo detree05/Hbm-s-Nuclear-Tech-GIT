@@ -56,6 +56,7 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<CoreManipulat
 			if(oreDict == null || oreDict.isEmpty()) continue;
 
 			ItemStack icon = ItemBlueprints.getPreferredCoreMaterialDisplayStack(oreDict);
+			if(icon == null) continue;
 			CoreMaterialRecipe recipe = new CoreMaterialRecipe(oreDict, icon);
 			this.register(recipe);
 		}

@@ -394,8 +394,8 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			return;
 		}
 
-		boolean insideArea = mouseX >= guiLeft + BLUEPRINT_AREA_X && mouseX < guiLeft + BLUEPRINT_AREA_X + BLUEPRINT_AREA_WIDTH
-			&& mouseY >= guiTop + BLUEPRINT_AREA_Y && mouseY < guiTop + BLUEPRINT_AREA_Y + BLUEPRINT_AREA_HEIGHT;
+		boolean insideArea = mouseX >= guiLeft + MATERIAL_SELECTOR_X && mouseX < guiLeft + MATERIAL_SELECTOR_X + MATERIAL_SELECTOR_SIZE
+			&& mouseY >= guiTop + MATERIAL_SELECTOR_Y && mouseY < guiTop + MATERIAL_SELECTOR_Y + MATERIAL_SELECTOR_SIZE;
 		if(!insideArea) {
 			return;
 		}

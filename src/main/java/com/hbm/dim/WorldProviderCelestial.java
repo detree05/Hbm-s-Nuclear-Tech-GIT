@@ -221,6 +221,22 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		try {
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
 			if(skyState.isBlackhole()) {
+				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+				if(collapseEndTick > 0L) {
+					long now = worldObj.getTotalWorldTime();
+					long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+					if(now >= collapseEndTick) {
+						return NOTHING_SKY_DIM;
+					}
+					if(now > collapseStartTick) {
+						float progress = MathHelper.clamp_float(
+							(float)(now - collapseStartTick) / (float)StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS,
+							0.0F,
+							1.0F
+						);
+						return BLACKHOLE_SKY_DIM + (NOTHING_SKY_DIM - BLACKHOLE_SKY_DIM) * progress;
+					}
+				}
 				return BLACKHOLE_SKY_DIM;
 			}
 			if(skyState.isNothing()) {

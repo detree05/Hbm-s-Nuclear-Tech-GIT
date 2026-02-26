@@ -1,6 +1,7 @@
 #version 120
 
 uniform float iTime;
+uniform float bhr;
 uniform sampler2D iChannel1;
 
 const float pi = 3.1415927;
@@ -58,7 +59,6 @@ void main() {
 	vec3 rd = normalize(front * 1.5 + left * pp.x + up * pp.y);
 
 	vec3 bh = vec3(0.0, 0.0, 0.0);
-	float bhr = 0.1;
 	float bhmass = 5.0;
 	bhmass *= 0.001; // premul G
 

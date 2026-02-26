@@ -2,6 +2,7 @@ package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_SkyState;
@@ -79,10 +80,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.STARCORE;
 
 			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
-				skyState.setState(CBT_SkyState.SkyState.NOTHING);
-				CelestialBody.getStar(worldObj).modifyTraits(skyState);
-				isBlackhole = false;
-				isNothing = true;
+				StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
 			}
 
 			for(DirPos pos : getConPos()) trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
@@ -138,8 +136,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 							CelestialBody.getStar(worldObj).modifyTraits(skyState);
 
 							if(skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
-								skyState.setState(CBT_SkyState.SkyState.NOTHING);
-								CelestialBody.getStar(worldObj).modifyTraits(skyState);
+								StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
 							}
 						}
 					} else {

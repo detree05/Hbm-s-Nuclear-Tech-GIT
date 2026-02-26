@@ -196,6 +196,25 @@ public class StarcoreThroughputTracker {
 		long avgTotal = acc.lastSecondTotal > 0 ? acc.lastSecondTotal / 20L : total;
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		boolean collapseDirty = false;
+		if(collapseEndTick > 0L) {
+			if(skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE && now >= collapseEndTick) {
+				skyState.setState(CBT_SkyState.SkyState.NOTHING);
+				skyState.setStarcoreThroughput(0L);
+				skyState.setSunCharge(0L);
+				skyState.setSunLastSustainTick(0L);
+				skyState.setBlackholeCollapseEndTick(0L);
+				collapseDirty = true;
+			} else if(skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+				skyState.setBlackholeCollapseEndTick(0L);
+				collapseDirty = true;
+			}
+		}
+		if(collapseDirty) {
+			CelestialBody.getStar(world).modifyTraits(skyState);
+		}
+
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.STARCORE) {
 			long effective = Math.min(avgTotal, threshold);

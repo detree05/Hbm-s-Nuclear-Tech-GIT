@@ -460,6 +460,7 @@ public class ModEventHandler {
 	@SubscribeEvent
 	public void onPlayerLeftClient(ClientDisconnectionFromServerEvent event) {
 		SerializableRecipe.clearReceivedRecipes();
+		SolarSystemWorldSavedData.updateClientTraits(null);
 	}
 
 	@SubscribeEvent

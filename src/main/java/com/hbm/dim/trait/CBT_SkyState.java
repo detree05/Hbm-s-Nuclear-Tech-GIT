@@ -32,6 +32,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	private long starcoreThroughput;
 	private long sunCharge;
 	private long sunLastSustainTick;
+	private long blackholeCollapseEndTick;
 	private Map<Integer, Integer> injectorCounts = new HashMap<>();
 
 	public CBT_SkyState() { }
@@ -97,6 +98,14 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		sunCharge = Math.max(0, charge);
 	}
 
+	public long getBlackholeCollapseEndTick() {
+		return blackholeCollapseEndTick;
+	}
+
+	public void setBlackholeCollapseEndTick(long tick) {
+		blackholeCollapseEndTick = Math.max(0L, tick);
+	}
+
 	public int getInjectorCount(int dimensionId) {
 		Integer count = injectorCounts.get(dimensionId);
 		return count != null ? count.intValue() : 0;
@@ -121,21 +130,41 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public static CBT_SkyState get(World world) {
 		CelestialBody star = CelestialBody.getStar(world);
 		CBT_SkyState sky = star.getTrait(CBT_SkyState.class);
+		CBT_SkyState defaultSky = star.getDefaultTrait(CBT_SkyState.class);
+
+		// Server side: ensure we always mutate a world-scoped trait instance, not the global default trait singleton.
+		if(world != null && !world.isRemote) {
+			if(sky == null || sky == defaultSky) {
+				sky = cloneOrFallback(defaultSky);
+				star.modifyTraits(sky);
+			}
+			return sky;
+		}
+
+		// Client/read-only side fallback.
 		if(sky == null) {
-			sky = new CBT_SkyState(SkyState.BLACKHOLE);
+			return cloneOrFallback(defaultSky);
 		}
 		return sky;
 	}
 
 	public static void setState(World world, SkyState state) {
-		CelestialBody star = CelestialBody.getStar(world);
-		CBT_SkyState sky = star.getTrait(CBT_SkyState.class);
-		if(sky == null) {
-			sky = new CBT_SkyState(state);
-		} else {
-			sky.setState(state);
+		CBT_SkyState sky = get(world);
+		sky.setState(state);
+		if(world != null && !world.isRemote) {
+			CelestialBody.getStar(world).modifyTraits(sky);
 		}
-		star.modifyTraits(sky);
+	}
+
+	private static CBT_SkyState cloneOrFallback(CBT_SkyState source) {
+		if(source == null) {
+			return new CBT_SkyState(SkyState.BLACKHOLE);
+		}
+		CBT_SkyState copy = new CBT_SkyState();
+		NBTTagCompound nbt = new NBTTagCompound();
+		source.writeToNBT(nbt);
+		copy.readFromNBT(nbt);
+		return copy;
 	}
 
 	public static boolean isBlackhole(World world) {
@@ -173,6 +202,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		nbt.setLong("starcoreThroughput", starcoreThroughput);
 		nbt.setLong("sunCharge", sunCharge);
 		nbt.setLong("sunLastSustain", sunLastSustainTick);
+		nbt.setLong("blackholeCollapseEnd", blackholeCollapseEndTick);
 		if(!injectorCounts.isEmpty()) {
 			NBTTagCompound injectors = new NBTTagCompound();
 			for(Map.Entry<Integer, Integer> entry : injectorCounts.entrySet()) {
@@ -193,6 +223,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		starcoreThroughput = nbt.getLong("starcoreThroughput");
 		sunCharge = nbt.getLong("sunCharge");
 		sunLastSustainTick = nbt.getLong("sunLastSustain");
+		blackholeCollapseEndTick = nbt.getLong("blackholeCollapseEnd");
 		injectorCounts.clear();
 		if(nbt.hasKey("injectorCounts")) {
 			NBTTagCompound injectors = nbt.getCompoundTag("injectorCounts");
@@ -219,6 +250,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		buf.writeLong(starcoreThroughput);
 		buf.writeLong(sunCharge);
 		buf.writeLong(sunLastSustainTick);
+		buf.writeLong(blackholeCollapseEndTick);
 		buf.writeInt(injectorCounts.size());
 		for(Map.Entry<Integer, Integer> entry : injectorCounts.entrySet()) {
 			buf.writeInt(entry.getKey().intValue());
@@ -235,6 +267,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		starcoreThroughput = buf.readLong();
 		sunCharge = buf.readLong();
 		sunLastSustainTick = buf.readLong();
+		blackholeCollapseEndTick = buf.readLong();
 		injectorCounts.clear();
 		int size = buf.readInt();
 		for(int i = 0; i < size; i++) {

@@ -79,6 +79,8 @@ public class PacketDispatcher {
 		wrapper.registerMessage(StarcoreIgnitionSkyPacket.Handler.class, StarcoreIgnitionSkyPacket.class, i++, Side.CLIENT);
 		//Starcore decay sky + overlay event
 		wrapper.registerMessage(StarcoreDecaySkyPacket.Handler.class, StarcoreDecaySkyPacket.class, i++, Side.CLIENT);
+		//Blackhole collapse sky + global sound event
+		wrapper.registerMessage(BlackholeCollapseSkyPacket.Handler.class, BlackholeCollapseSkyPacket.class, i++, Side.CLIENT);
 		//Overworld skyfall meteor visual event
 		wrapper.registerMessage(SkyfallSkyPacket.Handler.class, SkyfallSkyPacket.class, i++, Side.CLIENT);
 
