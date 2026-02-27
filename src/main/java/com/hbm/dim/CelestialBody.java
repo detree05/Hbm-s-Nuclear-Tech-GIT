@@ -75,7 +75,6 @@ public class CelestialBody {
 	private float baselineArgumentPeriapsis = 0.0F;
 	private float baselineOrbitalSpeedScale = 1.0F;
 	private int baselineRotationalPeriod = -1;
-	private double baselineCoreMassKg = -1.0D;
 	private boolean dynamicsBaselineCaptured = false;
 	private float orbitalSpeedScale = 1.0F;
 
@@ -105,10 +104,6 @@ public class CelestialBody {
 	private static final double ATM_MIN_DISSIPATION_PER_UPDATE_ATM = 0.0001D;
 	private static final double ATM_MIN_PRESENT_PRESSURE_ATM = 0.0001D;
 	private static final double CORE_DYNAMICS_INFLUENCE_MULTIPLIER = 2.5D;
-	private static final double CORE_ROTATIONAL_SPEED_SCALE_MIN = 0.02D;
-	private static final double CORE_ROTATIONAL_SPEED_SCALE_MAX = 2.0D;
-	private static final double CORE_ROTATIONAL_MASS_RATIO_MIN = 0.25D;
-	private static final double CORE_ROTATIONAL_MASS_RATIO_MAX = 8.0D;
 
 	public List<CelestialBody> satellites = new ArrayList<CelestialBody>(); // moon boyes
 	public CelestialBody parent = null;
@@ -482,7 +477,6 @@ public class CelestialBody {
 		if(core != null && core.computedRadiusKm != radiusKm) {
 			core.recalculateForRadius(radiusKm);
 		}
-		baselineCoreMassKg = core != null ? core.computedCoreMassKg : -1.0D;
 
 		dynamicsBaselineCaptured = true;
 	}
@@ -492,12 +486,7 @@ public class CelestialBody {
 
 		captureDynamicsBaseline(core);
 		if(baselineRotationalPeriod > 0) {
-			double coreMassRatio = getRotationalMassRatio(core);
-			double minRotationScale = CORE_ROTATIONAL_SPEED_SCALE_MIN * coreMassRatio;
-			double maxRotationScale = CORE_ROTATIONAL_SPEED_SCALE_MAX * coreMassRatio;
-			double rotationScale = clampDouble(core.rotationalSpeedScale, minRotationScale, maxRotationScale);
-			double scaledRotationalPeriod = (double)baselineRotationalPeriod / rotationScale;
-			rotationalPeriod = (int)Math.max(1L, Math.round(scaledRotationalPeriod));
+			rotationalPeriod = baselineRotationalPeriod;
 		}
 
 		if(parent == null || satellites.isEmpty()) return;
@@ -529,18 +518,6 @@ public class CelestialBody {
 
 	private static double clampDouble(double value, double min, double max) {
 		return Math.max(min, Math.min(max, value));
-	}
-
-	private double getRotationalMassRatio(CelestialCore core) {
-		if(core == null) return 1.0D;
-		if(core.computedRadiusKm != radiusKm) {
-			core.recalculateForRadius(radiusKm);
-		}
-		if(baselineCoreMassKg <= 0.0D || core.computedCoreMassKg <= 0.0D) {
-			return 1.0D;
-		}
-		double ratio = core.computedCoreMassKg / baselineCoreMassKg;
-		return clampDouble(ratio, CORE_ROTATIONAL_MASS_RATIO_MIN, CORE_ROTATIONAL_MASS_RATIO_MAX);
 	}
 
 	// he has ceased to be
@@ -971,13 +948,6 @@ public class CelestialBody {
 		return (double)rotationalPeriod * (AstronomyUtil.DAY_FACTOR / (double)AstronomyUtil.TIME_MULTIPLIER) * 20;
 	}
 
-	public double getEffectiveRotationalSpeedScale() {
-		if(rotationalPeriod <= 0 || baselineRotationalPeriod <= 0) {
-			return 1.0D;
-		}
-		return Math.max(0.001D, (double)baselineRotationalPeriod / (double)rotationalPeriod);
-	}
-
 	// Returns the year length in days, derived from semi-major axis
 	public double getOrbitalPeriod() {
 		if(parent == null) return 0;
@@ -1058,14 +1028,6 @@ public class CelestialBody {
 
 	public CelestialCore getCore() {
 		return core;
-	}
-
-	public double getRotationalSpeedScaleMin() {
-		return CORE_ROTATIONAL_SPEED_SCALE_MIN * getRotationalMassRatio(core);
-	}
-
-	public double getRotationalSpeedScaleMax() {
-		return CORE_ROTATIONAL_SPEED_SCALE_MAX * getRotationalMassRatio(core);
 	}
 
 	// Loads in the heightmap data for a given chunk

@@ -490,7 +490,6 @@ public class CelestialCore {
 	public double computedCoreRadioactivity = Double.NaN;
 	public double computedMagneticFieldStrength = Double.NaN;
 	public double densityScale = 1.0D;
-	public double rotationalSpeedScale = 1.0D;
 	private boolean bypassMaxMassLimit = false;
 
 	public CelestialCore() { }
@@ -524,14 +523,6 @@ public class CelestialCore {
 		return this;
 	}
 
-	public CelestialCore withRotationalSpeedScale(double scale) {
-		if(Double.isNaN(scale) || Double.isInfinite(scale) || scale <= 0.0D) {
-			throw new InvalidParameterException("Core rotational speed scale must be finite and > 0, got: " + scale);
-		}
-		this.rotationalSpeedScale = scale;
-		return this;
-	}
-
 	public CelestialCore withMaxMassCapBypass(boolean bypass) {
 		if(this.bypassMaxMassLimit == bypass) {
 			return this;
@@ -544,7 +535,6 @@ public class CelestialCore {
 	public CelestialCore copy() {
 		CelestialCore copy = new CelestialCore();
 		copy.densityScale = densityScale;
-		copy.rotationalSpeedScale = rotationalSpeedScale;
 		copy.bypassMaxMassLimit = bypassMaxMassLimit;
 		for(CoreCategory category : categories) {
 			CoreCategory categoryCopy = new CoreCategory();
@@ -1092,19 +1082,14 @@ public class CelestialCore {
 
 		nbt.setTag("coreCategories", categoryList);
 		nbt.setDouble("densityScale", densityScale);
-		nbt.setDouble("rotationalSpeedScale", rotationalSpeedScale);
 		nbt.setBoolean("bypassMaxMassLimit", bypassMaxMassLimit);
 	}
 	public void readFromNBT(NBTTagCompound nbt) {
 		NBTTagList categoryList = nbt.getTagList("coreCategories", Constants.NBT.TAG_COMPOUND);
 		double parsedDensityScale = nbt.hasKey("densityScale") ? nbt.getDouble("densityScale") : 1.0D;
-		double parsedRotationalSpeedScale = nbt.hasKey("rotationalSpeedScale") ? nbt.getDouble("rotationalSpeedScale") : 1.0D;
 		boolean parsedBypassMaxMassLimit = nbt.hasKey("bypassMaxMassLimit") && nbt.getBoolean("bypassMaxMassLimit");
 		if(parsedDensityScale <= 0.0D) {
 			parsedDensityScale = 1.0D;
-		}
-		if(Double.isNaN(parsedRotationalSpeedScale) || Double.isInfinite(parsedRotationalSpeedScale) || parsedRotationalSpeedScale <= 0.0D) {
-			parsedRotationalSpeedScale = 1.0D;
 		}
 		List<CoreCategory> parsedCategories = new CopyOnWriteArrayList<CoreCategory>();
 		for(int i = 0; i < categoryList.tagCount(); i++) {
@@ -1132,7 +1117,6 @@ public class CelestialCore {
 		}
 
 		densityScale = parsedDensityScale;
-		rotationalSpeedScale = parsedRotationalSpeedScale;
 		bypassMaxMassLimit = parsedBypassMaxMassLimit;
 		categories = parsedCategories;
 		invalidateComputed();
@@ -1140,7 +1124,6 @@ public class CelestialCore {
 	public void writeToBytes(ByteBuf buf) {
 		buf.writeInt(categories.size());
 		buf.writeDouble(densityScale);
-		buf.writeDouble(rotationalSpeedScale);
 		buf.writeBoolean(bypassMaxMassLimit);
 
 		for(CoreCategory category : categories) {
@@ -1157,13 +1140,9 @@ public class CelestialCore {
 	public void readFromBytes(ByteBuf buf) {
 		int categoryCount = buf.readInt();
 		double parsedDensityScale = buf.readDouble();
-		double parsedRotationalSpeedScale = buf.readDouble();
 		boolean parsedBypassMaxMassLimit = buf.readBoolean();
 		if(parsedDensityScale <= 0.0D) {
 			parsedDensityScale = 1.0D;
-		}
-		if(Double.isNaN(parsedRotationalSpeedScale) || Double.isInfinite(parsedRotationalSpeedScale) || parsedRotationalSpeedScale <= 0.0D) {
-			parsedRotationalSpeedScale = 1.0D;
 		}
 		List<CoreCategory> parsedCategories = new CopyOnWriteArrayList<CoreCategory>();
 		for(int i = 0; i < categoryCount; i++) {
@@ -1188,7 +1167,6 @@ public class CelestialCore {
 		}
 
 		densityScale = parsedDensityScale;
-		rotationalSpeedScale = parsedRotationalSpeedScale;
 		bypassMaxMassLimit = parsedBypassMaxMassLimit;
 		categories = parsedCategories;
 		invalidateComputed();

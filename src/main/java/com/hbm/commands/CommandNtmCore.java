@@ -47,7 +47,7 @@ public class CommandNtmCore extends CommandBase {
 
 	@Override
 	public String getCommandUsage(ICommandSender sender) {
-		return "/ntmcore [help|info|set|add|remove|scale|rotation] (remove expects a value)";
+		return "/ntmcore [help|info|set|add|remove|scale] (remove expects a value)";
 	}
 
 	@Override
@@ -95,9 +95,6 @@ public class CommandNtmCore extends CommandBase {
 					return;
 				case "scale":
 					handleScale(sender, world, args);
-					return;
-				case "rotation":
-					handleSpin(sender, world, args);
 					return;
 				default:
 					sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + getCommandUsage(sender)));
@@ -432,54 +429,12 @@ public class CommandNtmCore extends CommandBase {
 		));
 	}
 
-	private void handleSpin(ICommandSender sender, World world, String[] args) {
-		if(!canEdit(sender)) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "You need OP level 2 to edit core composition."));
-			return;
-		}
-		if(args.length < 2 || args.length > 3) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Usage: /ntmcore rotation <rotationalSpeedScale> [body]"));
-			return;
-		}
-
-		CelestialBody body = resolveBody(sender, world, args.length == 3 ? args[2] : null);
-		if(body == null) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Unknown celestial body."));
-			return;
-		}
-		CelestialCore core = body.getCore();
-		if(core == null) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Body '" + body.name + "' has no core data."));
-			return;
-		}
-
-		double scale = parseDouble(sender, args[1]);
-		if(Double.isNaN(scale) || Double.isInfinite(scale) || scale <= 0.0D) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Rotational speed scale must be finite and > 0."));
-			return;
-		}
-
-		double minScale = body.getRotationalSpeedScaleMin();
-		double maxScale = body.getRotationalSpeedScaleMax();
-		double clampedScale = Math.max(minScale, Math.min(maxScale, scale));
-		core.withRotationalSpeedScale(clampedScale);
-		applyAndPersistCore(world, body, core);
-		sender.addChatMessage(new ChatComponentText(
-			EnumChatFormatting.GREEN + "Set rotational speed scale for "
-			+ EnumChatFormatting.AQUA + body.name
-			+ EnumChatFormatting.GREEN + " to "
-			+ EnumChatFormatting.WHITE + String.format(Locale.US, "%.3f", core.rotationalSpeedScale)
-			+ EnumChatFormatting.GRAY + " (range " + String.format(Locale.US, "%.3f", minScale) + "-" + String.format(Locale.US, "%.3f", maxScale) + ")"
-		));
-	}
-
 	private void showUsage(ICommandSender sender) {
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore info [body]"));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore set <material|oreDict> <value> [body]"));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore add <material|oreDict> <value> [body]"));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore remove <material|oreDict> <value> [body]"));
 		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore scale <densityScale> [body]"));
-		sender.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "/ntmcore rotation <rotationalSpeedScale> [body]"));
 	}
 
 	private void showCoreInfo(ICommandSender sender, CelestialBody body) {
@@ -496,14 +451,6 @@ public class CommandNtmCore extends CommandBase {
 			EnumChatFormatting.YELLOW + "Radius: " + EnumChatFormatting.WHITE + formatNumber(body.radiusKm) + " km"
 			+ EnumChatFormatting.GRAY + " | "
 			+ EnumChatFormatting.YELLOW + "Density scale: " + EnumChatFormatting.WHITE + String.format(Locale.US, "%.3f", core.densityScale)
-			+ EnumChatFormatting.GRAY + " | "
-			+ EnumChatFormatting.YELLOW + "Rotation speed scale: " + EnumChatFormatting.WHITE + String.format(Locale.US, "%.3f", core.rotationalSpeedScale)
-		));
-		sender.addChatMessage(new ChatComponentText(
-			EnumChatFormatting.YELLOW + "Rotation speed range (mass-scaled): "
-			+ EnumChatFormatting.WHITE + String.format(Locale.US, "%.3f", body.getRotationalSpeedScaleMin())
-			+ EnumChatFormatting.GRAY + " - "
-			+ EnumChatFormatting.WHITE + String.format(Locale.US, "%.3f", body.getRotationalSpeedScaleMax())
 		));
 		sender.addChatMessage(new ChatComponentText(
 			EnumChatFormatting.YELLOW + "Bulk density: " + EnumChatFormatting.WHITE + formatNumber(core.computedBulkDensityKgPerM3) + " kg/m^3"
@@ -812,7 +759,7 @@ public class CommandNtmCore extends CommandBase {
 			return Collections.emptyList();
 		}
 		if(args.length == 1) {
-			return getListOfStringsMatchingLastWord(args, "help", "info", "set", "add", "remove", "scale", "rotation");
+			return getListOfStringsMatchingLastWord(args, "help", "info", "set", "add", "remove", "scale");
 		}
 
 		String sub = args[0].toLowerCase(Locale.US);
@@ -865,16 +812,6 @@ public class CommandNtmCore extends CommandBase {
 		if("scale".equals(sub)) {
 			if(args.length == 2) {
 				return getListOfStringsMatchingLastWord(args, "0.5", "1.0", "1.5", "2.0");
-			}
-			if(args.length == 3) {
-				return getListOfStringsFromIterableMatchingLastWord(args, getBodyNames());
-			}
-			return Collections.emptyList();
-		}
-
-		if("rotation".equals(sub)) {
-			if(args.length == 2) {
-				return getListOfStringsMatchingLastWord(args, "0.1", "0.2", "0.5", "1.0", "1.5", "2.0");
 			}
 			if(args.length == 3) {
 				return getListOfStringsFromIterableMatchingLastWord(args, getBodyNames());

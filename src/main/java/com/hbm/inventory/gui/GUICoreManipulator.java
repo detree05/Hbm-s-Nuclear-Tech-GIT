@@ -263,7 +263,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawCoreSpeedGauge(World world) {
-		double coreSpeed = getCurrentCoreRotationScale(world);
+		double coreSpeed = 1.0D;
 		double targetGauge = getCoreSpeedGaugeProgress(coreSpeed);
 		animatedCoreSpeedGauge += (targetGauge - animatedCoreSpeedGauge) * 0.2D;
 		animatedCoreSpeedGauge = MathHelper.clamp_double(animatedCoreSpeedGauge, 0.0D, 1.0D);
@@ -333,8 +333,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private void drawCoreSpeedTooltip(int mouseX, int mouseY) {
-		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
-		double coreSpeed = getCurrentCoreRotationScale(world);
+		double coreSpeed = 1.0D;
 		int width = 24;
 		int height = 24;
 
@@ -1022,18 +1021,16 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	}
 
 	private int getCurrentScrollOffset(World world, float partialTicks) {
-		double rotationScale = getCurrentCoreRotationScale(world);
 		double ticks = world != null ? (double) world.getTotalWorldTime() + (double) partialTicks : (double) Minecraft.getSystemTime() / 50.0D;
-		double traveled = ticks * 0.4D * rotationScale * 1.01D;
+		double traveled = ticks * 0.4D * 1.01D;
 		int scroll = (int) Math.floor(traveled) % 64;
 		if(scroll < 0) scroll += 64;
 		return scroll;
 	}
 
 	private int getCurrentCoreScrollOffset(World world, float partialTicks) {
-		double rotationScale = getCurrentCoreRotationScale(world);
 		double ticks = world != null ? (double) world.getTotalWorldTime() + (double) partialTicks : (double) Minecraft.getSystemTime() / 50.0D;
-		double planetCycles = (ticks * 0.4D * rotationScale * 1.01D) / 64;
+		double planetCycles = (ticks * 0.4D * 1.01D) / 64;
 		double coreCycles = planetCycles * 0.5D;
 		double wrappedCoreCycle = coreCycles - Math.floor(coreCycles);
 
@@ -1054,22 +1051,6 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		int scroll = (int) Math.floor(uvOffset * 64) % 64;
 		if(scroll < 0) scroll += 64;
 		return scroll;
-	}
-
-	private double getCurrentCoreRotationScale(World world) {
-		if(world != null && world.provider != null) {
-			CelestialBody body = getCurrentBody(world);
-			if(body != null) {
-				CelestialCore core = body.getCore();
-				if(core != null) {
-					double scale = core.rotationalSpeedScale;
-					if(!Double.isNaN(scale) && !Double.isInfinite(scale) && scale > 0.0D) {
-						return scale;
-					}
-				}
-			}
-		}
-		return 1.0D;
 	}
 
 	private Vec3 getBodyTextureTint(CelestialBody body) {

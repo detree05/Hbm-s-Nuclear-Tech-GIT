@@ -115,7 +115,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final float BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS = 40.0F;
 	private static final double BLACKHOLE_COLLAPSE_MAX_SCALE = 1.2D;
 	private static final double BLACKHOLE_COLLAPSE_MIN_SCALE = 0.02D;
-	private static final double BODY_ROTATION_UV_BASE_TICKS = 1024.0D;
 	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
@@ -1089,7 +1088,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 			boolean orbitingThis = metric.body == orbiting;
 
-			double uvOffset = getBodyUvOffset(world, partialTicks, metric.body);
+			double uvOffset = orbitingThis ? 1 - ((((double)world.getWorldTime() + partialTicks) / 1024) % 1) : 0;
 			float axialTilt = orbitingThis ? 0 : metric.body.axialTilt;
 			Vec3 bodyTextureTint = getBodyTextureTint(metric.body);
 
@@ -1603,22 +1602,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 		double driftPeriod = bodyPeriod > 1.0D ? MathHelper.clamp_double(bodyPeriod * 0.35D, 4000.0D, 360000.0D) : 24000.0D;
 		double phaseOffset = (Math.abs(body.name.hashCode()) % 2048) / 2048.0D;
 		return (time / driftPeriod + phaseOffset) % 1.0D;
-	}
-
-	private double getBodyUvOffset(WorldClient world, float partialTicks, CelestialBody body) {
-		if(world == null || body == null) {
-			return 0.0D;
-		}
-
-		double phaseOffset = (Math.abs(body.name.hashCode()) % 4096) / 4096.0D;
-		if(body.getCore() == null) {
-			// Bodies without a core keep a static texture orientation.
-			return 1.0D - phaseOffset;
-		}
-
-		double time = world.getWorldTime() + partialTicks;
-		double rotationSpeedScale = body.getEffectiveRotationalSpeedScale();
-		return 1.0D - (((time / BODY_ROTATION_UV_BASE_TICKS) * rotationSpeedScale + phaseOffset) % 1.0D);
 	}
 
 	private void renderAtmosphereGlow(Tessellator tessellator, Minecraft mc, CelestialBody body, double size, float visibility) {
