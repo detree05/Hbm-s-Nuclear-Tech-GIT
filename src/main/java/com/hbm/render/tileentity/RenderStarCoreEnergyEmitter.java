@@ -50,7 +50,6 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 	private static final float EMITTER_BEAM_BASE_ALPHA = 0.55F;
 	private static final float EMITTER_BEAM_VISIBILITY_DISTANCE_SQ = 512.0F * 512.0F;
 	private static final float EMITTER_BEAM_HIGH_DETAIL_DISTANCE_SQ = 96.0F * 96.0F;
-	private static final int EMITTER_BEAM_MIN_SEGMENTS = 4;
 	private static final float GUN_SHAKE_OFFSET_X = 0.015F;
 	private static final float GUN_SHAKE_OFFSET_Y = 0.006F;
 	private static final float GUN_SHAKE_ROT_X = 0.05F;
@@ -252,7 +251,7 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 			return;
 		}
 		boolean highDetail = distanceSq <= EMITTER_BEAM_HIGH_DETAIL_DISTANCE_SQ;
-		int segmentCount = Math.max(EMITTER_BEAM_MIN_SEGMENTS, (int) (EMITTER_BEAM_MAX_LENGTH / (highDetail ? 8.0F : 16.0F)));
+		int segmentCount = 1;
 		float beamThickness = highDetail ? EMITTER_BEAM_BASE_THICKNESS : EMITTER_BEAM_BASE_THICKNESS * 0.75F;
 		float beamAlpha = highDetail ? EMITTER_BEAM_BASE_ALPHA : EMITTER_BEAM_BASE_ALPHA * 0.7F;
 
@@ -260,7 +259,6 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		float hue = (t * 0.005F) % 1.0F;
 		int outerColor = Color.HSBtoRGB(hue, 1.0F, 1.0F) & 0xFFFFFF;
 		int innerColor = Color.HSBtoRGB((hue + 0.08F) % 1.0F, 1.0F, 1.0F) & 0xFFFFFF;
-		int randomSeed = (int) (te.getWorldObj().getTotalWorldTime() % 1000L);
 
 		GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
 		GL11.glDisable(GL11.GL_LIGHTING);
@@ -282,21 +280,6 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 			beamThickness,
 			beamAlpha
 		);
-		if(highDetail) {
-			BeamPronter.prontBeamwithDepth(
-				skeleton,
-				EnumWaveType.RANDOM,
-				EnumBeamType.CYLINDER,
-				outerColor,
-				innerColor,
-				randomSeed,
-				segmentCount,
-				0.0625F,
-				2,
-				beamThickness,
-				beamAlpha
-			);
-		}
 		GL11.glPopMatrix();
 
 		GL11.glEnable(GL11.GL_LIGHTING);

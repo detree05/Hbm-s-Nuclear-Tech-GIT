@@ -217,6 +217,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 		boolean forceNightSky = sky == CBT_SkyState.SkyState.BLACKHOLE
 			|| sky == CBT_SkyState.SkyState.NOTHING
 			|| sky == CBT_SkyState.SkyState.STARCORE;
+		boolean noDirectSunlight = sky == CBT_SkyState.SkyState.NOTHING
+			|| sky == CBT_SkyState.SkyState.STARCORE;
 		CBT_Atmosphere atmosphere = body.getTrait(CBT_Atmosphere.class);
 
 		boolean hasAtmosphere = atmosphere != null;
@@ -444,7 +446,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				GL11.glTranslatef(0, -100, 0);
 				GL11.glRotatef(-90.0F, 0.0F, 1.0F, 0.0F);
 
-				float ringVisibility = visibility * getRingFade(body, world);
+				float ringVisibility = visibility * (noDirectSunlight ? 0.15F : 1.0F) * getRingFade(body, world);
 				renderRings(partialTicks, world, mc, body.ringTilt, body.ringColor, 200, ringVisibility);
 
 			}
@@ -1109,7 +1111,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 						GL11.glPushMatrix();
 						{
 
-							float ringVisibility = visibility * getRingFade(metric.body, world);
+							float ringVisibility = visibility * directLight * getRingFade(metric.body, world);
 							GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], ringVisibility);
 							mc.renderEngine.bindTexture(ringTexture);
 
@@ -1404,7 +1406,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 					// Draw the front half of the ring (unobscured)
 					if(shouldRenderRings(metric.body, world)) {
-						float ringVisibility = visibility * getRingFade(metric.body, world);
+						float ringVisibility = visibility * directLight * getRingFade(metric.body, world);
 						GL11.glColor4f(metric.body.ringColor[0], metric.body.ringColor[1], metric.body.ringColor[2], ringVisibility);
 						mc.renderEngine.bindTexture(ringTexture);
 

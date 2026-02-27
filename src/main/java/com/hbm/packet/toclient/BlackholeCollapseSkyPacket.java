@@ -9,6 +9,8 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.PositionedSoundRecord;
+import net.minecraft.util.ResourceLocation;
 
 public class BlackholeCollapseSkyPacket implements IMessage {
 
@@ -42,6 +44,7 @@ public class BlackholeCollapseSkyPacket implements IMessage {
 			Minecraft mc = Minecraft.getMinecraft();
 			if(mc != null) {
 				SkyProviderCelestial.startBlackholeCollapseEffect(m.worldTime, m.dimension);
+				mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.fartholeinit"), 1.0F));
 			}
 			return null;
 		}
