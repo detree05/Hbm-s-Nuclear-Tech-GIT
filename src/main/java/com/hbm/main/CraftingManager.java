@@ -642,6 +642,7 @@ public class CraftingManager {
 		addRecipeAuto(new ItemStack(ModItems.ams_core_wormhole, 1), new Object[] { "DPD", "PSP", "DPD", 'D', ModItems.plate_dineutronium, 'P', ModItems.powder_spark_mix, 'S', ModItems.singularity });
 		addRecipeAuto(new ItemStack(ModItems.ams_core_eyeofharmony, 1), new Object[] { "ALA", "LSL", "ALA", 'A', ModItems.plate_dalekanium, 'L', new ItemStack(ModItems.fluid_barrel_full, 1, Fluids.LAVA.getID()), 'S', ModItems.black_hole });
 		addRecipeAuto(new ItemStack(ModItems.ams_core_thingy), new Object[] { "NSN", "NGN", "G G", 'N', GOLD.nugget(), 'G', GOLD.ingot(), 'S', new ItemStack(ModItems.battery_pack, 1, EnumBatteryPack.BATTERY_QUANTUM.ordinal()) });
+		addRecipeAuto(new ItemStack(ModItems.star_core, 1), new Object[] { "YEY", "ECE", "YEY", 'Y', YHARONITE.ingot(), 'E', ETHYROITE.ingot(), 'C', ModItems.ams_core_eyeofharmony });
 		addRecipeAuto(new ItemStack(ModItems.photo_panel), new Object[] { " G ", "IPI", " C ", 'G', KEY_ANYPANE, 'I', ModItems.plate_polymer, 'P', DictFrame.fromOne(ModItems.circuit, EnumCircuitType.SILICON), 'C', DictFrame.fromOne(ModItems.circuit, EnumCircuitType.PCB) });
 		addRecipeAuto(new ItemStack(ModItems.beryllium_mirror), new Object[] { "BBN", "BNB", "NBB", 'B', BE.billet(), 'N', ND.wireDense() });
 		addRecipeAuto(new ItemStack(ModBlocks.machine_satlinker), new Object[] { "PSP", "SCS", "PSP", 'P', STEEL.plate(), 'S', STAR.ingot(), 'C', ModItems.sat_chip });

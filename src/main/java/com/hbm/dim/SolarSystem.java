@@ -527,6 +527,7 @@ public class SolarSystem {
 					.withMassRadius(kerbin.totalMassKg, kerbin.planetRadiusKm)
 					.withOrbitalParameters(13_599_840, 0.0F, 0.0F, 0.0F, 0.0F)
 					.withRotationalPeriod(21_549)
+					.withTidalLockingTo("mun")
 					.withColor(0.608F, 0.914F, 1.0F)
 					.withTraits(new CBT_Water())
 					.withCore(kerbin.core)

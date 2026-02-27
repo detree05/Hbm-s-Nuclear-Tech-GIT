@@ -115,6 +115,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final float BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS = 40.0F;
 	private static final double BLACKHOLE_COLLAPSE_MAX_SCALE = 1.2D;
 	private static final double BLACKHOLE_COLLAPSE_MIN_SCALE = 0.02D;
+	private static final double BODY_ROTATION_UV_BASE_TICKS = 1024.0D;
 	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
@@ -1609,14 +1610,15 @@ public class SkyProviderCelestial extends IRenderHandler {
 			return 0.0D;
 		}
 
-		double bodyPeriod = body.getRotationalPeriod();
-		if(bodyPeriod <= 1.0D) {
-			return 0.0D;
+		double phaseOffset = (Math.abs(body.name.hashCode()) % 4096) / 4096.0D;
+		if(body.getCore() == null) {
+			// Bodies without a core keep a static texture orientation.
+			return 1.0D - phaseOffset;
 		}
 
-		double time = world.getTotalWorldTime() + partialTicks;
-		double phaseOffset = (Math.abs(body.name.hashCode()) % 4096) / 4096.0D;
-		return 1.0D - ((time / bodyPeriod + phaseOffset) % 1.0D);
+		double time = world.getWorldTime() + partialTicks;
+		double rotationSpeedScale = body.getEffectiveRotationalSpeedScale();
+		return 1.0D - (((time / BODY_ROTATION_UV_BASE_TICKS) * rotationSpeedScale + phaseOffset) % 1.0D);
 	}
 
 	private void renderAtmosphereGlow(Tessellator tessellator, Minecraft mc, CelestialBody body, double size, float visibility) {

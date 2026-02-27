@@ -971,6 +971,13 @@ public class CelestialBody {
 		return (double)rotationalPeriod * (AstronomyUtil.DAY_FACTOR / (double)AstronomyUtil.TIME_MULTIPLIER) * 20;
 	}
 
+	public double getEffectiveRotationalSpeedScale() {
+		if(rotationalPeriod <= 0 || baselineRotationalPeriod <= 0) {
+			return 1.0D;
+		}
+		return Math.max(0.001D, (double)baselineRotationalPeriod / (double)rotationalPeriod);
+	}
+
 	// Returns the year length in days, derived from semi-major axis
 	public double getOrbitalPeriod() {
 		if(parent == null) return 0;
