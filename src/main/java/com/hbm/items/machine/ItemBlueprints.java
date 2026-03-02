@@ -133,8 +133,7 @@ public class ItemBlueprints extends Item {
 				int maxLines = Math.min(6, materials.size());
 				for(int i = 0; i < maxLines; i++) {
 					String material = materials.get(i);
-					ItemStack display = getPreferredCoreMaterialDisplayStack(material);
-					list.add(EnumChatFormatting.GRAY + "- " + (display != null ? display.getDisplayName() : material));
+					list.add(EnumChatFormatting.GRAY + "- " + formatCoreMaterialLabel(material));
 				}
 				if(materials.size() > maxLines) {
 					list.add(EnumChatFormatting.GRAY + "...and " + (materials.size() - maxLines) + " more");
@@ -261,6 +260,7 @@ public class ItemBlueprints extends Item {
 			}
 		}
 
+		out = dedupeMaterialsByLabel(out);
 		sortMaterialsByDisplayName(out);
 		return out;
 	}
@@ -322,6 +322,45 @@ public class ItemBlueprints extends Item {
 		return null;
 	}
 
+	public static String formatCoreMaterialLabel(String oreDict) {
+		if(oreDict == null || oreDict.isEmpty()) {
+			return "Unknown";
+		}
+
+		String baseName = null;
+		String category = CelestialCore.getCategoryForOreDict(oreDict);
+		if(CelestialCore.CAT_ACTINIDE.equals(category) || CelestialCore.CAT_SCHRABIDIC.equals(category)) {
+			ItemStack localized = getPreferredCoreMaterialDisplayStack(oreDict);
+			if(localized != null && localized.getDisplayName() != null && !localized.getDisplayName().isEmpty()) {
+				baseName = localized.getDisplayName();
+			}
+		}
+
+		if(baseName == null) {
+			String token = extractMaterialToken(oreDict);
+			if(token == null || token.isEmpty()) {
+				baseName = oreDict;
+			} else {
+				baseName = splitMaterialToken(token);
+			}
+		}
+
+		String cleaned = baseName
+			.replaceAll("(?i)\\bingot\\b", "")
+			.replaceAll("(?i)\\bchunk\\b", "")
+			.replaceAll("\\s+", " ")
+			.trim();
+		String normalized = cleaned.isEmpty() ? baseName : cleaned;
+
+		if("Nickel Pure".equalsIgnoreCase(normalized)) {
+			return "Nickel";
+		}
+		if("Mingrade".equalsIgnoreCase(normalized)) {
+			return "Mingrade Copper";
+		}
+		return normalized;
+	}
+
 	public static List<String> getAllCoreCategoryMaterials(String category) {
 		ArrayList<String> out = new ArrayList<String>();
 		if(category == null || category.isEmpty()) {
@@ -348,6 +387,7 @@ public class ItemBlueprints extends Item {
 		}
 
 		out.addAll(bestByToken.values());
+		out = dedupeMaterialsByLabel(out);
 		sortMaterialsByDisplayName(out);
 		return out;
 	}
@@ -392,6 +432,28 @@ public class ItemBlueprints extends Item {
 		return oreDict;
 	}
 
+	private static String splitMaterialToken(String token) {
+		if(token == null || token.isEmpty()) return "";
+		StringBuilder out = new StringBuilder(token.length() + 8);
+		for(int i = 0; i < token.length(); i++) {
+			char c = token.charAt(i);
+			if(i > 0) {
+				char prev = token.charAt(i - 1);
+				char next = i + 1 < token.length() ? token.charAt(i + 1) : 0;
+
+				if(Character.isUpperCase(c) && Character.isLowerCase(prev)) {
+					out.append(' ');
+				} else if(Character.isUpperCase(c) && Character.isUpperCase(prev) && next != 0 && Character.isLowerCase(next)) {
+					out.append(' ');
+				} else if(Character.isDigit(c) && !Character.isDigit(prev)) {
+					out.append(' ');
+				}
+			}
+			out.append(c);
+		}
+		return out.toString();
+	}
+
 	private static String normalizeToken(String token) {
 		if(token == null) return null;
 		String lower = token.toLowerCase();
@@ -418,5 +480,30 @@ public class ItemBlueprints extends Item {
 				return a.compareToIgnoreCase(b);
 			}
 		});
+	}
+
+	private static ArrayList<String> dedupeMaterialsByLabel(List<String> materials) {
+		ArrayList<String> out = new ArrayList<String>();
+		if(materials == null || materials.isEmpty()) {
+			return out;
+		}
+
+		HashMap<String, String> bestByLabel = new HashMap<String, String>();
+		for(String oreDict : materials) {
+			if(oreDict == null || oreDict.isEmpty()) continue;
+
+			String labelKey = normalizeToken(formatCoreMaterialLabel(oreDict));
+			if(labelKey == null || labelKey.isEmpty()) {
+				labelKey = normalizeToken(oreDict);
+			}
+
+			String existing = bestByLabel.get(labelKey);
+			if(existing == null || compareMaterialCandidates(oreDict, existing) < 0) {
+				bestByLabel.put(labelKey, oreDict);
+			}
+		}
+
+		out.addAll(bestByLabel.values());
+		return out;
 	}
 }

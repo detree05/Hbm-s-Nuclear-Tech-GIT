@@ -12,6 +12,7 @@ import org.lwjgl.opengl.GL11;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialCore;
 import com.hbm.dim.SolarSystem;
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Atmosphere.FluidEntry;
 import com.hbm.inventory.container.ContainerCoreManipulator;
@@ -82,8 +83,27 @@ public class GUICoreManipulator extends GuiInfoContainer {
 	private static final int MODE_BUTTON_WIDTH = 16;
 	private static final int MODE_BUTTON_HEIGHT = 25;
 	private static final int POWER_BUTTON_X = 30;
-	private static final int POWER_BUTTON_Y = 71;
+	private static final int POWER_BUTTON_Y = 60;
 	private static final int POWER_BUTTON_SIZE = 18;
+	private static final int TEMPLATE_MARKER_U = 8;
+	private static final int TEMPLATE_MARKER_V = 26;
+	private static final int TEMPLATE_MARKER_WIDTH = 3;
+	private static final int TEMPLATE_MARKER_HEIGHT = 6;
+	private static final int TEMPLATE_MARKER_LEFT_X = 54;
+	private static final int TEMPLATE_MARKER_RIGHT_X = 59;
+	private static final int TEMPLATE_MARKER_Y = 102;
+	private static final int POWER_STATUS_X = 141;
+	private static final int POWER_STATUS_Y = 116;
+	private static final int POWER_STATUS_SIZE = 8;
+	private static final int POWER_STATUS_LOW_U = 0;
+	private static final int POWER_STATUS_LOW_V = 26;
+	private static final int POWER_STATUS_OK_U = 0;
+	private static final int POWER_STATUS_OK_V = 34;
+	private static final int POWER_STATUS_BLINK_TICKS = 10;
+	private static final int ACTIVITY_TEXT_X1 = 73;
+	private static final int ACTIVITY_TEXT_X2 = 136;
+	private static final int ACTIVITY_TEXT_Y1 = 117;
+	private static final int ACTIVITY_TEXT_Y2 = 122;
 	private static final int GUI_SHIFT_X = 18;
 	private static final int BLUEPRINT_AREA_X = 8;
 	private static final int BLUEPRINT_AREA_Y = 105;
@@ -153,6 +173,7 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		drawLeftValueInRect(radiusText, 175, 238, 27, 32, 0x39FF14);
 		drawLeftValueInRect(coreMassText, 175, 238, 47, 52, 0x39FF14);
 		drawLeftValueInRect(coreRadioactivityText, 175, 238, 67, 72, 0x39FF14);
+		drawLeftValueInRect(getCoreManipulatorActivityText(), ACTIVITY_TEXT_X1, ACTIVITY_TEXT_X2, ACTIVITY_TEXT_Y1, ACTIVITY_TEXT_Y2, getCoreManipulatorActivityColor());
 	}
 
 	@Override
@@ -166,7 +187,12 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		if(coreManipulator != null && coreManipulator.isMachineEnabled()) {
 			func_146110_a(guiLeft + POWER_BUTTON_X, guiTop + POWER_BUTTON_Y, 0, 42, POWER_BUTTON_SIZE, POWER_BUTTON_SIZE, 272, 256);
 		}
+		if(coreManipulator != null && ItemBlueprints.isCoreManipulatorBlueprint(coreManipulator.getBlueprintStack())) {
+			func_146110_a(guiLeft + TEMPLATE_MARKER_LEFT_X, guiTop + TEMPLATE_MARKER_Y, TEMPLATE_MARKER_U, TEMPLATE_MARKER_V, TEMPLATE_MARKER_WIDTH, TEMPLATE_MARKER_HEIGHT, 272, 256);
+			func_146110_a(guiLeft + TEMPLATE_MARKER_RIGHT_X, guiTop + TEMPLATE_MARKER_Y, TEMPLATE_MARKER_U, TEMPLATE_MARKER_V, TEMPLATE_MARKER_WIDTH, TEMPLATE_MARKER_HEIGHT, 272, 256);
+		}
 		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
+		drawPowerStatusIcon(world);
 
 		drawCoreSpeedGauge(world);
 		drawMagneticFieldGauge(world);
@@ -218,6 +244,99 @@ public class GUICoreManipulator extends GuiInfoContainer {
 
 		ItemStack selectedStack = coreManipulator != null ? coreManipulator.getSelectedMaterialDisplayStack() : null;
 		this.renderItem(selectedStack != null ? selectedStack : TEMPLATE_FOLDER, MATERIAL_SELECTOR_X, MATERIAL_SELECTOR_Y);
+	}
+
+	private void drawPowerStatusIcon(World world) {
+		if(coreManipulator == null || !coreManipulator.isMachineEnabled()) {
+			return;
+		}
+
+		int swarmId = coreManipulator.getDysonSwarmId();
+		if(swarmId <= 0) {
+			return;
+		}
+
+		String selectedOreDict = coreManipulator.getSelectedMaterialOreDict();
+		if(selectedOreDict == null || selectedOreDict.isEmpty()) {
+			if(isPowerStatusBlinkOn(world)) {
+				func_146110_a(guiLeft + POWER_STATUS_X, guiTop + POWER_STATUS_Y, POWER_STATUS_LOW_U, POWER_STATUS_LOW_V, POWER_STATUS_SIZE, POWER_STATUS_SIZE, 272, 256);
+			}
+			return;
+		}
+
+		int swarmCount = coreManipulator.getDysonSwarmCount();
+		if(swarmCount <= 0) {
+			return;
+		}
+
+		if(swarmCount < TileEntityCoreManipulator.MIN_DYSON_SWARM_MEMBERS) {
+			if(isPowerStatusBlinkOn(world)) {
+				func_146110_a(guiLeft + POWER_STATUS_X, guiTop + POWER_STATUS_Y, POWER_STATUS_LOW_U, POWER_STATUS_LOW_V, POWER_STATUS_SIZE, POWER_STATUS_SIZE, 272, 256);
+			}
+			return;
+		}
+
+		if(coreManipulator.hasDysonPower()) {
+			func_146110_a(guiLeft + POWER_STATUS_X, guiTop + POWER_STATUS_Y, POWER_STATUS_OK_U, POWER_STATUS_OK_V, POWER_STATUS_SIZE, POWER_STATUS_SIZE, 272, 256);
+		}
+	}
+
+	private boolean isPowerStatusBlinkOn(World world) {
+		long tickBase;
+		if(world != null) {
+			tickBase = world.getTotalWorldTime();
+		} else {
+			tickBase = Minecraft.getSystemTime() / 50L;
+		}
+		return (tickBase / POWER_STATUS_BLINK_TICKS) % 2L == 0L;
+	}
+
+	private String getCoreManipulatorActivityText() {
+		if(coreManipulator == null || !coreManipulator.isMachineEnabled()) {
+			return "";
+		}
+
+		if(isDmitriyMachineWorld()) {
+			return "Don't touch me, ever.";
+		}
+
+		if(coreManipulator.getDysonSwarmId() <= 0) {
+			return "Insert sattelite ID-chip";
+		}
+
+		String selectedOreDict = coreManipulator.getSelectedMaterialOreDict();
+		if(selectedOreDict == null || selectedOreDict.isEmpty()) {
+			return "No material chosen";
+		}
+
+		if(!coreManipulator.hasDysonPower()) {
+			return "Insufficient power";
+		}
+
+		String materialName = formatActivityMaterialName(selectedOreDict);
+		if(coreManipulator.isCoreChangeModePull()) {
+			return "Extracting " + materialName;
+		}
+		return "Filling " + materialName;
+	}
+
+	private int getCoreManipulatorActivityColor() {
+		if(isDmitriyMachineWorld()) {
+			return 0xFF4040;
+		}
+		return 0x39FF14;
+	}
+
+	private String formatActivityMaterialName(String oreDict) {
+		return ItemBlueprints.formatCoreMaterialLabel(oreDict);
+	}
+
+	private boolean isDmitriyMachineWorld() {
+		if(coreManipulator == null) {
+			return false;
+		}
+		World world = coreManipulator.getWorldObj();
+		return world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension;
 	}
 
 	@Override
@@ -400,11 +519,11 @@ public class GUICoreManipulator extends GuiInfoContainer {
 		}
 
 		String selectedOreDict = coreManipulator.getSelectedMaterialOreDict();
-		ItemStack selectedStack = coreManipulator.getSelectedMaterialDisplayStack();
 
-		if(selectedOreDict != null && selectedStack != null) {
+		if(selectedOreDict != null) {
+			String cleanedName = formatActivityMaterialName(selectedOreDict);
 			drawInfo(new String[] {
-				EnumChatFormatting.YELLOW + selectedStack.getDisplayName()
+				EnumChatFormatting.YELLOW + cleanedName
 			}, mouseX, mouseY);
 			return;
 		}
@@ -475,17 +594,8 @@ public class GUICoreManipulator extends GuiInfoContainer {
 			int fallbackCoreSize = Math.max(1, Math.round(36 / 2.0F));
 			int overlaySize = composition.coreVisible ? composition.coreSize : fallbackCoreSize;
 			overlaySize = Math.max(24, overlaySize);
-			drawCenteredStaticTexture(coreDmitriyTexture, overlaySize, Vec3.createVectorHelper(1.0D, 1.0D, 1.0D), getDmitriyFaceOpacity());
+			drawCenteredStaticTexture(coreDmitriyTexture, overlaySize, Vec3.createVectorHelper(1.0D, 1.0D, 1.0D), 1.0F);
 		}
-	}
-
-	private float getDmitriyFaceOpacity() {
-		World world = coreManipulator != null ? coreManipulator.getWorldObj() : mc.theWorld;
-		double ticks = world != null ? (double) world.getTotalWorldTime() : (double) Minecraft.getSystemTime() / 50.0D;
-		double period = Math.max(1.0D, (double) 240L);
-		double cycle = (ticks % period) / period;
-		double pingPong = cycle <= 0.5D ? cycle * 2.0D : (1.0D - cycle) * 2.0D;
-		return 0.2F + (float) pingPong * (0.4F - 0.2F);
 	}
 
 	private void drawCenteredBodyBlockLayer(CelestialBody body, CompositionMetrics composition, int scroll) {

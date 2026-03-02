@@ -148,6 +148,12 @@ public class AnnihilatorSavedData extends WorldSavedData {
 
 	private static int getCoreOreDictPriority(String oreDict) {
 		if(oreDict.startsWith("ingot")) return 0;
+		if(oreDict.startsWith("dust")) return 1;
+		if(oreDict.startsWith("powder")) return 2;
+		if(oreDict.startsWith("gem")) return 3;
+		if(oreDict.startsWith("crystal")) return 4;
+		if(oreDict.startsWith("billet")) return 5;
+		if(oreDict.startsWith("nugget")) return 6;
 		return Integer.MAX_VALUE;
 	}
 	

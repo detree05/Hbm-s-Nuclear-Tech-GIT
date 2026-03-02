@@ -2,6 +2,7 @@ package com.hbm.inventory.recipes;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -24,6 +25,11 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<CoreManipulat
 		}
 
 		@Override
+		public String getLocalizedName() {
+			return formatMaterialLabel(this.getInternalName());
+		}
+
+		@Override
 		public List<String> print() {
 			List<String> list = new ArrayList<String>();
 			list.add(EnumChatFormatting.YELLOW + this.getLocalizedName());
@@ -35,6 +41,10 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<CoreManipulat
 			String needle = substring == null ? "" : substring.toLowerCase(Locale.US);
 			return this.getLocalizedName().toLowerCase(Locale.US).contains(needle)
 				|| this.getInternalName().toLowerCase(Locale.US).contains(needle);
+		}
+
+		private String formatMaterialLabel(String oreDict) {
+			return ItemBlueprints.formatCoreMaterialLabel(oreDict);
 		}
 	}
 
@@ -51,14 +61,18 @@ public class CoreManipulatorMaterialRecipes extends GenericRecipes<CoreManipulat
 
 		List<String> materials = new ArrayList<String>(ItemBlueprints.getCoreManipulatorMaterials(blueprint));
 		Collections.sort(materials, String.CASE_INSENSITIVE_ORDER);
+		HashSet<String> seenLabels = new HashSet<String>();
 
 		for(String oreDict : materials) {
 			if(oreDict == null || oreDict.isEmpty()) continue;
+			String labelKey = ItemBlueprints.formatCoreMaterialLabel(oreDict).toLowerCase(Locale.US);
+			if(labelKey.isEmpty() || seenLabels.contains(labelKey)) continue;
 
 			ItemStack icon = ItemBlueprints.getPreferredCoreMaterialDisplayStack(oreDict);
 			if(icon == null) continue;
 			CoreMaterialRecipe recipe = new CoreMaterialRecipe(oreDict, icon);
 			this.register(recipe);
+			seenLabels.add(labelKey);
 		}
 	}
 

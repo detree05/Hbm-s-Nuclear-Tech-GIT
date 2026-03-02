@@ -264,6 +264,7 @@ public class EntityMappings {
 		addMob(EntityDummy.class, "entity_ntm_test_dummy", 0xffffff, 0x000000);
 		addMob(EntityUndeadSoldier.class, "entity_ntm_undead_soldier", 0x749F30, 0x6C5B44);
 		addEntity(EntityVoidStaresBack.class, "void_stares_back", 80);
+		addEntity(EntityVoidFightsBack.class, "void_fights_back", 80);
 
 		addSpawn(EntityCreeperPhosgene.class, 5, 1, 1, EnumCreatureType.monster, BiomeGenBase.getBiomeGenArray());
 		addSpawn(EntityCreeperVolatile.class, 10, 1, 1, EnumCreatureType.monster, BiomeGenBase.getBiomeGenArray());

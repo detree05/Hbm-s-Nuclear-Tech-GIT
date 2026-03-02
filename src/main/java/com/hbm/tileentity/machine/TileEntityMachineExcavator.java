@@ -23,6 +23,7 @@ import com.hbm.items.machine.ItemDrillbit.EnumDrillType;
 import com.hbm.items.machine.ItemMachineUpgrade.UpgradeType;
 import com.hbm.items.special.ItemBedrockOreBase;
 import com.hbm.lib.Library;
+import com.hbm.main.DmitriyVoidFightsBackManager;
 import com.hbm.tileentity.IFluidCopiable;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.IUpgradeInfoProvider;
@@ -88,6 +89,8 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
 	public long consumption = baseConsumption;
 
 	public FluidTank tank;
+	private String ownerName;
+	private String ownerUUID;
 
 	public UpgradeManagerNT upgradeManager = new UpgradeManagerNT();
 
@@ -264,6 +267,7 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
 						Block b = worldObj.getBlock(x, y, z);
 
 						if(b == ModBlocks.ore_bedrock) {
+							DmitriyVoidFightsBackManager.tryTriggerFromExcavator(this);
 							combinedHardness = 60 * 20;
 							if(WorldConfig.newBedrockOres) combinedHardness *= 5;
 							bedrockOre = new BlockPos(x, y, z);
@@ -784,6 +788,8 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
 		this.targetDepth = nbt.getInteger("t");
 		this.power = nbt.getLong("p");
 		this.tank.readFromNBT(nbt, "tank");
+		this.ownerName = nbt.getString("ownerName");
+		this.ownerUUID = nbt.getString("ownerUUID");
 	}
 
 	@Override
@@ -798,6 +804,36 @@ public class TileEntityMachineExcavator extends TileEntityMachineBase implements
 		nbt.setInteger("t", targetDepth);
 		nbt.setLong("p", power);
 		tank.writeToNBT(nbt, "tank");
+		if(ownerName != null && !ownerName.isEmpty()) {
+			nbt.setString("ownerName", ownerName);
+		}
+		if(ownerUUID != null && !ownerUUID.isEmpty()) {
+			nbt.setString("ownerUUID", ownerUUID);
+		}
+	}
+
+	public void setOwner(EntityPlayer player) {
+		if(player == null) {
+			return;
+		}
+		this.ownerName = player.getCommandSenderName();
+		this.ownerUUID = player.getUniqueID() != null ? player.getUniqueID().toString().toLowerCase() : null;
+		this.markDirty();
+	}
+
+	public String getOwnerName() {
+		return this.ownerName;
+	}
+
+	public UUID getOwnerUUID() {
+		if(this.ownerUUID == null || this.ownerUUID.isEmpty()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(this.ownerUUID);
+		} catch(IllegalArgumentException ignored) {
+			return null;
+		}
 	}
 
 	@Override

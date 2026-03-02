@@ -862,6 +862,7 @@ public class ClientProxy extends ServerProxy {
 
 		RenderingRegistry.registerEntityRenderingHandler(EntityDummy.class, new RenderDummy());
 		RenderingRegistry.registerEntityRenderingHandler(EntityVoidStaresBack.class, new RenderVoidStaresBack());
+		RenderingRegistry.registerEntityRenderingHandler(EntityVoidFightsBack.class, new RenderVoidFightsBack());
 		RenderingRegistry.registerEntityRenderingHandler(EntityUndeadSoldier.class, new RenderUndeadSoldier());
 		RenderingRegistry.registerEntityRenderingHandler(EntityDepress.class, new RenderEmpty());
 
@@ -979,6 +980,16 @@ public class ClientProxy extends ServerProxy {
 		double x = data.getDouble("posX");
 		double y = data.getDouble("posY");
 		double z = data.getDouble("posZ");
+
+		if("void_fights_back_trigger".equals(type)) {
+			ModEventHandlerClient.triggerVoidFightsBackClient(
+				data.getBoolean("playIntro"),
+				data.getInteger("shakeTicks"),
+				data.getInteger("loopTicks"),
+				data.getBoolean("stopLoop")
+			);
+			return;
+		}
 
 		boolean inOrbit = CelestialBody.inOrbit(world);
 		CBT_Atmosphere atmosphere = !inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;

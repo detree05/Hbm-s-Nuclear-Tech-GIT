@@ -22,6 +22,7 @@ import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.entity.mob.EntityHunterChopper;
+import com.hbm.entity.mob.EntityVoidFightsBack;
 import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.entity.projectile.EntityChopperMine;
 import com.hbm.entity.train.EntityRailCarRidable;
@@ -173,6 +174,9 @@ public class ModEventHandlerClient {
 	private static DmitriyGhostAchievement dmitriyGhostAchievement;
 	private static final Set<String> dmitriyGhostAchievementSeenCache = new HashSet<String>();
 	private static boolean dmitriyGhostAchievementSeenLoadedFromConfig = false;
+	private static int voidFightsBackShakeTicks = 0;
+	private static int voidFightsBackLoopTicks = 0;
+	private static AudioWrapper voidFightsBackLoopSound;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -188,6 +192,39 @@ public class ModEventHandlerClient {
 			return envHost;
 		}
 		return resolveHostnameSafe();
+	}
+
+	public static void triggerVoidFightsBackClient(boolean playIntro, int shakeTicks, int loopTicks, boolean stopLoop) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.thePlayer == null || mc.theWorld == null) {
+			return;
+		}
+
+		if(stopLoop) {
+			voidFightsBackLoopTicks = 0;
+			if(voidFightsBackLoopSound != null) {
+				voidFightsBackLoopSound.stopSound();
+				voidFightsBackLoopSound = null;
+			}
+		}
+
+		if(playIntro) {
+			mc.getSoundHandler().playSound(new PositionedSoundRecord(
+				new ResourceLocation("hbm:misc.itlives_itfightsback"),
+				1.0F,
+				1.0F,
+				(float) mc.thePlayer.posX,
+				(float) mc.thePlayer.posY,
+				(float) mc.thePlayer.posZ
+			));
+		}
+
+		voidFightsBackShakeTicks = Math.max(voidFightsBackShakeTicks, shakeTicks);
+		if(loopTicks < 0) {
+			voidFightsBackLoopTicks = -1;
+		} else if(voidFightsBackLoopTicks >= 0) {
+			voidFightsBackLoopTicks = Math.max(voidFightsBackLoopTicks, loopTicks);
+		}
 	}
 
 	private static Random getDmitriyStarStareTextRandom() {
@@ -1094,6 +1131,19 @@ public class ModEventHandlerClient {
 				roll += tremor * shakeAmp;
 			}
 		}
+
+		if(voidFightsBackShakeTicks > 0) {
+			float t = (float)(world != null ? (world.getTotalWorldTime() + event.renderTickTime) : event.renderTickTime);
+			float intensity = MathHelper.clamp_float(voidFightsBackShakeTicks / (float)(30 * 20), 0.0F, 1.0F);
+			float amp = 0.08F + intensity * 0.55F;
+			float tremor = 0.0F;
+			tremor += MathHelper.sin(t * 1.35F);
+			tremor += MathHelper.cos(t * 2.75F + 0.3F) * 0.65F;
+			tremor += MathHelper.sin(t * 4.80F + 1.2F) * 0.25F;
+			tremor /= 1.9F;
+			roll += tremor * amp;
+		}
+
 		String[] camRollFields = new String[] { "camRoll", "field_78495_O", "O" };
 		ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, roll, camRollFields);
 	}
@@ -2265,6 +2315,68 @@ public class ModEventHandlerClient {
 		}
 	}
 
+	private static void updateVoidFightsBackClientEffects(Minecraft mc) {
+		EntityPlayer player = mc != null ? mc.thePlayer : null;
+		World world = mc != null ? mc.theWorld : null;
+
+		if(voidFightsBackShakeTicks > 0) {
+			voidFightsBackShakeTicks--;
+		}
+
+		if(voidFightsBackLoopTicks != 0 && world != null && player != null) {
+			float loopVolume = getVoidFightsBackLoopVolume(world, player);
+			if(voidFightsBackLoopSound == null || !voidFightsBackLoopSound.isPlaying()) {
+				voidFightsBackLoopSound = MainRegistry.proxy.getLoopedSound("hbm:misc.itlives_itstaresback", player, loopVolume, 8.0F, 1.0F, 10);
+				voidFightsBackLoopSound.startSound();
+			}
+			voidFightsBackLoopSound.updateVolume(loopVolume);
+			voidFightsBackLoopSound.keepAlive();
+			if(voidFightsBackLoopTicks > 0) {
+				voidFightsBackLoopTicks--;
+			}
+		} else if(voidFightsBackLoopSound != null) {
+			if(world == null || player == null) {
+				voidFightsBackLoopTicks = 0;
+			}
+			voidFightsBackLoopSound.stopSound();
+			voidFightsBackLoopSound = null;
+		}
+	}
+
+	private static float getVoidFightsBackLoopVolume(World world, EntityPlayer player) {
+		final float minVolume = 0.1F;
+		final float maxVolume = 0.9F;
+		final double maxDistance = 64.0D;
+		double minDistanceSq = Double.MAX_VALUE;
+
+		if(world == null || player == null || world.loadedEntityList == null) {
+			return minVolume;
+		}
+
+		for(Object obj : world.loadedEntityList) {
+			if(!(obj instanceof EntityVoidFightsBack)) {
+				continue;
+			}
+			EntityVoidFightsBack entity = (EntityVoidFightsBack) obj;
+			if(entity == null || entity.isDead) {
+				continue;
+			}
+			double distanceSq = entity.getDistanceSqToEntity(player);
+			if(distanceSq < minDistanceSq) {
+				minDistanceSq = distanceSq;
+			}
+		}
+
+		if(minDistanceSq == Double.MAX_VALUE) {
+			return minVolume;
+		}
+
+		double distance = Math.sqrt(minDistanceSq);
+		float proximity = 1.0F - MathHelper.clamp_float((float)(distance / maxDistance), 0.0F, 1.0F);
+		proximity = proximity * proximity * proximity;
+		return minVolume + (maxVolume - minVolume) * proximity;
+	}
+
 	@SideOnly(Side.CLIENT)
 	@SubscribeEvent(priority = EventPriority.LOWEST)
 	public void onClientTickLast(ClientTickEvent event) {
@@ -2280,6 +2392,8 @@ public class ModEventHandlerClient {
 		}
 
 		if(event.phase == Phase.START) {
+			updateVoidFightsBackClientEffects(mc);
+
 			// I didn't see anything boss, I swears it
 			World world = mc.theWorld;
 			if(world == null) return;
@@ -2536,7 +2650,7 @@ public class ModEventHandlerClient {
 
 		RenderManager rm = RenderManager.instance;
 		for(Object obj : mc.theWorld.loadedEntityList) {
-			if(!(obj instanceof EntityVoidStaresBack)) {
+			if(!(obj instanceof EntityVoidStaresBack) || obj instanceof EntityVoidFightsBack) {
 				continue;
 			}
 			EntityVoidStaresBack voidEntity = (EntityVoidStaresBack) obj;
@@ -2562,6 +2676,9 @@ public class ModEventHandlerClient {
 
 	@SubscribeEvent
 	public void preRenderEvent(RenderLivingEvent.Pre event) {
+		if(event.entity instanceof EntityVoidFightsBack) {
+			return;
+		}
 
 		EntityPlayer player = Minecraft.getMinecraft().thePlayer;
 

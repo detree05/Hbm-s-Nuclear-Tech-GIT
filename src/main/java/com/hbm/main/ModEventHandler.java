@@ -1052,6 +1052,7 @@ public class ModEventHandler {
 	public void onUnload(WorldEvent.Unload event) {
 		if(!event.world.isRemote) {
 			StarcoreThroughputTracker.onWorldUnload(event.world);
+			DmitriyVoidFightsBackManager.clearWorld(event.world);
 		}
 		NeutronNodeWorld.streamWorlds.remove(event.world);
 		if(event.world.provider instanceof WorldProviderDmitriy) {
@@ -1067,6 +1068,7 @@ public class ModEventHandler {
 
 		if(event.world != null && !event.world.isRemote && event.phase == WorldTickEvent.Phase.END) {
 			StarcoreThroughputTracker.tick(event.world);
+			DmitriyVoidFightsBackManager.tickWorld(event.world);
 
 			if(event.world.provider.dimensionId == 0) {
 				SolarSystem.applyMinmusShatterState(event.world);
@@ -1928,6 +1930,10 @@ public class ModEventHandler {
 		}
 
 		if(!player.worldObj.isRemote && event.phase == TickEvent.Phase.START) {
+			if(player instanceof EntityPlayerMP) {
+				DmitriyVoidFightsBackManager.tickPlayer((EntityPlayerMP) player);
+			}
+
 			if(player.worldObj.provider instanceof WorldProviderDmitriy && !player.capabilities.isCreativeMode) {
 				try {
 					Field food = ReflectionHelper.findField(FoodStats.class, "field_75127_a", "foodLevel");
@@ -2074,6 +2080,13 @@ public class ModEventHandler {
 			HeldItemNBTPacket packet = new HeldItemNBTPacket(player.getHeldItem());
 			PacketDispatcher.wrapper.sendTo(packet, (EntityPlayerMP) player);
 		}*/
+	}
+
+	@SubscribeEvent
+	public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
+		if(event.player != null && event.player.getUniqueID() != null) {
+			DmitriyVoidFightsBackManager.clearPlayer(event.player.getUniqueID());
+		}
 	}
 
 	@SubscribeEvent

@@ -1,13 +1,22 @@
 package com.hbm.tileentity.machine;
 
+import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialCore;
 import com.hbm.dim.SolarSystemWorldSavedData;
+import com.hbm.dim.WorldProviderCelestial;
+import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.interfaces.IControlReceiver;
 import com.hbm.inventory.container.ContainerCoreManipulator;
 import com.hbm.inventory.gui.GUICoreManipulator;
+import com.hbm.items.ISatChip;
+import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemBlueprints;
+import com.hbm.saveddata.SatelliteSavedData;
+import com.hbm.saveddata.satellites.Satellite;
+import com.hbm.saveddata.satellites.SatelliteDysonRelay;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.TileEntityMachineBase;
 
@@ -19,6 +28,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
 public class TileEntityCoreManipulator extends TileEntityMachineBase implements IGUIProvider, IControlReceiver {
@@ -49,15 +59,21 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private static final String NBT_KEY_MACHINE_ENABLED = "machineEnabled";
 	private static final String NBT_KEY_SELECTED_MATERIAL = "selectedCoreMaterial";
 	private static final int SLOT_BLUEPRINT = 0;
+	private static final int SLOT_DYSON_CHIP = 1;
 	private static final int CORE_OPERATION_INTERVAL = 20;
 	private static final float CORE_OPERATION_VALUE_STEP = 0.001F;
+	public static final int MIN_DYSON_SWARM_MEMBERS = 4096;
 	private static final String NULL_SELECTION = "null";
 	private CoreChangeMode coreChangeMode = CoreChangeMode.PUSH;
 	private boolean machineEnabled = false;
 	private String selectedMaterialOreDict = null;
+	private int dysonSwarmId = 0;
+	private int dysonSwarmCount = 0;
+	private int dysonSwarmConsumers = 0;
+	private boolean dysonPowered = false;
 
 	public TileEntityCoreManipulator() {
-		super(1);
+		super(2);
 	}
 
 	@Override
@@ -72,7 +88,9 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 			changed = true;
 		}
 
-		if(this.machineEnabled && this.worldObj.getTotalWorldTime() % CORE_OPERATION_INTERVAL == 0) {
+		this.updateDysonPowerState();
+
+		if(this.machineEnabled && this.dysonPowered && this.worldObj.getTotalWorldTime() % CORE_OPERATION_INTERVAL == 0) {
 			if(this.processCoreChange()) {
 				changed = true;
 			}
@@ -159,6 +177,29 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		return this.selectedMaterialOreDict;
 	}
 
+	public int getDysonSwarmId() {
+		return this.dysonSwarmId;
+	}
+
+	public int getDysonSwarmCount() {
+		return this.dysonSwarmCount;
+	}
+
+	public int getDysonSwarmConsumers() {
+		return this.dysonSwarmConsumers;
+	}
+
+	public boolean hasDysonPower() {
+		return this.dysonPowered;
+	}
+
+	public long getDysonEnergyOutputPerSecond() {
+		if(!this.dysonPowered || this.dysonSwarmCount < MIN_DYSON_SWARM_MEMBERS || this.dysonSwarmConsumers <= 0) {
+			return 0;
+		}
+		return TileEntityDysonReceiver.getEnergyOutput(this.dysonSwarmCount) / this.dysonSwarmConsumers * 20;
+	}
+
 	public ItemStack getSelectedMaterialDisplayStack() {
 		return ItemBlueprints.getPreferredCoreMaterialDisplayStack(this.selectedMaterialOreDict);
 	}
@@ -203,6 +244,10 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		ByteBufUtils.writeUTF8String(buf, this.coreChangeMode.getId());
 		buf.writeBoolean(this.machineEnabled);
 		ByteBufUtils.writeUTF8String(buf, this.selectedMaterialOreDict == null ? "" : this.selectedMaterialOreDict);
+		buf.writeInt(this.dysonSwarmId);
+		buf.writeInt(this.dysonSwarmCount);
+		buf.writeInt(this.dysonSwarmConsumers);
+		buf.writeBoolean(this.dysonPowered);
 	}
 
 	@Override
@@ -211,21 +256,28 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.coreChangeMode = CoreChangeMode.fromId(ByteBufUtils.readUTF8String(buf));
 		this.machineEnabled = buf.readBoolean();
 		this.selectedMaterialOreDict = normalizeSelection(ByteBufUtils.readUTF8String(buf));
+		this.dysonSwarmId = buf.readInt();
+		this.dysonSwarmCount = buf.readInt();
+		this.dysonSwarmConsumers = buf.readInt();
+		this.dysonPowered = buf.readBoolean();
 	}
 
 	@Override
 	public boolean isItemValidForSlot(int slot, ItemStack stack) {
-		return slot == SLOT_BLUEPRINT && ItemBlueprints.isCoreManipulatorBlueprint(stack);
+		if(slot == SLOT_BLUEPRINT) {
+			return ItemBlueprints.isCoreManipulatorBlueprint(stack);
+		}
+		return slot == SLOT_DYSON_CHIP && stack != null && stack.getItem() == ModItems.sat_chip;
 	}
 
 	@Override
 	public boolean canExtractItem(int slot, ItemStack itemStack, int side) {
-		return slot == SLOT_BLUEPRINT;
+		return slot == SLOT_BLUEPRINT || slot == SLOT_DYSON_CHIP;
 	}
 
 	@Override
 	public int[] getAccessibleSlotsFromSide(int side) {
-		return new int[] { SLOT_BLUEPRINT };
+		return new int[] { SLOT_BLUEPRINT, SLOT_DYSON_CHIP };
 	}
 
 	@Override
@@ -261,6 +313,10 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	}
 
 	private boolean processCoreChange() {
+		if(this.worldObj != null && this.worldObj.provider != null && this.worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
 		if(this.selectedMaterialOreDict == null) {
 			return false;
 		}
@@ -309,6 +365,63 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 
 		applyAndPersistCore(body, core);
 		return true;
+	}
+
+	private void updateDysonPowerState() {
+		this.dysonSwarmId = ISatChip.getFreqS(this.slots[SLOT_DYSON_CHIP]);
+		this.dysonSwarmCount = 0;
+		this.dysonSwarmConsumers = 0;
+		this.dysonPowered = false;
+		boolean hasValidMaterialSelection = this.selectedMaterialOreDict != null && this.isSelectionValidForBlueprint(this.selectedMaterialOreDict);
+		boolean shouldConsumeDysonPower = this.machineEnabled && hasValidMaterialSelection;
+
+		if(this.worldObj == null || this.worldObj.provider == null || this.dysonSwarmId <= 0) {
+			return;
+		}
+
+		if(this.worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return;
+		}
+
+		this.dysonSwarmCount = CBT_Dyson.count(this.worldObj, this.dysonSwarmId);
+		if(this.dysonSwarmCount < MIN_DYSON_SWARM_MEMBERS || !shouldConsumeDysonPower) {
+			return;
+		}
+
+		this.dysonSwarmConsumers = CBT_Dyson.consumers(this.worldObj, this.dysonSwarmId);
+		if(this.dysonSwarmConsumers <= 0) {
+			return;
+		}
+
+		SatelliteSavedData data = SatelliteSavedData.getData(this.worldObj, this.xCoord, this.zCoord);
+		Satellite sat = data != null ? data.getSatFromFreq(this.dysonSwarmId) : null;
+		CBT_SkyState skyState = CBT_SkyState.get(this.worldObj);
+		boolean hasDaylight = hasNaturalSunlight(skyState);
+		boolean occluded = isSkyOccludedForDyson();
+
+		this.dysonPowered = (sat instanceof SatelliteDysonRelay || hasDaylight) && !occluded;
+	}
+
+	private boolean isSkyOccludedForDyson() {
+		for(int x = -3; x <= 3; x++) {
+			for(int z = -3; z <= 3; z++) {
+				if(this.worldObj.getHeightValue(this.xCoord + x, this.zCoord + z) > this.yCoord + 10) {
+					return true;
+				}
+			}
+		}
+		return false;
+	}
+
+	private boolean hasNaturalSunlight(CBT_SkyState skyState) {
+		if(this.worldObj == null || this.worldObj.provider == null || skyState == null || skyState.getState() != CBT_SkyState.SkyState.SUN) {
+			return false;
+		}
+		if(this.worldObj.provider instanceof WorldProviderCelestial && ((WorldProviderCelestial) this.worldObj.provider).isEclipse()) {
+			return false;
+		}
+		float angle = this.worldObj.getCelestialAngleRadians(0.0F);
+		return MathHelper.cos(angle) > 0.0F;
 	}
 
 	private CelestialBody resolveTargetBody() {
