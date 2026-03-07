@@ -23,8 +23,6 @@
 	"misc.fireflash": {"category": "player", "sounds": [{"name": "misc/flashfire", "stream": false}]},
 	"misc.a7": {"category": "player", "sounds": [{"name": "misc/a7", "stream": false}]},
 	"misc.starcore_ignited": {"category": "player", "sounds": [{"name": "misc/starcore_ignited", "stream": false}]},
-	"misc.fartholeinit": {"category": "player", "sounds": [{"name": "misc/fartholeinit", "stream": false}]},
-	"misc.farthole": {"category": "player", "sounds": [{"name": "misc/farthole", "stream": true}]},
 	"misc.stationhum": {"category": "ambient", "sounds": [{"name": "misc/stationhum", "stream": false}]},
 	"misc.stare": {"category": "ambient", "sounds": [{"name": "misc/stare", "stream": true}]},
 	"ambient.dmitriy_wind": {"category": "ambient", "sounds": [{"name": "ambient/dmitriy_wind", "stream": false}]},

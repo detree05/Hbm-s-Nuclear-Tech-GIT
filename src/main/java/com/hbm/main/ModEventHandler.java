@@ -193,6 +193,8 @@ import net.minecraftforge.event.entity.player.PlayerUseItemEvent;
 import net.minecraftforge.event.entity.player.UseHoeEvent;
 import net.minecraftforge.event.terraingen.DecorateBiomeEvent;
 import net.minecraftforge.event.terraingen.OreGenEvent.GenerateMinable;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent;
+import net.minecraftforge.event.terraingen.PopulateChunkEvent.Populate;
 import net.minecraftforge.event.world.BlockEvent.BreakEvent;
 import net.minecraftforge.event.world.BlockEvent.PlaceEvent;
 import net.minecraftforge.event.world.ChunkEvent;
@@ -227,6 +229,7 @@ public class ModEventHandler {
 	private static final float DMITRIY_STAR_DRX_CENTER_PER_SEC = 0.1F;
 	private static final float DMITRIY_STAR_DRX_RAYTRACE_DISTANCE = 512.0F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
+	private static final double MOB_SPAWN_MIN_ATMOSPHERE_PRESSURE = 0.0001D;
 	private static final Map<UUID, DmitriyFootstepSequence> dmitriyFootsteps = new HashMap<UUID, DmitriyFootstepSequence>();
 
 	private static class DmitriyFootstepSequence {
@@ -720,6 +723,12 @@ public class ModEventHandler {
 		EntityLivingBase entity = event.entityLiving;
 		World world = event.world;
 
+		if(shouldDenyMobSpawnsInVacuum(world)) {
+			event.setResult(Result.DENY);
+			entity.setDead();
+			return;
+		}
+
 		if(!MobConfig.enableMobGear || entity.isChild() || world.isRemote) return;
 
 		Map<Integer, List<WeightedRandomObject>> slotPools = new HashMap<>();
@@ -740,6 +749,32 @@ public class ModEventHandler {
 		}
 
 		MobUtil.assignItemsToEntity(entity, slotPools, rand);
+	}
+
+	@SubscribeEvent
+	public void preventVacuumAnimalPopulation(Populate event) {
+		if(event.type != Populate.EventType.ANIMALS) return;
+		if(shouldDenyMobSpawnsInVacuum(event.world)) {
+			event.setResult(Result.DENY);
+		}
+	}
+
+	private static boolean shouldDenyMobSpawnsInVacuum(World world) {
+		if(world == null || world.isRemote || world.provider == null) return false;
+
+		SolarSystem.Body body = CelestialBody.getEnum(world);
+		if(body != SolarSystem.Body.KERBIN && body != SolarSystem.Body.LAYTHE) return false;
+
+		CBT_Atmosphere atmosphere = CelestialBody.getBody(world).getDefaultTrait(CBT_Atmosphere.class);
+		try {
+			HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = CelestialBody.getTraits(world);
+			CelestialBodyTrait trait = traits.get(CBT_Atmosphere.class);
+			if(trait instanceof CBT_Atmosphere) {
+				atmosphere = (CBT_Atmosphere) trait;
+			}
+		} catch(Exception ignored) { }
+
+		return atmosphere == null || atmosphere.getPressure() <= MOB_SPAWN_MIN_ATMOSPHERE_PRESSURE;
 	}
 
 	private List<WeightedRandomObject> createSlotPool(int nullWeight, Object[][] items) {
