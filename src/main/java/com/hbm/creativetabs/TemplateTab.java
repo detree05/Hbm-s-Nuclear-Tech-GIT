@@ -10,7 +10,7 @@ public class TemplateTab extends CreativeTabs {
 
 	public TemplateTab(int p_i1853_1_, String p_i1853_2_) {
 		super(p_i1853_1_, p_i1853_2_);
-		setBackgroundImageName("item_search.png");
+		CreativeTabCompat.setBackgroundImage(this, "item_search.png");
 	}
 
 	@Override

@@ -32,6 +32,7 @@ import com.hbm.tileentity.machine.TileEntityDysonLauncher;
 import com.hbm.util.BobMathUtil;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.audio.PositionedSoundRecord;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.RenderGlobal;
@@ -62,6 +63,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final ResourceLocation flareTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/starcore_spike.png");
 	private static final ResourceLocation supernovaeTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/supernovae.png");
 	private static final ResourceLocation nightTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night.png");
+	private static final ResourceLocation nightTexture2 = new ResourceLocation(RefStrings.MODID, "textures/misc/space/night_2.png");
 	private static final ResourceLocation digammaStar = new ResourceLocation(RefStrings.MODID, "textures/misc/space/star_digamma.png");
 	private static final ResourceLocation lodeStar = new ResourceLocation(RefStrings.MODID, "textures/misc/star_lode.png");
 	private static final ResourceLocation stationTexture = new ResourceLocation(RefStrings.MODID, "textures/misc/space/station.png");
@@ -99,6 +101,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static long blackholeCollapseStartWorldTime = 0L;
 	private static int blackholeCollapseDimension = Integer.MIN_VALUE;
 	private static float blackholeCollapseStartRadius = 0.4F;
+	private static boolean blackholeCollapseStartSoundPlayed = false;
+	private static boolean blackholeCollapseMidCueTriggered = false;
+	private static boolean blackholeCollapseImminentSoundPlayed = false;
+	private static boolean blackholeCollapseImpactTriggered = false;
+	private static boolean blackholeCollapseNightVariantActive = false;
 	private static boolean skyfallActive = false;
 	private static long skyfallStartWorldTime = 0L;
 	private static int skyfallDurationTicks = 0;
@@ -106,9 +113,18 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static long skyfallLastUpdateTick = Long.MIN_VALUE;
 	private static final Random skyfallRandom = new Random();
 	private static final float SKYFALL_FADE_TICKS = 10.0F * 20.0F;
-	private static final float BLACKHOLE_COLLAPSE_GROW_TICKS = 65.0F;
-	private static final float BLACKHOLE_COLLAPSE_SHRINK_TICKS = 120.0F;
+	private static final float BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS = (float)StarcoreSkyEffects.BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS;
+	private static final float BLACKHOLE_FINAL_COLLAPSE_TICKS = (float)StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS;
 	private static final float BLACKHOLE_COLLAPSE_TOTAL_TICKS = (float)StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+	private static final float BLACKHOLE_PULSE_CYCLE_TICKS = 12.0F * 20.0F;
+	private static final float BLACKHOLE_COLLAPSE_MAX_RADIUS = 0.45F;
+	private static final float BLACKHOLE_COLLAPSE_MIN_RADIUS = 0.01F;
+	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN = 0.5F;
+	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MAX = 1.1F;
+	private static final float BLACKHOLE_COLLAPSE_END_SPEED = 1.1F;
+	private static final float BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE = 4.0F;
+	private static final float BLACKHOLE_COLLAPSE_EVENT_CUE_TICKS = 15.0F * 20.0F;
+	private static final float BLACKHOLE_COLLAPSE_IMMINENT_SOUND_DELAY_TICKS = 2.0F * 20.0F;
 	private static final float BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS = 40.0F;
 	private static final double BLACKHOLE_SHADER_SIZE_SCALE = 1.0D / 3.0D;
 	
@@ -681,7 +697,14 @@ public class SkyProviderCelestial extends IRenderHandler {
 			{
 				GL11.glRotatef(axialTilt, 1.0F, 0.0F, 0.0F);
 
-				mc.renderEngine.bindTexture(nightTexture);
+				ResourceLocation activeNightTexture = nightTexture;
+				if(blackholeCollapseNightVariantActive
+					&& blackholeCollapseActive
+					&& world.provider != null
+					&& world.provider.dimensionId == blackholeCollapseDimension) {
+					activeNightTexture = nightTexture2;
+				}
+				mc.renderEngine.bindTexture(activeNightTexture);
 
 				GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE);
 
@@ -2455,42 +2478,83 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		float age = (world.getTotalWorldTime() - blackholeCollapseStartWorldTime) + partialTicks;
 		if(age < 0.0F) return false;
-		final float collapseToBhrTicks = BLACKHOLE_COLLAPSE_GROW_TICKS + BLACKHOLE_COLLAPSE_SHRINK_TICKS;
-		final float fadeOutTicks = Math.max(1.0F, BLACKHOLE_COLLAPSE_TOTAL_TICKS - collapseToBhrTicks);
-		final boolean fadePhase = age >= collapseToBhrTicks;
-		if(age > BLACKHOLE_COLLAPSE_TOTAL_TICKS) {
+		if(!blackholeCollapseStartSoundPlayed) {
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.collapseStart"), 1.0F));
+			blackholeCollapseStartSoundPlayed = true;
+		}
+		if(!blackholeCollapseMidCueTriggered && age >= BLACKHOLE_COLLAPSE_EVENT_CUE_TICKS) {
+			ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
+			ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.collapseEvent_1"), 1.0F));
+			blackholeCollapseMidCueTriggered = true;
+			blackholeCollapseNightVariantActive = true;
+		}
+		if(!blackholeCollapseImminentSoundPlayed && age >= BLACKHOLE_COLLAPSE_IMMINENT_SOUND_DELAY_TICKS) {
+			ModEventHandlerClient.stopCurrentMusic();
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147673_a(new ResourceLocation("hbm:music.collapseImminent")));
+			blackholeCollapseImminentSoundPlayed = true;
+		}
+		if(!blackholeCollapseImpactTriggered && age >= BLACKHOLE_COLLAPSE_TOTAL_TICKS) {
+			ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
+			ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
+			blackholeCollapseNightVariantActive = false;
+			blackholeCollapseImpactTriggered = true;
+		}
+		boolean postEndFadePhase = age > BLACKHOLE_COLLAPSE_TOTAL_TICKS;
+		if(postEndFadePhase) {
 			CBT_SkyState skyState = CBT_SkyState.get(world);
 			if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE
 				&& age <= BLACKHOLE_COLLAPSE_TOTAL_TICKS + BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS) {
-				// Keep suppressing blackhole render briefly until delayed sky-state sync arrives.
-				return true;
+				// Keep rendering collapse remnant briefly while delayed sky-state sync arrives.
+			} else {
+				blackholeCollapseActive = false;
+				blackholeCollapseNightVariantActive = false;
+				return false;
 			}
-			blackholeCollapseActive = false;
-			return false;
 		}
 		float collapseBlackholeRadius;
 		float blackholeAlpha;
+		float collapseSpinSpeed;
+		float collapseSizeScale;
 		float collapseStartRadius = MathHelper.clamp_float(blackholeCollapseStartRadius, 0.3F, 0.45F);
-		if(!fadePhase) {
-			if(age <= BLACKHOLE_COLLAPSE_GROW_TICKS) {
-				float growProgress = MathHelper.clamp_float(age / BLACKHOLE_COLLAPSE_GROW_TICKS, 0.0F, 1.0F);
-				float easedGrow = smoothstep(0.0F, 1.0F, growProgress);
-				collapseBlackholeRadius = collapseStartRadius + (0.45F - collapseStartRadius) * easedGrow;
-			} else {
-				float shrinkProgress = MathHelper.clamp_float((age - BLACKHOLE_COLLAPSE_GROW_TICKS) / BLACKHOLE_COLLAPSE_SHRINK_TICKS, 0.0F, 1.0F);
-				float acceleratedShrink = shrinkProgress * shrinkProgress * shrinkProgress;
-				collapseBlackholeRadius = 0.45F + (0.01F - 0.45F) * acceleratedShrink;
-			}
+		if(age < BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS) {
+			float preCollapseProgress = MathHelper.clamp_float(age / BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS, 0.0F, 1.0F);
+			float easedSizeProgress = smoothstep(0.0F, 1.0F, preCollapseProgress);
+			collapseSizeScale = 1.0F + (BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE - 1.0F) * easedSizeProgress;
+
+			float pulseRadians = (age / BLACKHOLE_PULSE_CYCLE_TICKS) * (float)(Math.PI * 2.0D);
+			float pulseWave = 0.5F + 0.5F * MathHelper.sin(pulseRadians);
+			float easedPulse = smoothstep(0.0F, 1.0F, pulseWave);
+			collapseBlackholeRadius = collapseStartRadius + (BLACKHOLE_COLLAPSE_MAX_RADIUS - collapseStartRadius) * easedPulse;
+			// Smoothly lock to max radius near the threshold so phase switch has no visible size snap.
+			float radiusSync = smoothstep(0.85F, 1.0F, preCollapseProgress);
+			collapseBlackholeRadius = collapseBlackholeRadius + (BLACKHOLE_COLLAPSE_MAX_RADIUS - collapseBlackholeRadius) * radiusSync;
+
+			float speedWave = 0.5F + 0.5F * MathHelper.sin(pulseRadians - (float)(Math.PI * 0.5D));
+			float easedSpeed = smoothstep(0.0F, 1.0F, speedWave);
+			collapseSpinSpeed = BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN + (BLACKHOLE_COLLAPSE_PULSE_SPEED_MAX - BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN) * easedSpeed;
 			blackholeAlpha = 1.0F;
 		} else {
-			float fadeProgress = MathHelper.clamp_float((age - collapseToBhrTicks) / fadeOutTicks, 0.0F, 1.0F);
-			float easedFade = smoothstep(0.0F, 1.0F, fadeProgress);
-			collapseBlackholeRadius = 0.01F;
-			blackholeAlpha = 1.0F - easedFade;
+			float collapseProgress = MathHelper.clamp_float((age - BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS) / BLACKHOLE_FINAL_COLLAPSE_TICKS, 0.0F, 1.0F);
+			float acceleratedShrink = collapseProgress * collapseProgress * collapseProgress;
+			collapseBlackholeRadius = BLACKHOLE_COLLAPSE_MAX_RADIUS + (BLACKHOLE_COLLAPSE_MIN_RADIUS - BLACKHOLE_COLLAPSE_MAX_RADIUS) * acceleratedShrink;
+			float speedRamp = smoothstep(0.0F, 1.0F, collapseProgress);
+			collapseSpinSpeed = 1.0F + (BLACKHOLE_COLLAPSE_END_SPEED - 1.0F) * speedRamp;
+			collapseSizeScale = BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE;
+			blackholeAlpha = 1.0F;
+		}
+
+		if(postEndFadePhase) {
+			float fadeProgress = MathHelper.clamp_float(
+				(age - BLACKHOLE_COLLAPSE_TOTAL_TICKS) / BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS,
+				0.0F,
+				1.0F
+			);
+			blackholeAlpha = 1.0F - smoothstep(0.0F, 1.0F, fadeProgress);
 		}
 
 		double baseSize = sunSize * (sun != null && sun.shader != null ? sun.shaderScale : 1.0D) * BLACKHOLE_SHADER_SIZE_SCALE;
-		double blackholeSize = baseSize;
+		double blackholeSize = baseSize * collapseSizeScale;
 		Tessellator tessellator = Tessellator.instance;
 
 		GL11.glPushAttrib(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_ENABLE_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_TEXTURE_BIT);
@@ -2507,7 +2571,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				shader.use();
 
 				long timeTicks = world.getWorldTime() % 24000L;
-				float time = ((float)timeTicks + partialTicks) / 20.0F;
+				float time = (((float)timeTicks + partialTicks) / 20.0F) * collapseSpinSpeed;
 
 				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				mc.renderEngine.bindTexture(noise);
@@ -2572,6 +2636,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 		blackholeCollapseActive = true;
 		blackholeCollapseStartWorldTime = worldTime;
 		blackholeCollapseDimension = dimension;
+		blackholeCollapseStartSoundPlayed = false;
+		blackholeCollapseMidCueTriggered = false;
+		blackholeCollapseImminentSoundPlayed = false;
+		blackholeCollapseImpactTriggered = false;
+		blackholeCollapseNightVariantActive = false;
 		float clusterProgress = MathHelper.clamp_float(lastBlackholeClustersSent / (float)TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT, 0.0F, 1.0F);
 		blackholeCollapseStartRadius = 0.3F + 0.1F * clusterProgress;
 	}

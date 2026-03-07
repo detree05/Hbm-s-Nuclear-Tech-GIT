@@ -1243,7 +1243,39 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private ISound currentSong;
+	private static ISound currentSong;
+
+	public static void stopCurrentMusic() {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.getSoundHandler() == null) return;
+
+		if(currentSong != null && mc.getSoundHandler().isSoundPlaying(currentSong)) {
+			mc.getSoundHandler().stopSound(currentSong);
+		}
+		currentSong = null;
+
+		net.minecraft.client.audio.MusicTicker musicTicker = ReflectionHelper.getPrivateValue(
+			Minecraft.class,
+			mc,
+			new String[] { "mcMusicTicker", "field_147126_aw" }
+		);
+		if(musicTicker != null) {
+			ISound tickerSong = ReflectionHelper.getPrivateValue(
+				net.minecraft.client.audio.MusicTicker.class,
+				musicTicker,
+				new String[] { "field_147678_c", "currentMusic" }
+			);
+			if(tickerSong != null && mc.getSoundHandler().isSoundPlaying(tickerSong)) {
+				mc.getSoundHandler().stopSound(tickerSong);
+			}
+			ReflectionHelper.setPrivateValue(
+				net.minecraft.client.audio.MusicTicker.class,
+				musicTicker,
+				null,
+				new String[] { "field_147678_c", "currentMusic" }
+			);
+		}
+	}
 
 	@SubscribeEvent
 	public void onPlayMusic(PlaySoundEvent17 event) {

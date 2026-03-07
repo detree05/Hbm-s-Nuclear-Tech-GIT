@@ -224,13 +224,13 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
 				if(collapseEndTick > 0L) {
 					long now = worldObj.getTotalWorldTime();
-					long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+					long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS;
 					if(now >= collapseEndTick) {
 						return NOTHING_SKY_DIM;
 					}
 					if(now > collapseStartTick) {
 						float progress = MathHelper.clamp_float(
-							(float)(now - collapseStartTick) / (float)StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS,
+							(float)(now - collapseStartTick) / (float)StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS,
 							0.0F,
 							1.0F
 						);

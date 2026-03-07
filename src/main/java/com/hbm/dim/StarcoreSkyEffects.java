@@ -13,7 +13,9 @@ import net.minecraftforge.common.DimensionManager;
 
 public class StarcoreSkyEffects {
 
-	public static final int BLACKHOLE_COLLAPSE_DURATION_TICKS = 260;
+	public static final int BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS = 138 * 20;
+	public static final int BLACKHOLE_FINAL_COLLAPSE_TICKS = 5 * 20;
+	public static final int BLACKHOLE_COLLAPSE_DURATION_TICKS = BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS + BLACKHOLE_FINAL_COLLAPSE_TICKS;
 
 	public static void sendIgnition(World world) {
 		if(world == null) return;
