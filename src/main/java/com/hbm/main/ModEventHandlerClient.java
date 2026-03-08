@@ -179,6 +179,8 @@ public class ModEventHandlerClient {
 	private static int voidFightsBackShakeTicks = 0;
 	private static int voidFightsBackLoopTicks = 0;
 	private static AudioWrapper voidFightsBackLoopSound;
+	private static final int BLACKHOLE_VISUAL_CORTEX_WARNING_DELAY_TICKS = 15 * 20;
+	private static final int BLACKHOLE_DIGAMMA_WARNING_DELAY_TICKS = 40 * 20;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -1279,42 +1281,73 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static boolean isBlackholeGravityMalfunctionActive(World world) {
+	private static int getBlackholeCollapseWarningLevel(World world) {
 		if(world == null || world.provider == null) {
-			return false;
+			return 0;
 		}
 		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
-			return false;
+			return 0;
 		}
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
 		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
-			return false;
+			return 0;
 		}
 
 		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
 		if(collapseEndTick <= 0L) {
-			return false;
+			return 0;
 		}
 
-		return StarcoreSkyEffects.isGravityMalfunctionActive(world.getTotalWorldTime(), collapseEndTick);
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long visualCortexStartTick = collapseStartTick + BLACKHOLE_VISUAL_CORTEX_WARNING_DELAY_TICKS;
+		long gravityMalfunctionStartTick = collapseStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		long digammaWarningStartTick = collapseStartTick + BLACKHOLE_DIGAMMA_WARNING_DELAY_TICKS;
+		if(now >= digammaWarningStartTick && now < collapseEndTick) {
+			return 3;
+		}
+		if(now >= gravityMalfunctionStartTick && now < collapseEndTick) {
+			return 2;
+		}
+		if(now >= visualCortexStartTick && now < gravityMalfunctionStartTick && now < collapseEndTick) {
+			return 1;
+		}
+		return 0;
 	}
 
 	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(!isBlackholeGravityMalfunctionActive(mc.theWorld)) {
+		int warningLevel = getBlackholeCollapseWarningLevel(mc.theWorld);
+		if(warningLevel <= 0) {
 			return;
 		}
 
 		boolean blinkRed = ((mc.theWorld.getTotalWorldTime() / 5L) & 1L) == 0L;
 		String color = blinkRed ? EnumChatFormatting.RED.toString() : EnumChatFormatting.YELLOW.toString();
-		MainRegistry.proxy.displayTooltip(
-			color + "GRAVITATIONAL FORCES MALFUNCTION",
-			250,
-			ServerProxy.ID_GRAVITY_MALFUNCTION
-		);
+		if(warningLevel >= 1) {
+			MainRegistry.proxy.displayTooltip(
+				color + "VISUAL CORTEX MALFUNCTION",
+				250,
+				ServerProxy.ID_VISUAL_CORTEX_MALFUNCTION
+			);
+		}
+		if(warningLevel >= 2) {
+			MainRegistry.proxy.displayTooltip(
+				color + "GRAVITATIONAL FORCES CHANGE DETECTED",
+				250,
+				ServerProxy.ID_GRAVITY_MALFUNCTION
+			);
+		}
+		if(warningLevel >= 3) {
+			MainRegistry.proxy.displayTooltip(
+				color + "DIGAMMA RADIATION LEVELS INCREASING",
+				250,
+				ServerProxy.ID_DIGAMMA_RADIATION_WARNING
+			);
+		}
 	}
 
 	@SubscribeEvent

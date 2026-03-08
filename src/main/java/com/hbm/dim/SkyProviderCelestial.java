@@ -2619,6 +2619,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 		if(!blackholeCollapseImpactTriggered && age >= BLACKHOLE_COLLAPSE_TOTAL_TICKS) {
 			ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
 			ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
+			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.starcore_ignited"), 4.0F));
 			blackholeCollapseNightVariantActive = false;
 			blackholeCollapseImpactTriggered = true;
 		}

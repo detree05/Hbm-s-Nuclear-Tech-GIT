@@ -1057,7 +1057,6 @@ public class ModEventHandler {
 				}
 			}
 		}
-
 		ItemStack[] prevArmor = event.entityLiving.previousEquipment;
 
 		if(event.entityLiving instanceof EntityPlayerMP && prevArmor != null && event.entityLiving.getHeldItem() != null
