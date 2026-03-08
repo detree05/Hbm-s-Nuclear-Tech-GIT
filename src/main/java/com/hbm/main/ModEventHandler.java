@@ -28,6 +28,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialBodyWorldSavedData;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.CelestialTeleporter;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldGeneratorCelestial;
@@ -228,6 +229,8 @@ public class ModEventHandler {
 	private static final float DMITRIY_STAR_DRX_EDGE_PER_SEC = 0.01F;
 	private static final float DMITRIY_STAR_DRX_CENTER_PER_SEC = 0.1F;
 	private static final float DMITRIY_STAR_DRX_RAYTRACE_DISTANCE = 512.0F;
+	private static final int BLACKHOLE_COLLAPSE_DIGAMMA_START_DELAY_TICKS = 15 * 20;
+	private static final float BLACKHOLE_COLLAPSE_DIGAMMA_MAX_DRX = 4.5F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 	private static final double MOB_SPAWN_MIN_ATMOSPHERE_PRESSURE = 0.0001D;
 	private static final Map<UUID, DmitriyFootstepSequence> dmitriyFootsteps = new HashMap<UUID, DmitriyFootstepSequence>();
@@ -289,6 +292,53 @@ public class ModEventHandler {
 		float drxPerSecond = DMITRIY_STAR_DRX_EDGE_PER_SEC
 				+ (DMITRIY_STAR_DRX_CENTER_PER_SEC - DMITRIY_STAR_DRX_EDGE_PER_SEC) * closeness;
 		HbmLivingProps.incrementDigamma(player, drxPerSecond / 20.0F);
+	}
+
+	private static void applyBlackholeCollapseDigamma(EntityPlayer player) {
+		if(player == null || player.worldObj == null || player.worldObj.isRemote || player.capabilities.isCreativeMode) {
+			return;
+		}
+		if(player.worldObj.provider == null) {
+			return;
+		}
+
+		int dimensionId = player.worldObj.provider.dimensionId;
+		if(dimensionId == -1 || dimensionId == 1 || dimensionId == SpaceConfig.dmitriyDimension) {
+			return;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(player.worldObj);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return;
+		}
+
+		long now = player.worldObj.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long digammaStartTick = collapseStartTick + BLACKHOLE_COLLAPSE_DIGAMMA_START_DELAY_TICKS;
+		if(now < digammaStartTick) {
+			return;
+		}
+
+		long rampTicks = collapseEndTick - digammaStartTick;
+		if(rampTicks <= 0L) {
+			return;
+		}
+
+		float progress = (float) (now - digammaStartTick + 1L) / (float) rampTicks;
+		progress = MathHelper.clamp_float(progress, 0.0F, 1.0F);
+		float targetDigamma = BLACKHOLE_COLLAPSE_DIGAMMA_MAX_DRX * progress;
+
+		float currentDigamma = HbmLivingProps.getDigamma(player);
+		if(currentDigamma >= BLACKHOLE_COLLAPSE_DIGAMMA_MAX_DRX || currentDigamma >= targetDigamma) {
+			return;
+		}
+
+		HbmLivingProps.setDigamma(player, Math.min(targetDigamma, BLACKHOLE_COLLAPSE_DIGAMMA_MAX_DRX));
 	}
 
 	private static Vec3 getDmitriyStarADirection(World world) {
@@ -1977,6 +2027,7 @@ public class ModEventHandler {
 				player.getFoodStats().addStats(20, 20.0F);
 			}
 			applyDmitriyStarDigamma(player);
+			applyBlackholeCollapseDigamma(player);
 
 			// Check for players attempting to cross over to another orbital grid
 			if(player.worldObj.provider instanceof WorldProviderOrbit && !(player.ridingEntity instanceof EntityRideableRocket)) {

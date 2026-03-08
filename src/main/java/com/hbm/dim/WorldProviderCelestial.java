@@ -155,6 +155,18 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	}
 
 	public float getGravityMultiplier() {
+		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId != SpaceConfig.dmitriyDimension) {
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE) {
+				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+				if(collapseEndTick > 0L) {
+					float malfunctionProgress = StarcoreSkyEffects.getGravityMalfunctionProgress(worldObj.getTotalWorldTime(), collapseEndTick);
+					if(malfunctionProgress > 0.0F) {
+						return gravityMultiplier * (1.0F - malfunctionProgress);
+					}
+				}
+			}
+		}
 		return gravityMultiplier;
 	}
 

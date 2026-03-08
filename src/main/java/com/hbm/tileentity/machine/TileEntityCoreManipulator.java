@@ -28,6 +28,7 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
 
@@ -71,6 +72,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private int dysonSwarmCount = 0;
 	private int dysonSwarmConsumers = 0;
 	private boolean dysonPowered = false;
+	private AxisAlignedBB renderBounds;
 
 	public TileEntityCoreManipulator() {
 		super(2);
@@ -447,5 +449,26 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 
 		CelestialBody.applyMassFromCore(body, core);
 		SolarSystemWorldSavedData.get(this.worldObj).setCore(body.name, core);
+	}
+
+	@Override
+	public AxisAlignedBB getRenderBoundingBox() {
+		if(this.renderBounds == null) {
+			this.renderBounds = AxisAlignedBB.getBoundingBox(
+				this.xCoord - 6,
+				this.yCoord,
+				this.zCoord - 6,
+				this.xCoord + 7,
+				this.yCoord + 11,
+				this.zCoord + 7
+			);
+		}
+		return this.renderBounds;
+	}
+
+	@Override
+	@SideOnly(Side.CLIENT)
+	public double getMaxRenderDistanceSquared() {
+		return 65536.0D;
 	}
 }

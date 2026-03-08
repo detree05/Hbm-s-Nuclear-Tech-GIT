@@ -14,8 +14,10 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialCore;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.dmitriy.WorldProviderDmitriy;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -1277,6 +1279,44 @@ public class ModEventHandlerClient {
 		}
 	}
 
+	private static boolean isBlackholeGravityMalfunctionActive(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		return StarcoreSkyEffects.isGravityMalfunctionActive(world.getTotalWorldTime(), collapseEndTick);
+	}
+
+	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		if(!isBlackholeGravityMalfunctionActive(mc.theWorld)) {
+			return;
+		}
+
+		boolean blinkRed = ((mc.theWorld.getTotalWorldTime() / 5L) & 1L) == 0L;
+		String color = blinkRed ? EnumChatFormatting.RED.toString() : EnumChatFormatting.YELLOW.toString();
+		MainRegistry.proxy.displayTooltip(
+			color + "GRAVITATIONAL FORCES MALFUNCTION",
+			250,
+			ServerProxy.ID_GRAVITY_MALFUNCTION
+		);
+	}
+
 	@SubscribeEvent
 	public void onPlayMusic(PlaySoundEvent17 event) {
 		final ResourceLocation musicLocation = new ResourceLocation("hbm:music.game.space");
@@ -1726,6 +1766,7 @@ public class ModEventHandlerClient {
 			if(ArmorUtil.isWearingEmptyMask(mc.thePlayer)) {
 				MainRegistry.proxy.displayTooltip(EnumChatFormatting.RED + "Your mask has no filter!", ServerProxy.ID_FILTER);
 			}
+			updateBlackholeGravityWarningTooltip(mc);
 			
 			//prune other entities' muzzle flashes
 			if(mc.theWorld.getTotalWorldTime() % 30 == 0) {

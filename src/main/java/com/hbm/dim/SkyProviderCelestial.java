@@ -124,6 +124,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN = 0.5F;
 	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MAX = 1.05F;
 	private static final float BLACKHOLE_COLLAPSE_END_SPEED = 1.05F;
+	private static final float BLACKHOLE_COLLAPSE_SPIN_SPEED_SCALE = 0.5F;
 	private static final float BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE = 4.0F;
 	private static final float BLACKHOLE_COLLAPSE_EVENT_CUE_TICKS = 15.0F * 20.0F;
 	private static final float BLACKHOLE_COLLAPSE_IMMINENT_SOUND_DELAY_TICKS = 2.0F * 20.0F;
@@ -2692,7 +2693,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				shader.use();
 
 				long timeTicks = world.getWorldTime() % 24000L;
-				float time = (((float)timeTicks + partialTicks) / 20.0F) * collapseSpinSpeed;
+				float time = (((float)timeTicks + partialTicks) / 20.0F) * collapseSpinSpeed * BLACKHOLE_COLLAPSE_SPIN_SPEED_SCALE;
 
 				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				mc.renderEngine.bindTexture(noise);
@@ -2769,6 +2770,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 	}
 
 	public static void startBlackholeCollapseEffect(long worldTime, int dimension) {
+		if(dimension == SpaceConfig.dmitriyDimension) {
+			return;
+		}
 		blackholeCollapseActive = true;
 		blackholeCollapseStartWorldTime = worldTime;
 		blackholeCollapseDimension = dimension;

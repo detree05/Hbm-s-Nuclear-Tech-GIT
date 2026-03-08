@@ -16,6 +16,8 @@ public class StarcoreSkyEffects {
 	public static final int BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS = 138 * 20;
 	public static final int BLACKHOLE_FINAL_COLLAPSE_TICKS = 5 * 20;
 	public static final int BLACKHOLE_COLLAPSE_DURATION_TICKS = BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS + BLACKHOLE_FINAL_COLLAPSE_TICKS;
+	public static final int BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS = 28 * 20;
+	public static final int BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS = 15 * 20;
 
 	public static void sendIgnition(World world) {
 		if(world == null) return;
@@ -65,8 +67,38 @@ public class StarcoreSkyEffects {
 		}
 	}
 
+	public static float getGravityMalfunctionProgress(long now, long collapseEndTick) {
+		if(collapseEndTick <= 0L) {
+			return 0.0F;
+		}
+
+		long collapseStartTick = collapseEndTick - BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityStartTick = collapseStartTick + BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		if(now < gravityStartTick || now >= collapseEndTick) {
+			return 0.0F;
+		}
+
+		long gravityRampEndTick = gravityStartTick + BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+		if(now >= gravityRampEndTick || BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS <= 0) {
+			return 1.0F;
+		}
+
+		float progress = (float)(now - gravityStartTick) / (float)BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+		return Math.max(0.0F, Math.min(progress, 1.0F));
+	}
+
+	public static boolean isGravityMalfunctionActive(long now, long collapseEndTick) {
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+		long collapseStartTick = collapseEndTick - BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityStartTick = collapseStartTick + BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		return now >= gravityStartTick && now < collapseEndTick;
+	}
+
 	public static boolean startBlackholeCollapse(World world, CBT_SkyState skyState) {
 		if(world == null || skyState == null) return false;
+		if(world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) return false;
 		if(skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) return false;
 		if(skyState.getBlackholeCollapseEndTick() > 0L) {
 			return false;
