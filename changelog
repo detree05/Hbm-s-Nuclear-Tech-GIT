@@ -1,4 +1,11 @@
-Includes all changes and bugfixes from the latest two upstream NTMain updates - [X5616 - dawn of the final day](https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5616) [X5617 - ow](https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5617)
-
 ## Changed
-* NCRPA set now can be used with a PLSS
+* Updated russian localization
+* Safes now properly use the inventorytweaks API, allowing slot sorting via GUI
+* The meltdown disabling dial now also affects meldown caused by breaking fuel channels while hot
+* The dots on the grpahite moderator columns are now a lot darker to tell them apart from fuel channels much more easily
+
+## Fixed
+* Fixed RBMK fuel channel RoR not being properly parseable due to not being integers
+* Potentially fixed a dupe regarding safes
+* Moved the flow control pump's GUI code out of the block class which should hopefully fix an issue where spigot servers crash instantly when placed down
+* Fixed RBMKs melting down when removing the covers from fuel channels with hot fuel in them

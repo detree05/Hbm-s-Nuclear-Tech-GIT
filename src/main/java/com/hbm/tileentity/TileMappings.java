@@ -201,11 +201,8 @@ public class TileMappings {
 		put(TileEntityTrappedBrick.class, "tileentity_trapped_brick");
 		put(TileEntityWatzStruct.class, "tileentity_watz_struct");
 		put(TileEntityICFStruct.class, "tileentity_icf_struct");
-		put(TileEntityHadronDiode.class, "tileentity_hadron_diode");
-		put(TileEntityHadronPower.class, "tileentity_hadron_power");
-		put(TileEntityMachineWarController.class, "tileentity_war");
-		put(TileEntityHadron.class, "tileentity_hadron");
 		put(TileEntityPASource.class, "tileentity_pa_source");
+		put(TileEntityMachineWarController.class, "tileentity_war");
 		put(TileEntityPABeamline.class, "tileentity_pa_beamline");
 		put(TileEntityPARFC.class, "tileentity_pa_rfc");
 		put(TileEntityPAQuadrupole.class, "tileentity_pa_quadrupole");
@@ -387,14 +384,10 @@ public class TileMappings {
 
 		put(TileEntityMachineCombustionEngine.class, "tileentity_combustion_engine");
 
-		put(TileEntityMachineAssembler.class, "tileentity_assembly_machine");
 		put(TileEntityMachineAssemblyMachine.class, "tileentity_assemblymachine");
-		put(TileEntityMachineAssemfac.class, "tileentity_assemfac");
 		put(TileEntityMachineAssemblyFactory.class, "tileentity_assemblyfactory");
 		put(TileEntityMachinePrecAss.class, "tileentity_precass");
-		put(TileEntityMachineChemplant.class, "tileentity_chemical_plant");
 		put(TileEntityMachineChemicalPlant.class, "tileentity_chemicalplant");
-		put(TileEntityMachineChemfac.class, "tileentity_chemfac");
 		put(TileEntityMachineChemicalFactory.class, "tileentity_chemicalfactory");
 		put(TileEntityMachinePUREX.class, "tileentity_purex");
 
@@ -463,6 +456,7 @@ public class TileMappings {
 		put(TileEntityRBMKStorage.class, "tileentity_rbmk_storage");
 		put(TileEntityCraneConsole.class, "tileentity_rbmk_crane_console");
 		put(TileEntityRBMKConsole.class, "tileentity_rbmk_console");
+		put(TileEntityRBMKDisplay.class, "tileentity_rbmk_display");
 		put(TileEntityRBMKInlet.class, "tileentity_rbmk_inlet");
 		put(TileEntityRBMKOutlet.class, "tileentity_rbmk_outlet");
 		put(TileEntityRBMKAutoloader.class, "tileentity_rbmk_autoloader");
