@@ -166,7 +166,7 @@ public class ResourceManager {
 	public static final IModelCustom chemical_plant = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/chemical_plant.obj")).asVBO();
 	public static final IModelCustom chemical_factory = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/chemical_factory.obj")).asVBO();
 	public static final IModelCustom purex = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/purex.obj")).asVBO();
-	public static final IModelCustom spike_plant = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/plant_spike.obj"));
+	public static final HFRWavefrontObject spike_plant = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/plant_spike.obj"));
 
 	//Mixer
 	public static final IModelCustom mixer = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/mixer.obj")).asVBO();
@@ -1785,7 +1785,7 @@ public class ResourceManager {
 	public static final HFRWavefrontObject capacitor = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/blocks/capacitor.obj")).noSmooth();
 	public static final HFRWavefrontObject funnel = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/blocks/funnel.obj")).noSmooth();
 
-	public static final IModelCustom algae_film = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/blocks/algae_film.obj"));
+	public static final HFRWavefrontObject algae_film = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/blocks/algae_film.obj"));
 	public static final IModelCustom sat_rail = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/railgun_main.obj"));
 	public static final IModelCustom plane = AdvancedModelLoader.loadModel(new ResourceLocation(RefStrings.MODID, "models/plane.obj"));
 	
