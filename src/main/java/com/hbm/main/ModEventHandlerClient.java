@@ -12,6 +12,7 @@ import com.hbm.config.GeneralConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.CelestialCore;
+import com.hbm.dim.SkyProviderCelestial;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.StarcoreSkyEffects;
@@ -181,6 +182,28 @@ public class ModEventHandlerClient {
 	private static AudioWrapper voidFightsBackLoopSound;
 	private static final int BLACKHOLE_VISUAL_CORTEX_WARNING_DELAY_TICKS = 15 * 20;
 	private static final int BLACKHOLE_DIGAMMA_WARNING_DELAY_TICKS = 40 * 20;
+	private static final int BLACKHOLE_CAMERA_TILT_DELAY_TICKS = 54 * 20;
+	private static final int BLACKHOLE_OBFUSCATED_WARNING_START_TICKS = 79 * 20;
+	private static final int BLACKHOLE_OBFUSCATED_WARNING_END_TICKS = 91 * 20 + 10;
+	private static final int BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS = 60;
+	private static final String[] BLACKHOLE_OBFUSCATED_WARNING_TEXTS = new String[] {
+		"IT WATCHES",
+		"DO NOT BLINK",
+		"IT'S HUNGRY",
+		"LOOK DEEPER",
+		"I KNOW YOU",
+		"I SEE YOU"
+	};
+	private static final float DMITRIY_CAMERA_TILT_FREQUENCY = 0.001F;
+	private static final float DMITRIY_CAMERA_TILT_AMPLITUDE_DEG = 2.0F;
+	private static final float BLACKHOLE_CAMERA_TILT_PRIMARY_FREQUENCY = 0.00028F;
+	private static final float BLACKHOLE_CAMERA_TILT_SECONDARY_FREQUENCY = 0.00013F;
+	private static final float BLACKHOLE_CAMERA_TILT_AMPLITUDE_DEG = 1.25F;
+	private static final int BLACKHOLE_ITS_HERE_WORLD_TINT_FADE_IN_MS = 700;
+	private static final int BLACKHOLE_ITS_HERE_WORLD_TINT_END_FADE_TICKS = 20;
+	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
+	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+	private static long blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -337,6 +360,10 @@ public class ModEventHandlerClient {
 		}
 
 		if(event.type == ElementType.CROSSHAIRS) {
+			float blackholeTint = getBlackholeItsHereWorldTintStrength(player != null ? player.worldObj : null);
+			if(blackholeTint > 0.001F) {
+				renderBlackholeItsHereOverlay(event.resolution, blackholeTint);
+			}
 			float intensity = getVoidStareIntensity(player);
 			float overlayIntensity = Math.max(intensity, dmitriyStarStareIntensity);
 			if(overlayIntensity > 0.001F) {
@@ -1014,6 +1041,37 @@ public class ModEventHandlerClient {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
+	private static void renderBlackholeItsHereOverlay(ScaledResolution resolution, float tintStrength) {
+		if(resolution == null || tintStrength <= 0.0F) {
+			return;
+		}
+
+		int width = resolution.getScaledWidth();
+		int height = resolution.getScaledHeight();
+		float clampedTint = MathHelper.clamp_float(tintStrength, 0.0F, 1.0F);
+		float alpha = MathHelper.clamp_float(0.12F + 0.30F * clampedTint, 0.0F, 0.48F);
+		Tessellator tess = Tessellator.instance;
+
+		GL11.glDisable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
+		GL11.glAlphaFunc(GL11.GL_GEQUAL, 0.0F);
+		GL11.glDepthMask(false);
+
+		tess.startDrawingQuads();
+		tess.setColorRGBA_F(0.96F, 0.10F, 0.08F, alpha);
+		tess.addVertex(width, 0, 0);
+		tess.addVertex(0, 0, 0);
+		tess.addVertex(0, height, 0);
+		tess.addVertex(width, height, 0);
+		tess.draw();
+
+		OpenGlHelper.glBlendFunc(770, 771, 1, 0);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
+		GL11.glDepthMask(true);
+	}
+
 	private static void renderDmitriyStarStareText(ScaledResolution resolution, float intensity) {
 		final float dmitriyStarStareTextMaxAlpha = 1.0F;
 		final float dmitriyStarStareTextShakePx = 3.0F;
@@ -1115,9 +1173,10 @@ public class ModEventHandlerClient {
 			return;
 		}
 		float roll = 0.0F;
+		boolean blackholeTiltActive = false;
 		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			float t = (float)(world.getTotalWorldTime() + event.renderTickTime);
-			roll = MathHelper.sin(t * 0.001F) * 2.0F;
+			roll = MathHelper.sin(t * DMITRIY_CAMERA_TILT_FREQUENCY) * DMITRIY_CAMERA_TILT_AMPLITUDE_DEG;
 
 			if(dmitriyStarStareIntensity > 0.001F) {
 				final float dmitriyStarStareShakeMinDeg = 0.25F;
@@ -1134,9 +1193,14 @@ public class ModEventHandlerClient {
 
 				roll += tremor * shakeAmp;
 			}
+		} else {
+			blackholeTiltActive = isBlackholeCollapseCameraTiltActive(world);
+		}
+		if(blackholeTiltActive) {
+			voidFightsBackShakeTicks = 0;
 		}
 
-		if(voidFightsBackShakeTicks > 0) {
+		if(voidFightsBackShakeTicks > 0 && !blackholeTiltActive) {
 			float t = (float)(world != null ? (world.getTotalWorldTime() + event.renderTickTime) : event.renderTickTime);
 			float intensity = MathHelper.clamp_float(voidFightsBackShakeTicks / (float)(30 * 20), 0.0F, 1.0F);
 			float amp = 0.08F + intensity * 0.55F;
@@ -1316,6 +1380,254 @@ public class ModEventHandlerClient {
 		return 0;
 	}
 
+	private static boolean isBlackholeCollapseCameraTiltActive(World world) {
+		if(world instanceof WorldClient && SkyProviderCelestial.isBlackholeCollapseMeteorPhaseActive((WorldClient) world)) {
+			return true;
+		}
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long cameraTiltStartTick = collapseStartTick + BLACKHOLE_CAMERA_TILT_DELAY_TICKS;
+		long now = world.getTotalWorldTime();
+		return now >= cameraTiltStartTick && now < collapseEndTick;
+	}
+
+	static boolean isBlackholeCollapseCameraTiltWindowActive(World world) {
+		return isBlackholeCollapseCameraTiltActive(world);
+	}
+
+	private static float getBlackholeCollapseCameraTiltRoll(World world, float partialTicks) {
+		if(!isBlackholeCollapseCameraTiltActive(world)) {
+			return 0.0F;
+		}
+
+		double t = (double)world.getTotalWorldTime() + (double)partialTicks;
+		double primaryWave = Math.sin(t * BLACKHOLE_CAMERA_TILT_PRIMARY_FREQUENCY);
+		double secondaryWave = Math.sin(t * BLACKHOLE_CAMERA_TILT_SECONDARY_FREQUENCY + 1.1D) * 0.35D;
+		double blendedWave = (primaryWave + secondaryWave) / 1.35D;
+		return (float)(blendedWave * BLACKHOLE_CAMERA_TILT_AMPLITUDE_DEG);
+	}
+
+	private static boolean isBlackholeGravityRampWarningActive(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityStartTick = collapseStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		long gravityRampEndTick = gravityStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+		long warningEndTick = Math.min(gravityRampEndTick, collapseEndTick);
+		return now >= gravityStartTick && now < warningEndTick;
+	}
+
+	private static boolean isBlackholeObfuscatedTooltipWindowActive(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_START_TICKS;
+		long tooltipEndTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_END_TICKS;
+		long now = world.getTotalWorldTime();
+		return now >= tooltipStartTick && now <= tooltipEndTick && now < collapseEndTick;
+	}
+
+	private static int getBlackholeWarningObfuscationStage(World world) {
+		if(!isBlackholeObfuscatedTooltipWindowActive(world)) {
+			return 0;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null) {
+			return 0;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return 0;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_START_TICKS;
+		long elapsedTicks = world.getTotalWorldTime() - tooltipStartTick;
+		if(elapsedTicks < BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) {
+			return 1;
+		}
+
+		return 2;
+	}
+
+	private static int getBlackholeObfuscatedTooltipCount(World world) {
+		if(world == null || world.provider == null) {
+			return 0;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return 0;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return 0;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return 0;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_START_TICKS;
+		long tooltipEndTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_END_TICKS;
+		long now = world.getTotalWorldTime();
+		if(now < tooltipStartTick || now > tooltipEndTick || now >= collapseEndTick) {
+			return 0;
+		}
+
+		long elapsedTicks = now - tooltipStartTick;
+		if(elapsedTicks < BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) {
+			return 0;
+		}
+
+		long totalWindowTicks = tooltipEndTick - tooltipStartTick;
+		if(totalWindowTicks < BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) {
+			return 0;
+		}
+
+		long elapsedAfterInitialDelay = elapsedTicks - BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS;
+		int count = (int)(elapsedAfterInitialDelay / BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) + 1;
+		int maxCount = (int)((totalWindowTicks - BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) / BLACKHOLE_OBFUSCATED_WARNING_INTERVAL_TICKS) + 1;
+		return Math.min(maxCount, count);
+	}
+
+	private static boolean isBlackholeItsHereTooltipActive(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipEndTick = collapseStartTick + BLACKHOLE_OBFUSCATED_WARNING_END_TICKS;
+		long now = world.getTotalWorldTime();
+		return now > tooltipEndTick && now < collapseEndTick;
+	}
+
+	private static long getBlackholeCollapseEndTick(World world) {
+		if(world == null) {
+			return -1L;
+		}
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return -1L;
+		}
+		return skyState.getBlackholeCollapseEndTick();
+	}
+
+	private static void resetBlackholeItsHereFxState() {
+		blackholeItsHereFxDimension = Integer.MIN_VALUE;
+		blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+		blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
+	}
+
+	private static void triggerBlackholeItsHereFx(World world, long collapseEndTick) {
+		if(world == null || world.provider == null || collapseEndTick <= 0L) {
+			return;
+		}
+
+		int dimension = world.provider.dimensionId;
+		if(blackholeItsHereFxDimension == dimension && blackholeItsHereFxCollapseEndTick == collapseEndTick) {
+			return;
+		}
+
+		blackholeItsHereFxDimension = dimension;
+		blackholeItsHereFxCollapseEndTick = collapseEndTick;
+		long now = System.currentTimeMillis();
+		blackholeItsHereFxTimestampMs = now;
+		starcoreFlashTimestamp = now;
+	}
+
+	public static float getBlackholeItsHereWorldTintStrength(World world) {
+		if(world == null || world.provider == null) {
+			return 0.0F;
+		}
+		if(blackholeItsHereFxTimestampMs <= 0L || world.provider.dimensionId != blackholeItsHereFxDimension) {
+			return 0.0F;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return 0.0F;
+		}
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		long nowTick = world.getTotalWorldTime();
+		if(collapseEndTick <= 0L || nowTick >= collapseEndTick) {
+			return 0.0F;
+		}
+
+		long elapsedMs = System.currentTimeMillis() - blackholeItsHereFxTimestampMs;
+		if(elapsedMs < 0L) {
+			return 0.0F;
+		}
+
+		long ticksLeft = collapseEndTick - nowTick;
+		float fadeIn = MathHelper.clamp_float(elapsedMs / (float)BLACKHOLE_ITS_HERE_WORLD_TINT_FADE_IN_MS, 0.0F, 1.0F);
+		float fadeOut = MathHelper.clamp_float(ticksLeft / (float)BLACKHOLE_ITS_HERE_WORLD_TINT_END_FADE_TICKS, 0.0F, 1.0F);
+		return fadeIn * fadeOut;
+	}
+
 	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
 			return;
@@ -1327,14 +1639,18 @@ public class ModEventHandlerClient {
 
 		boolean blinkRed = ((mc.theWorld.getTotalWorldTime() / 5L) & 1L) == 0L;
 		String color = blinkRed ? EnumChatFormatting.RED.toString() : EnumChatFormatting.YELLOW.toString();
+		int warningObfuscationStage = getBlackholeWarningObfuscationStage(mc.theWorld);
 		if(warningLevel >= 1) {
+			String visualCortexText = warningObfuscationStage >= 1 && warningLevel >= 3
+				? color + EnumChatFormatting.OBFUSCATED + "VISUAL CORTEX MALFUNCTION" + EnumChatFormatting.RESET
+				: color + "VISUAL CORTEX MALFUNCTION";
 			MainRegistry.proxy.displayTooltip(
-				color + "VISUAL CORTEX MALFUNCTION",
+				visualCortexText,
 				250,
 				ServerProxy.ID_VISUAL_CORTEX_MALFUNCTION
 			);
 		}
-		if(warningLevel >= 2) {
+		if(warningLevel >= 2 && isBlackholeGravityRampWarningActive(mc.theWorld)) {
 			MainRegistry.proxy.displayTooltip(
 				color + "GRAVITATIONAL FORCES CHANGE DETECTED",
 				250,
@@ -1342,11 +1658,32 @@ public class ModEventHandlerClient {
 			);
 		}
 		if(warningLevel >= 3) {
+			String digammaText = warningObfuscationStage >= 2
+				? color + EnumChatFormatting.OBFUSCATED + "DIGAMMA RADIATION LEVELS INCREASING" + EnumChatFormatting.RESET
+				: color + "DIGAMMA RADIATION LEVELS INCREASING";
 			MainRegistry.proxy.displayTooltip(
-				color + "DIGAMMA RADIATION LEVELS INCREASING",
+				digammaText,
 				250,
 				ServerProxy.ID_DIGAMMA_RADIATION_WARNING
 			);
+
+			int obfuscatedTooltipCount = getBlackholeObfuscatedTooltipCount(mc.theWorld);
+			for(int i = 0; i < obfuscatedTooltipCount; i++) {
+				String text = BLACKHOLE_OBFUSCATED_WARNING_TEXTS[i % BLACKHOLE_OBFUSCATED_WARNING_TEXTS.length];
+				MainRegistry.proxy.displayTooltip(
+					color + EnumChatFormatting.OBFUSCATED + text + EnumChatFormatting.RESET,
+					250,
+					ServerProxy.ID_BLACKHOLE_OBFUSCATED_WARNING_BASE + i
+				);
+			}
+			if(obfuscatedTooltipCount <= 0 && isBlackholeItsHereTooltipActive(mc.theWorld)) {
+				triggerBlackholeItsHereFx(mc.theWorld, getBlackholeCollapseEndTick(mc.theWorld));
+				MainRegistry.proxy.displayTooltip(
+					color + "=)",
+					250,
+					ServerProxy.ID_BLACKHOLE_ITS_HERE_WARNING
+				);
+			}
 		}
 	}
 
@@ -1763,6 +2100,7 @@ public class ModEventHandlerClient {
 
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			resetDmitriyCameraEffects(mc);
+			resetBlackholeItsHereFxState();
 			lastClientDimensionId = null;
 			return;
 		}
@@ -1772,6 +2110,7 @@ public class ModEventHandlerClient {
 			if(lastClientDimensionId != null) {
 				resetDmitriyCameraEffects(mc);
 			}
+			resetBlackholeItsHereFxState();
 			lastClientDimensionId = currentDimension;
 		} else if(currentDimension != SpaceConfig.dmitriyDimension) {
 			resetDmitriyCameraEffects(mc);

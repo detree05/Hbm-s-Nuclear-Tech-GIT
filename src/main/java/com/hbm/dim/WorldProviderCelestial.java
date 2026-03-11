@@ -16,6 +16,7 @@ import com.hbm.handler.ImpactWorldHandler;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
 import com.hbm.inventory.FluidStack;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.main.ModEventHandlerClient;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
 import com.hbm.saveddata.satellites.SatelliteWar;
@@ -194,8 +195,11 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		}
 
 		boolean changed = false;
-		final int redBoost = 0;
-		final float greenBlueScale = 0.95F;
+		final float collapseRedTint = getBlackholeCollapseRedTintStrength();
+		final float redScale = 1.0F + 0.22F * collapseRedTint;
+		final int redBoost = MathHelper.clamp_int(MathHelper.floor_float(48.0F * collapseRedTint), 0, 96);
+		final float greenScale = 0.95F - 0.70F * collapseRedTint;
+		final float blueScale = 0.95F - 0.82F * collapseRedTint;
 		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
@@ -210,9 +214,9 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 				b = (int)(b * skyDim);
 			}
 
-			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
-			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
-			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
+			int nr = MathHelper.clamp_int((int)(r * redScale) + redBoost, 0, 255);
+			int ng = MathHelper.clamp_int((int)(g * greenScale), 0, 255);
+			int nb = MathHelper.clamp_int((int)(b * blueScale), 0, 255);
 
 			if(nr != r || ng != g || nb != b) {
 				lightmap[i] = packColor(nr, ng, nb);
@@ -274,6 +278,33 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		} catch(Exception ignored) {
 			return 1.0F;
 		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	public boolean shouldForceLightmapRefresh() {
+		return getBlackholeCollapseRedTintStrength() > 0.0F;
+	}
+
+	@SideOnly(Side.CLIENT)
+	private float getBlackholeCollapseRedTintStrength() {
+		return ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(worldObj);
+	}
+
+	@SideOnly(Side.CLIENT)
+	private Vec3 applyBlackholeCollapseRedTint(Vec3 color) {
+		float tint = getBlackholeCollapseRedTintStrength();
+		if(tint <= 0.0F || color == null) {
+			return color;
+		}
+
+		double red = color.xCoord * (1.0D + 0.45D * tint) + 0.22D * tint;
+		double green = color.yCoord * (1.0D - 0.72D * tint);
+		double blue = color.zCoord * (1.0D - 0.86D * tint);
+		return Vec3.createVectorHelper(
+			MathHelper.clamp_double(red, 0.0D, 1.5D),
+			MathHelper.clamp_double(green, 0.0D, 1.5D),
+			MathHelper.clamp_double(blue, 0.0D, 1.5D)
+		);
 	}
 
 	protected final int packColor(final int[] colors) {
@@ -342,7 +373,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
 
 		// The cold hard vacuum of space
-		if(atmosphere == null) return Vec3.createVectorHelper(0, 0, 0);
+		if(atmosphere == null) return applyBlackholeCollapseRedTint(Vec3.createVectorHelper(0, 0, 0));
 
 		float sun = MathHelper.clamp_float(MathHelper.cos(solarAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F, 0.0F, 1.0F);
 
@@ -436,7 +467,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			color.zCoord *= 1 - dust;
 		}
 
-		return color;
+		return applyBlackholeCollapseRedTint(color);
 	}
 
 	@Override
@@ -462,7 +493,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 		// The cold hard vacuum of space
 		if(atmosphere == null) {
-			return color;
+			return applyBlackholeCollapseRedTint(color);
 		}
 
 		float sun = this.getSunBrightnessFactor(1.0F);
@@ -552,7 +583,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			color.zCoord *= fire + (1 - dust);
 		}
 
-		return color;
+		return applyBlackholeCollapseRedTint(color);
 	}
 
 	private Vec3 getColorFromHex(int hexColor) {

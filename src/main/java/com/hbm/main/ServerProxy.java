@@ -38,6 +38,8 @@ public class ServerProxy {
 	public static final int ID_VISUAL_CORTEX_MALFUNCTION = 14;
 	public static final int ID_GRAVITY_MALFUNCTION = 15;
 	public static final int ID_DIGAMMA_RADIATION_WARNING = 16;
+	public static final int ID_BLACKHOLE_OBFUSCATED_WARNING_BASE = 17;
+	public static final int ID_BLACKHOLE_ITS_HERE_WARNING = 18;
 
 	public ITranslate getI18n() { return I18N; }
 

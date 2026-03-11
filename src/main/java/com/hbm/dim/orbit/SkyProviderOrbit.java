@@ -34,7 +34,8 @@ public class SkyProviderOrbit extends SkyProviderCelestial {
 		float orbitalTilt = 80;
 
 		// Keep orbit lightmap dimming in sync with sky-state transitions.
-		if(lastBrightestPixel != mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250]) {
+		int brightestPixels = mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250];
+		if(provider.shouldForceLightmapRefresh() || lastBrightestPixel != brightestPixels) {
 			if(provider.updateLightmap(mc.entityRenderer.lightmapColors)) {
 				mc.entityRenderer.lightmapTexture.updateDynamicTexture();
 			}

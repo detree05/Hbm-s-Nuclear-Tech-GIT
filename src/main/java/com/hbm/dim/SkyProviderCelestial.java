@@ -121,12 +121,13 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final float BLACKHOLE_PULSE_CYCLE_TICKS = 12.0F * 20.0F;
 	private static final float BLACKHOLE_COLLAPSE_MAX_RADIUS = 0.45F;
 	private static final float BLACKHOLE_COLLAPSE_MIN_RADIUS = 0.01F;
-	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN = 0.5F;
-	private static final float BLACKHOLE_COLLAPSE_PULSE_SPEED_MAX = 1.05F;
-	private static final float BLACKHOLE_COLLAPSE_END_SPEED = 1.05F;
+	private static final float BLACKHOLE_COLLAPSE_EVENT_SPEED_START = 1.0F;
+	private static final float BLACKHOLE_COLLAPSE_EVENT_SPEED_PEAK = 5.0F;
+	private static final float BLACKHOLE_COLLAPSE_END_SPEED = 0.0F;
 	private static final float BLACKHOLE_COLLAPSE_SPIN_SPEED_SCALE = 0.5F;
 	private static final float BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE = 4.0F;
 	private static final float BLACKHOLE_COLLAPSE_EVENT_CUE_TICKS = 15.0F * 20.0F;
+	private static final float BLACKHOLE_COLLAPSE_METEOR_CUE_TICKS = 54.0F * 20.0F;
 	private static final float BLACKHOLE_COLLAPSE_IMMINENT_SOUND_DELAY_TICKS = 2.0F * 20.0F;
 	private static final float BLACKHOLE_COLLAPSE_SYNC_GRACE_TICKS = 40.0F;
 	private static final double BLACKHOLE_SHADER_SIZE_SCALE = 1.0D / 3.0D;
@@ -138,6 +139,16 @@ public class SkyProviderCelestial extends IRenderHandler {
 	private static final float BLACKHOLE_EYEBALL_MIN_HIDDEN_TICKS = 3.0F * 20.0F;
 	private static final float BLACKHOLE_EYEBALL_MAX_HIDDEN_TICKS = 12.0F * 20.0F;
 	private static final float BLACKHOLE_EYEBALL_MAX_ALPHA = 0.6F;
+	private static final float SKYFALL_TRAIL_MINT_R = 0.55F;
+	private static final float SKYFALL_TRAIL_MINT_G = 1.0F;
+	private static final float SKYFALL_TRAIL_MINT_B = 0.75F;
+	private static final float SKYFALL_TRAIL_BLACKHOLE_R = 1.0F;
+	private static final float SKYFALL_TRAIL_BLACKHOLE_G = 0.2F;
+	private static final float SKYFALL_TRAIL_BLACKHOLE_B = 0.2F;
+	private static float skyfallTrailTargetR = SKYFALL_TRAIL_MINT_R;
+	private static float skyfallTrailTargetG = SKYFALL_TRAIL_MINT_G;
+	private static float skyfallTrailTargetB = SKYFALL_TRAIL_MINT_B;
+	private static boolean blackholeCollapseMeteorCueTriggered = false;
 	
 	private static final Map<String, Float> ringFade = new HashMap<>();
 	private static final Map<String, Long> ringFadeTick = new HashMap<>();
@@ -237,7 +248,8 @@ public class SkyProviderCelestial extends IRenderHandler {
 
 		// Without mixins, we have to resort to some very wacky ways of checking that the lightmap needs to be updated
 		// fortunately, thanks to torch flickering, we can just check to see if the brightest pixel has been modified
-		if(lastBrightestPixel != mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250]) {
+		int brightestPixels = mc.entityRenderer.lightmapColors[255] + mc.entityRenderer.lightmapColors[250];
+		if(celestialProvider.shouldForceLightmapRefresh() || lastBrightestPixel != brightestPixels) {
 			if(celestialProvider.updateLightmap(mc.entityRenderer.lightmapColors)) {
 				mc.entityRenderer.lightmapTexture.updateDynamicTexture();
 			}
@@ -2410,9 +2422,9 @@ public class SkyProviderCelestial extends IRenderHandler {
 		float yOffset = 0.25F;
 		float dark = 1.0F - Math.min(((float)age / (100.0F * 0.35F)), 1.0F);
 		float tint = Math.min(1.0F, (float)age / 12.0F);
-		double r = (1.0 - tint) + (0.55 * tint);
-		double g = (1.0 - tint) + (1.0 * tint);
-		double b = (1.0 - tint) + (0.75 * tint);
+		double r = (1.0 - tint) + (skyfallTrailTargetR * tint);
+		double g = (1.0 - tint) + (skyfallTrailTargetG * tint);
+		double b = (1.0 - tint) + (skyfallTrailTargetB * tint);
 		GL11.glRotatef(180.0F - RenderManager.instance.playerViewY, 0.0F, 1.0F, 0.0F);
 		GL11.glRotatef(-RenderManager.instance.playerViewX, 1.0F, 0.0F, 0.0F);
 		GL11.glColor4d(r * dark, g * dark, b * dark, alphaMultiplier);
@@ -2606,10 +2618,21 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 		if(!blackholeCollapseMidCueTriggered && age >= BLACKHOLE_COLLAPSE_EVENT_CUE_TICKS) {
 			ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
-			ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
 			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.collapseEvent_1"), 1.0F));
 			blackholeCollapseMidCueTriggered = true;
 			blackholeCollapseNightVariantActive = true;
+		}
+		if(!blackholeCollapseMeteorCueTriggered && age >= BLACKHOLE_COLLAPSE_METEOR_CUE_TICKS) {
+			int meteorDurationTicks = Math.max(1, MathHelper.ceiling_float_int(BLACKHOLE_COLLAPSE_TOTAL_TICKS - BLACKHOLE_COLLAPSE_METEOR_CUE_TICKS));
+			startSkyfallEffect(
+				world.getTotalWorldTime(),
+				world.provider.dimensionId,
+				meteorDurationTicks,
+				SKYFALL_TRAIL_BLACKHOLE_R,
+				SKYFALL_TRAIL_BLACKHOLE_G,
+				SKYFALL_TRAIL_BLACKHOLE_B
+			);
+			blackholeCollapseMeteorCueTriggered = true;
 		}
 		if(!blackholeCollapseImminentSoundPlayed && age >= BLACKHOLE_COLLAPSE_IMMINENT_SOUND_DELAY_TICKS) {
 			ModEventHandlerClient.stopCurrentMusic();
@@ -2618,7 +2641,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 		if(!blackholeCollapseImpactTriggered && age >= BLACKHOLE_COLLAPSE_TOTAL_TICKS) {
 			ModEventHandlerClient.starcoreFlashTimestamp = System.currentTimeMillis();
-			ModEventHandlerClient.shakeTimestamp = System.currentTimeMillis();
 			mc.getSoundHandler().playSound(PositionedSoundRecord.func_147674_a(new ResourceLocation("hbm:misc.starcore_ignited"), 4.0F));
 			blackholeCollapseNightVariantActive = false;
 			blackholeCollapseImpactTriggered = true;
@@ -2637,7 +2659,6 @@ public class SkyProviderCelestial extends IRenderHandler {
 		}
 		float collapseBlackholeRadius;
 		float blackholeAlpha;
-		float collapseSpinSpeed;
 		float collapseSizeScale;
 		float collapseStartRadius = MathHelper.clamp_float(blackholeCollapseStartRadius, 0.3F, 0.45F);
 		if(age < BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS) {
@@ -2652,17 +2673,11 @@ public class SkyProviderCelestial extends IRenderHandler {
 			// Smoothly lock to max radius near the threshold so phase switch has no visible size snap.
 			float radiusSync = smoothstep(0.85F, 1.0F, preCollapseProgress);
 			collapseBlackholeRadius = collapseBlackholeRadius + (BLACKHOLE_COLLAPSE_MAX_RADIUS - collapseBlackholeRadius) * radiusSync;
-
-			float speedWave = 0.5F + 0.5F * MathHelper.sin(pulseRadians - (float)(Math.PI * 0.5D));
-			float easedSpeed = smoothstep(0.0F, 1.0F, speedWave);
-			collapseSpinSpeed = BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN + (BLACKHOLE_COLLAPSE_PULSE_SPEED_MAX - BLACKHOLE_COLLAPSE_PULSE_SPEED_MIN) * easedSpeed;
 			blackholeAlpha = 1.0F;
 		} else {
 			float collapseProgress = MathHelper.clamp_float((age - BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS) / BLACKHOLE_FINAL_COLLAPSE_TICKS, 0.0F, 1.0F);
 			float acceleratedShrink = collapseProgress * collapseProgress * collapseProgress;
 			collapseBlackholeRadius = BLACKHOLE_COLLAPSE_MAX_RADIUS + (BLACKHOLE_COLLAPSE_MIN_RADIUS - BLACKHOLE_COLLAPSE_MAX_RADIUS) * acceleratedShrink;
-			float speedRamp = smoothstep(0.0F, 1.0F, collapseProgress);
-			collapseSpinSpeed = 1.0F + (BLACKHOLE_COLLAPSE_END_SPEED - 1.0F) * speedRamp;
 			collapseSizeScale = BLACKHOLE_COLLAPSE_MAX_SIZE_SCALE;
 			blackholeAlpha = 1.0F;
 		}
@@ -2693,8 +2708,7 @@ public class SkyProviderCelestial extends IRenderHandler {
 				Shader shader = sun.shader;
 				shader.use();
 
-				long timeTicks = world.getWorldTime() % 24000L;
-				float time = (((float)timeTicks + partialTicks) / 20.0F) * collapseSpinSpeed * BLACKHOLE_COLLAPSE_SPIN_SPEED_SCALE;
+				float time = getBlackholeCollapseSpinTime(age);
 
 				GL11.glEnable(GL11.GL_TEXTURE_2D);
 				mc.renderEngine.bindTexture(noise);
@@ -2754,6 +2768,28 @@ public class SkyProviderCelestial extends IRenderHandler {
 		return t * t * (3.0F - 2.0F * t);
 	}
 
+	private static float getBlackholeCollapseSpinTime(float ageTicks) {
+		float clampedAgeTicks = MathHelper.clamp_float(ageTicks, 0.0F, BLACKHOLE_COLLAPSE_TOTAL_TICKS);
+
+		float preAgeTicks = Math.min(clampedAgeTicks, BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS);
+		float integratedTicks = BLACKHOLE_COLLAPSE_EVENT_SPEED_START * preAgeTicks;
+		if(BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS > 0.0F) {
+			float preSpeedRange = BLACKHOLE_COLLAPSE_EVENT_SPEED_PEAK - BLACKHOLE_COLLAPSE_EVENT_SPEED_START;
+			integratedTicks += preSpeedRange * (preAgeTicks * preAgeTicks) / (2.0F * BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS);
+		}
+
+		if(clampedAgeTicks > BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS) {
+			float finalAgeTicks = Math.min(clampedAgeTicks - BLACKHOLE_PRE_COLLAPSE_PULSE_TICKS, BLACKHOLE_FINAL_COLLAPSE_TICKS);
+			integratedTicks += BLACKHOLE_COLLAPSE_EVENT_SPEED_PEAK * finalAgeTicks;
+			if(BLACKHOLE_FINAL_COLLAPSE_TICKS > 0.0F) {
+				float finalSpeedRange = BLACKHOLE_COLLAPSE_END_SPEED - BLACKHOLE_COLLAPSE_EVENT_SPEED_PEAK;
+				integratedTicks += finalSpeedRange * (finalAgeTicks * finalAgeTicks) / (2.0F * BLACKHOLE_FINAL_COLLAPSE_TICKS);
+			}
+		}
+
+		return (integratedTicks / 20.0F) * BLACKHOLE_COLLAPSE_SPIN_SPEED_SCALE;
+	}
+
 	public static void startNovaeEffect(long worldTime, int dimension, float yaw, float pitch, float roll, float r, float g, float b, float sizeScale) {
 		novaeEffects.add(new NovaeEffect(worldTime, dimension, yaw, pitch, roll, r, g, b, sizeScale));
 	}
@@ -2782,19 +2818,39 @@ public class SkyProviderCelestial extends IRenderHandler {
 		blackholeCollapseImminentSoundPlayed = false;
 		blackholeCollapseImpactTriggered = false;
 		blackholeCollapseNightVariantActive = false;
+		blackholeCollapseMeteorCueTriggered = false;
 		initializeBlackholeCollapseEyeballs(worldTime, dimension);
 		float clusterProgress = MathHelper.clamp_float(lastBlackholeClustersSent / (float)TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT, 0.0F, 1.0F);
 		blackholeCollapseStartRadius = 0.3F + 0.1F * clusterProgress;
 	}
 
 	public static void startSkyfallEffect(long worldTime, int dimension, int durationTicks) {
+		startSkyfallEffect(worldTime, dimension, durationTicks, SKYFALL_TRAIL_MINT_R, SKYFALL_TRAIL_MINT_G, SKYFALL_TRAIL_MINT_B);
+	}
+
+	public static void startSkyfallEffect(long worldTime, int dimension, int durationTicks, float trailTargetR, float trailTargetG, float trailTargetB) {
 		skyfallActive = true;
 		skyfallStartWorldTime = worldTime;
 		skyfallDimension = dimension;
 		skyfallDurationTicks = Math.max(1, durationTicks);
 		skyfallLastUpdateTick = Long.MIN_VALUE;
+		skyfallTrailTargetR = MathHelper.clamp_float(trailTargetR, 0.0F, 1.0F);
+		skyfallTrailTargetG = MathHelper.clamp_float(trailTargetG, 0.0F, 1.0F);
+		skyfallTrailTargetB = MathHelper.clamp_float(trailTargetB, 0.0F, 1.0F);
 		skyfallMeteors.clear();
 		skyfallSmoke.clear();
+	}
+
+	public static boolean isBlackholeCollapseMeteorPhaseActive(WorldClient world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(!blackholeCollapseActive || world.provider.dimensionId != blackholeCollapseDimension) {
+			return false;
+		}
+
+		float age = (world.getTotalWorldTime() - blackholeCollapseStartWorldTime);
+		return age >= BLACKHOLE_COLLAPSE_METEOR_CUE_TICKS && age < BLACKHOLE_COLLAPSE_TOTAL_TICKS;
 	}
 
 	protected void render3DModel(float partialTicks, WorldClient world, Minecraft mc) {

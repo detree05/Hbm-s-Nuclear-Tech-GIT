@@ -537,6 +537,9 @@ public class ModEventHandlerRenderer {
 	public void tintFog(FogColors event) {
 
 		EntityPlayer player = MainRegistry.proxy.me();
+		if(player == null || player.worldObj == null) {
+			return;
+		}
 		if(player.worldObj.getBlock((int) Math.floor(player.posX), (int) Math.floor(player.posY), (int) Math.floor(player.posZ)).getMaterial() != Material.water) {
 			Vec3 color = getFogBlendColor(player.worldObj, (int) Math.floor(player.posX), (int) Math.floor(player.posZ), event.red, event.green, event.blue, event.renderPartialTicks);
 			if(color != null) {
@@ -544,6 +547,16 @@ public class ModEventHandlerRenderer {
 				event.green = (float) color.yCoord;
 				event.blue = (float) color.zCoord;
 			}
+		}
+
+		float blackholeTint = ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(player.worldObj);
+		if(blackholeTint > 0.001F) {
+			float red = event.red * (1.0F + 0.55F * blackholeTint) + 0.25F * blackholeTint;
+			float green = event.green * (1.0F - 0.78F * blackholeTint);
+			float blue = event.blue * (1.0F - 0.88F * blackholeTint);
+			event.red = MathHelper.clamp_float(red, 0.0F, 1.0F);
+			event.green = MathHelper.clamp_float(green, 0.0F, 1.0F);
+			event.blue = MathHelper.clamp_float(blue, 0.0F, 1.0F);
 		}
 
 		float soot = (float) (renderSoot - RadiationConfig.sootFogThreshold);
@@ -577,8 +590,10 @@ public class ModEventHandlerRenderer {
 	public void onRenderHUD(RenderGameOverlayEvent.Pre event) {
 		Tessellator tess = Tessellator.instance;
 		int shakeDuration = 1_500;
+		Minecraft mc = Minecraft.getMinecraft();
+		boolean suppressHudShake = ModEventHandlerClient.isBlackholeCollapseCameraTiltWindowActive(mc != null ? mc.theWorld : null);
 
-		if(event.type == ElementType.HOTBAR && (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) > 0 && ClientConfig.NUKE_HUD_SHAKE.get()) {
+		if(event.type == ElementType.HOTBAR && !suppressHudShake && (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) > 0 && ClientConfig.NUKE_HUD_SHAKE.get()) {
 			double mult = (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) / (double) shakeDuration * 2;
 			double horizontal = MathHelper.clamp_double(Math.sin(System.currentTimeMillis() * 0.02), -0.7, 0.7) * 15;
 			double vertical = MathHelper.clamp_double(Math.sin(System.currentTimeMillis() * 0.01 + 2), -0.7, 0.7) * 3;

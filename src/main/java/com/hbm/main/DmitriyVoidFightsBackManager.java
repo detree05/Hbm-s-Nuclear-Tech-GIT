@@ -11,6 +11,8 @@ import java.util.UUID;
 import java.util.HashSet;
 
 import com.hbm.config.SpaceConfig;
+import com.hbm.dim.StarcoreSkyEffects;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.entity.mob.EntityVoidFightsBack;
 import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.packet.PacketDispatcher;
@@ -51,8 +53,17 @@ public final class DmitriyVoidFightsBackManager {
 	private static final double DRILL_SABOTEUR_LOOK_DOT_THRESHOLD = 0.985D;
 	private static final double DRILL_SABOTEUR_LOOK_MAX_DISTANCE_SQ = 160.0D * 160.0D;
 	private static final int DRILL_SABOTEUR_LOOK_REQUIRED_TICKS = 3 * 20;
+	private static final int BLACKHOLE_ITS_HERE_TRIGGER_OFFSET_TICKS = 92 * 20 + 1;
+	private static final int BLACKHOLE_WATCHER_SPAWN_INTERVAL_TICKS = 1 * 20;
+	private static final int BLACKHOLE_WATCHER_MAX_COUNT = 10;
+	private static final double BLACKHOLE_WATCHER_MIN_SPAWN_DISTANCE = 16.0D;
+	private static final double BLACKHOLE_WATCHER_MAX_SPAWN_DISTANCE = 34.0D;
+	private static final double BLACKHOLE_WATCHER_MIN_HEIGHT_OFFSET = -4.0D;
+	private static final double BLACKHOLE_WATCHER_MAX_HEIGHT_OFFSET = 5.0D;
+	private static final double BLACKHOLE_WATCHER_DESPAWN_DISTANCE_SQ = 4.0D;
 
 	private static final Map<UUID, ActiveEvent> activeEvents = new HashMap<UUID, ActiveEvent>();
+	private static final Map<UUID, BlackholeWatchEvent> blackholeWatchEvents = new HashMap<UUID, BlackholeWatchEvent>();
 	private static final Map<DrillKey, DrillSabotageState> drillSabotageStates = new HashMap<DrillKey, DrillSabotageState>();
 	private static boolean drillSabotageEnabled = false;
 
@@ -94,17 +105,85 @@ public final class DmitriyVoidFightsBackManager {
 		if(player == null || player.worldObj == null || player.worldObj.isRemote) {
 			return;
 		}
+		if(player.isDead) {
+			removeBlackholeWatcherEvent(player.getUniqueID(), player.worldObj);
+			ActiveEvent event = activeEvents.remove(player.getUniqueID());
+			if(event != null) {
+				stopClientEffects(player);
+				cleanupEvent(event, player.worldObj);
+			}
+			return;
+		}
 
 		if(!drillSabotageEnabled && hasTriggered(player)) {
 			drillSabotageEnabled = true;
 		}
 
+		tickDmitriyEvent(player);
+		tickBlackholeWatcherEvent(player);
+	}
+
+	public static void clearPlayer(UUID playerId) {
+		if(playerId == null) {
+			return;
+		}
+		removeBlackholeWatcherEvent(playerId, null);
+		ActiveEvent event = activeEvents.remove(playerId);
+		if(event == null) {
+			return;
+		}
+		MinecraftServer server = MinecraftServer.getServer();
+		if(server != null && server.worldServers != null) {
+			for(World world : server.worldServers) {
+				if(world != null && !world.isRemote && world.provider.dimensionId == event.dimension) {
+					cleanupEvent(event, world);
+					break;
+				}
+			}
+		}
+	}
+
+	public static void clearWorld(World world) {
+		if(world == null || world.isRemote) {
+			return;
+		}
+
+		Iterator<Map.Entry<UUID, BlackholeWatchEvent>> blackholeIter = blackholeWatchEvents.entrySet().iterator();
+		while(blackholeIter.hasNext()) {
+			Map.Entry<UUID, BlackholeWatchEvent> entry = blackholeIter.next();
+			BlackholeWatchEvent event = entry.getValue();
+			if(event.dimension == world.provider.dimensionId) {
+				cleanupBlackholeWatcherEvent(event, world);
+				blackholeIter.remove();
+			}
+		}
+
+		Iterator<Map.Entry<UUID, ActiveEvent>> iter = activeEvents.entrySet().iterator();
+		while(iter.hasNext()) {
+			Map.Entry<UUID, ActiveEvent> entry = iter.next();
+			ActiveEvent event = entry.getValue();
+			if(event.dimension == world.provider.dimensionId) {
+				cleanupEvent(event, world);
+				iter.remove();
+			}
+		}
+
+		Iterator<Map.Entry<DrillKey, DrillSabotageState>> sabotageIter = drillSabotageStates.entrySet().iterator();
+		while(sabotageIter.hasNext()) {
+			Map.Entry<DrillKey, DrillSabotageState> entry = sabotageIter.next();
+			if(entry.getKey().dimension == world.provider.dimensionId) {
+				sabotageIter.remove();
+			}
+		}
+	}
+
+	private static void tickDmitriyEvent(EntityPlayerMP player) {
 		ActiveEvent event = activeEvents.get(player.getUniqueID());
 		if(event == null) {
 			return;
 		}
 
-		if(player.dimension != event.dimension || player.isDead) {
+		if(player.dimension != event.dimension) {
 			stopClientEffects(player);
 			cleanupEvent(event, player.worldObj);
 			activeEvents.remove(player.getUniqueID());
@@ -136,47 +215,49 @@ public final class DmitriyVoidFightsBackManager {
 		}
 	}
 
-	public static void clearPlayer(UUID playerId) {
-		if(playerId == null) {
+	private static void tickBlackholeWatcherEvent(EntityPlayerMP player) {
+		UUID playerId = player.getUniqueID();
+		World world = player.worldObj;
+		if(world == null || world.provider == null || world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			removeBlackholeWatcherEvent(playerId, world);
 			return;
 		}
-		ActiveEvent event = activeEvents.remove(playerId);
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			removeBlackholeWatcherEvent(playerId, world);
+			return;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		long now = world.getTotalWorldTime();
+		if(collapseEndTick <= 0L || now >= collapseEndTick) {
+			removeBlackholeWatcherEvent(playerId, world);
+			return;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long triggerTick = collapseStartTick + BLACKHOLE_ITS_HERE_TRIGGER_OFFSET_TICKS;
+
+		BlackholeWatchEvent event = blackholeWatchEvents.get(playerId);
+		if(event != null && (event.dimension != player.dimension || event.collapseEndTick != collapseEndTick)) {
+			cleanupBlackholeWatcherEvent(event, world);
+			blackholeWatchEvents.remove(playerId);
+			event = null;
+		}
 		if(event == null) {
-			return;
+			event = new BlackholeWatchEvent(player.dimension, collapseEndTick, triggerTick);
+			blackholeWatchEvents.put(playerId, event);
 		}
-		MinecraftServer server = MinecraftServer.getServer();
-		if(server != null && server.worldServers != null) {
-			for(World world : server.worldServers) {
-				if(world != null && !world.isRemote && world.provider.dimensionId == event.dimension) {
-					cleanupEvent(event, world);
-					break;
-				}
-			}
-		}
-	}
 
-	public static void clearWorld(World world) {
-		if(world == null || world.isRemote) {
+		pruneDeadBlackholeWatchers(world, event);
+		removeNearbyBlackholeWatchers(player, world, event);
+		if(now < triggerTick || now < event.nextSpawnTick) {
 			return;
 		}
 
-		Iterator<Map.Entry<UUID, ActiveEvent>> iter = activeEvents.entrySet().iterator();
-		while(iter.hasNext()) {
-			Map.Entry<UUID, ActiveEvent> entry = iter.next();
-			ActiveEvent event = entry.getValue();
-			if(event.dimension == world.provider.dimensionId) {
-				cleanupEvent(event, world);
-				iter.remove();
-			}
-		}
-
-		Iterator<Map.Entry<DrillKey, DrillSabotageState>> sabotageIter = drillSabotageStates.entrySet().iterator();
-		while(sabotageIter.hasNext()) {
-			Map.Entry<DrillKey, DrillSabotageState> entry = sabotageIter.next();
-			if(entry.getKey().dimension == world.provider.dimensionId) {
-				sabotageIter.remove();
-			}
-		}
+		event.nextSpawnTick = now + BLACKHOLE_WATCHER_SPAWN_INTERVAL_TICKS;
+		spawnBlackholeWatcher(player, event);
 	}
 
 	public static void tickWorld(World world) {
@@ -335,6 +416,119 @@ public final class DmitriyVoidFightsBackManager {
 				entity.setDead();
 			}
 		}
+	}
+
+	private static void spawnBlackholeWatcher(EntityPlayerMP player, BlackholeWatchEvent event) {
+		if(player == null || player.worldObj == null || player.worldObj.isRemote) {
+			return;
+		}
+
+		World world = player.worldObj;
+		Random rand = world.rand;
+
+		pruneDeadBlackholeWatchers(world, event);
+		while(event.entityIds.size() >= BLACKHOLE_WATCHER_MAX_COUNT) {
+			Integer oldestId = event.entityIds.remove(0);
+			Entity oldest = world.getEntityByID(oldestId.intValue());
+			if(oldest instanceof EntityVoidFightsBack && !oldest.isDead) {
+				oldest.setDead();
+			}
+		}
+
+		double radius = BLACKHOLE_WATCHER_MIN_SPAWN_DISTANCE + rand.nextDouble() * (BLACKHOLE_WATCHER_MAX_SPAWN_DISTANCE - BLACKHOLE_WATCHER_MIN_SPAWN_DISTANCE);
+		double angle = rand.nextDouble() * Math.PI * 2.0D;
+		double x = player.posX + Math.cos(angle) * radius;
+		double z = player.posZ + Math.sin(angle) * radius;
+		double y = player.posY + 1.0D + BLACKHOLE_WATCHER_MIN_HEIGHT_OFFSET
+			+ rand.nextDouble() * (BLACKHOLE_WATCHER_MAX_HEIGHT_OFFSET - BLACKHOLE_WATCHER_MIN_HEIGHT_OFFSET);
+		y = Math.max(2.0D, Math.min(y, world.getHeight() - 2.0D));
+
+		EntityVoidFightsBack watcher = new EntityVoidFightsBack(world);
+		float bodyYaw = rand.nextFloat() * 360.0F;
+		float headYaw = bodyYaw + (rand.nextFloat() * 240.0F - 120.0F);
+		float headPitch = rand.nextFloat() * 20.0F - 10.0F;
+		watcher.setPositionAndRotation(x, y, z, bodyYaw, 0.0F);
+		watcher.setIdleHeadRotation(headYaw, headPitch);
+		watcher.startStaringAt(player);
+		world.spawnEntityInWorld(watcher);
+		event.entityIds.add(Integer.valueOf(watcher.getEntityId()));
+	}
+
+	private static void pruneDeadBlackholeWatchers(World world, BlackholeWatchEvent event) {
+		if(world == null || event == null) {
+			return;
+		}
+
+		Iterator<Integer> iter = event.entityIds.iterator();
+		while(iter.hasNext()) {
+			Integer id = iter.next();
+			Entity entity = world.getEntityByID(id.intValue());
+			if(!(entity instanceof EntityVoidFightsBack) || entity.isDead) {
+				iter.remove();
+			}
+		}
+	}
+
+	private static void removeNearbyBlackholeWatchers(EntityPlayerMP player, World world, BlackholeWatchEvent event) {
+		if(player == null || world == null || event == null) {
+			return;
+		}
+
+		Iterator<Integer> iter = event.entityIds.iterator();
+		while(iter.hasNext()) {
+			Integer id = iter.next();
+			Entity entity = world.getEntityByID(id.intValue());
+			if(!(entity instanceof EntityVoidFightsBack) || entity.isDead) {
+				iter.remove();
+				continue;
+			}
+
+			if(entity.getDistanceSqToEntity(player) <= BLACKHOLE_WATCHER_DESPAWN_DISTANCE_SQ) {
+				entity.setDead();
+				iter.remove();
+			}
+		}
+	}
+
+	private static void removeBlackholeWatcherEvent(UUID playerId, World preferredWorld) {
+		if(playerId == null) {
+			return;
+		}
+
+		BlackholeWatchEvent event = blackholeWatchEvents.remove(playerId);
+		if(event == null) {
+			return;
+		}
+
+		World cleanupWorld = preferredWorld;
+		if(cleanupWorld == null || cleanupWorld.isRemote || cleanupWorld.provider == null || cleanupWorld.provider.dimensionId != event.dimension) {
+			MinecraftServer server = MinecraftServer.getServer();
+			if(server != null && server.worldServers != null) {
+				for(World world : server.worldServers) {
+					if(world != null && !world.isRemote && world.provider != null && world.provider.dimensionId == event.dimension) {
+						cleanupWorld = world;
+						break;
+					}
+				}
+			}
+		}
+		if(cleanupWorld != null) {
+			cleanupBlackholeWatcherEvent(event, cleanupWorld);
+		}
+	}
+
+	private static void cleanupBlackholeWatcherEvent(BlackholeWatchEvent event, World world) {
+		if(event == null || world == null) {
+			return;
+		}
+
+		for(Integer entityId : event.entityIds) {
+			Entity entity = world.getEntityByID(entityId.intValue());
+			if(entity instanceof EntityVoidFightsBack && !entity.isDead) {
+				entity.setDead();
+			}
+		}
+		event.entityIds.clear();
 	}
 
 	private static void sendGhostChat(EntityPlayerMP player) {
@@ -549,6 +743,19 @@ public final class DmitriyVoidFightsBackManager {
 			this.dimension = dimension;
 			this.stareStartTick = stareStartTick;
 			this.chaseStartTick = chaseStartTick;
+		}
+	}
+
+	private static final class BlackholeWatchEvent {
+		private final int dimension;
+		private final long collapseEndTick;
+		private final List<Integer> entityIds = new ArrayList<Integer>();
+		private long nextSpawnTick;
+
+		private BlackholeWatchEvent(int dimension, long collapseEndTick, long triggerTick) {
+			this.dimension = dimension;
+			this.collapseEndTick = collapseEndTick;
+			this.nextSpawnTick = triggerTick;
 		}
 	}
 

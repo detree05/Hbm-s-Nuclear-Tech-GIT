@@ -13,6 +13,7 @@ import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
 import com.hbm.config.SpaceConfig;
+import com.hbm.main.ModEventHandlerClient;
 import com.hbm.util.AstronomyUtil;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.Compat;
@@ -192,8 +193,11 @@ public class WorldProviderOrbit extends WorldProvider {
 	@SideOnly(Side.CLIENT)
 	public boolean updateLightmap(int[] lightmap) {
 		boolean changed = false;
-		final int redBoost = 0;
-		final float greenBlueScale = 0.95F;
+		final float collapseRedTint = getBlackholeCollapseRedTintStrength();
+		final float redScale = 1.0F + 0.22F * collapseRedTint;
+		final int redBoost = MathHelper.clamp_int(MathHelper.floor_float(48.0F * collapseRedTint), 0, 96);
+		final float greenScale = 0.95F - 0.70F * collapseRedTint;
+		final float blueScale = 0.95F - 0.82F * collapseRedTint;
 		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
@@ -208,9 +212,9 @@ public class WorldProviderOrbit extends WorldProvider {
 				b = (int)(b * skyDim);
 			}
 
-			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
-			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
-			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
+			int nr = MathHelper.clamp_int((int)(r * redScale) + redBoost, 0, 255);
+			int ng = MathHelper.clamp_int((int)(g * greenScale), 0, 255);
+			int nb = MathHelper.clamp_int((int)(b * blueScale), 0, 255);
 
 			if(nr != r || ng != g || nb != b) {
 				lightmap[i] = packColor(nr, ng, nb);
@@ -270,6 +274,16 @@ public class WorldProviderOrbit extends WorldProvider {
 		} catch(Exception ignored) {
 			return 1.0F;
 		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	public boolean shouldForceLightmapRefresh() {
+		return getBlackholeCollapseRedTintStrength() > 0.0F;
+	}
+
+	@SideOnly(Side.CLIENT)
+	private float getBlackholeCollapseRedTintStrength() {
+		return ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(worldObj);
 	}
 
 	@SideOnly(Side.CLIENT)
