@@ -258,7 +258,7 @@ public class ItemRenderLibrary {
 				GL11.glRotatef(90, 0F, 1F, 0F);
 				GL11.glScaled(0.5, 0.5, 0.5);
 				GL11.glShadeModel(GL11.GL_SMOOTH);
-				bindTexture(ResourceManager.derrick_tex); ResourceManager.derrick.renderAll();
+				bindTexture(ResourceManager.water_extraction_plant_tex); ResourceManager.water_extraction_plant.renderAll();
 				GL11.glShadeModel(GL11.GL_FLAT);
 			}});
 

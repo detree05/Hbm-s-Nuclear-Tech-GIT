@@ -66,6 +66,7 @@ public class ResourceManager {
 
 	//Oil Pumps
 	public static final IModelCustom derrick = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/derrick.obj")).asVBO();
+	public static final IModelCustom water_extraction_plant = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/water_extraction_plant.obj")).asVBO();
 	public static final IModelCustom pumpjack = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/pumpjack.obj")).asVBO();
 	public static final IModelCustom fracking_tower = new HFRWavefrontObject(new ResourceLocation(RefStrings.MODID, "models/machines/fracking_tower.obj")).asVBO();
 
@@ -553,6 +554,7 @@ public class ResourceManager {
 
 	//Oil Pumps
 	public static final ResourceLocation derrick_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/derrick.png");
+	public static final ResourceLocation water_extraction_plant_tex = new ResourceLocation(RefStrings.MODID, "textures/models/water_extraction_plant.png");
 	public static final ResourceLocation pumpjack_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/pumpjack.png");
 	public static final ResourceLocation fracking_tower_tex = new ResourceLocation(RefStrings.MODID, "textures/models/machines/fracking_tower.png");
 

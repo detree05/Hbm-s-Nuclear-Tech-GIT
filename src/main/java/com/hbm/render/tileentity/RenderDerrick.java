@@ -6,6 +6,7 @@ import com.hbm.blocks.BlockDummyable;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.main.ResourceManager;
 import com.hbm.render.item.ItemRenderBase;
+import com.hbm.tileentity.machine.TileEntityWaterExtractionPlant;
 
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.Item;
@@ -16,6 +17,7 @@ public class RenderDerrick extends TileEntitySpecialRenderer implements IItemRen
 
 	@Override
 	public void renderTileEntityAt(TileEntity tileEntity, double x, double y, double z, float f) {
+		boolean waterExtractionPlant = isWaterExtractionPlant(tileEntity);
 
 		GL11.glPushMatrix();
 		GL11.glTranslated(x + 0.5D, y, z + 0.5D);
@@ -31,11 +33,15 @@ public class RenderDerrick extends TileEntitySpecialRenderer implements IItemRen
 		}
 
 		GL11.glShadeModel(GL11.GL_SMOOTH);
-		bindTexture(ResourceManager.derrick_tex);
-		ResourceManager.derrick.renderAll();
+		bindTexture(waterExtractionPlant ? ResourceManager.water_extraction_plant_tex : ResourceManager.derrick_tex);
+		(waterExtractionPlant ? ResourceManager.water_extraction_plant : ResourceManager.derrick).renderAll();
 		GL11.glShadeModel(GL11.GL_FLAT);
 
 		GL11.glPopMatrix();
+	}
+
+	private boolean isWaterExtractionPlant(TileEntity tileEntity) {
+		return tileEntity instanceof TileEntityWaterExtractionPlant || tileEntity.getBlockType() == ModBlocks.machine_water_extraction_plant;
 	}
 
 	@Override

@@ -4,6 +4,7 @@ import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockOreFluid;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTank;
+import com.hbm.main.MainRegistry;
 import com.hbm.util.fauxpointtwelve.DirPos;
 
 import api.hbm.energymk2.IEnergyReceiverMK2;
@@ -12,6 +13,7 @@ import io.netty.buffer.ByteBuf;
 import net.minecraft.block.Block;
 import net.minecraft.nbt.NBTTagCompound;
 import com.hbm.tileentity.TileEntityLoadedBase;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraftforge.common.util.ForgeDirection;
 
 public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase implements IEnergyReceiverMK2, IFluidStandardTransceiver {
@@ -22,13 +24,20 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 	private static final int TANK_SIZE = 128_000;
 
 	private long power;
+	private boolean pumping;
 	private final FluidTank water = new FluidTank(Fluids.SUBSURFACE_WATER, TANK_SIZE);
 
 	@Override
 	public void updateEntity() {
 		if(worldObj.isRemote) {
+			if(this.pumping) {
+				MainRegistry.proxy.playSoundClient(xCoord, yCoord, zCoord, "hbm:block.steamEngineOperate", 0.5F, 0.75F);
+				MainRegistry.proxy.playSoundClient(xCoord, yCoord, zCoord, "game.neutral.swim.splash", 1F, 0.5F);
+			}
 			return;
 		}
+
+		this.pumping = false;
 
 		if(worldObj.getTotalWorldTime() % 20 == 0) {
 			for(DirPos pos : getConPos()) {
@@ -45,6 +54,7 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 		if(power >= POWER_REQ && water.getFill() < water.getMaxFill() && worldObj.getTotalWorldTime() % DELAY == 0) {
 			if(tryExtract()) {
 				power -= POWER_REQ;
+				pumping = true;
 			}
 		}
 
@@ -88,12 +98,21 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 		return -1;
 	}
 
+	@Override
+	public AxisAlignedBB getRenderBoundingBox() {
+		return AxisAlignedBB.getBoundingBox(xCoord - 1, yCoord, zCoord - 1, xCoord + 2, yCoord + 6, zCoord + 2);
+	}
+
 	private DirPos[] getConPos() {
 		return new DirPos[] {
-				new DirPos(xCoord + 1, yCoord, zCoord, ForgeDirection.EAST),
-				new DirPos(xCoord - 1, yCoord, zCoord, ForgeDirection.WEST),
-				new DirPos(xCoord, yCoord, zCoord + 1, ForgeDirection.SOUTH),
-				new DirPos(xCoord, yCoord, zCoord - 1, ForgeDirection.NORTH)
+				new DirPos(xCoord + 2, yCoord, zCoord - 1, ForgeDirection.EAST),
+				new DirPos(xCoord + 2, yCoord, zCoord + 1, ForgeDirection.EAST),
+				new DirPos(xCoord - 2, yCoord, zCoord - 1, ForgeDirection.WEST),
+				new DirPos(xCoord - 2, yCoord, zCoord + 1, ForgeDirection.WEST),
+				new DirPos(xCoord - 1, yCoord, zCoord + 2, ForgeDirection.SOUTH),
+				new DirPos(xCoord + 1, yCoord, zCoord + 2, ForgeDirection.SOUTH),
+				new DirPos(xCoord - 1, yCoord, zCoord - 2, ForgeDirection.NORTH),
+				new DirPos(xCoord + 1, yCoord, zCoord - 2, ForgeDirection.NORTH)
 		};
 	}
 
@@ -115,6 +134,7 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 	public void serialize(ByteBuf buf) {
 		super.serialize(buf);
 		buf.writeLong(this.power);
+		buf.writeBoolean(this.pumping);
 		this.water.serialize(buf);
 	}
 
@@ -122,6 +142,7 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 	public void deserialize(ByteBuf buf) {
 		super.deserialize(buf);
 		this.power = buf.readLong();
+		this.pumping = buf.readBoolean();
 		this.water.deserialize(buf);
 	}
 
