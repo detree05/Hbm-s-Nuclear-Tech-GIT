@@ -199,8 +199,6 @@ public class ModEventHandlerClient {
 	private static final float BLACKHOLE_CAMERA_TILT_PRIMARY_FREQUENCY = 0.00028F;
 	private static final float BLACKHOLE_CAMERA_TILT_SECONDARY_FREQUENCY = 0.00013F;
 	private static final float BLACKHOLE_CAMERA_TILT_AMPLITUDE_DEG = 1.25F;
-	private static final int BLACKHOLE_ITS_HERE_WORLD_TINT_FADE_IN_MS = 700;
-	private static final int BLACKHOLE_ITS_HERE_WORLD_TINT_END_FADE_TICKS = 20;
 	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
 	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
 	private static long blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
@@ -360,9 +358,14 @@ public class ModEventHandlerClient {
 		}
 
 		if(event.type == ElementType.CROSSHAIRS) {
-			float blackholeTint = getBlackholeItsHereWorldTintStrength(player != null ? player.worldObj : null);
-			if(blackholeTint > 0.001F) {
-				renderBlackholeItsHereOverlay(event.resolution, blackholeTint);
+			World world = player != null ? player.worldObj : null;
+			boolean providerHasBlackholeTint = world != null
+				&& (world.provider instanceof WorldProviderCelestial || world.provider instanceof WorldProviderOrbit);
+			if(!providerHasBlackholeTint) {
+				float blackholeTint = getBlackholeItsHereWorldTintStrength(world);
+				if(blackholeTint > 0.001F) {
+					renderBlackholeItsHereOverlay(event.resolution, blackholeTint);
+				}
 			}
 			float intensity = getVoidStareIntensity(player);
 			float overlayIntensity = Math.max(intensity, dmitriyStarStareIntensity);
@@ -1603,29 +1606,16 @@ public class ModEventHandlerClient {
 		if(world == null || world.provider == null) {
 			return 0.0F;
 		}
-		if(blackholeItsHereFxTimestampMs <= 0L || world.provider.dimensionId != blackholeItsHereFxDimension) {
+		if(blackholeItsHereFxTimestampMs <= 0L
+			|| blackholeItsHereFxCollapseEndTick <= 0L
+			|| world.provider.dimensionId != blackholeItsHereFxDimension) {
 			return 0.0F;
 		}
-
-		CBT_SkyState skyState = CBT_SkyState.get(world);
-		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
-			return 0.0F;
-		}
-		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
 		long nowTick = world.getTotalWorldTime();
-		if(collapseEndTick <= 0L || nowTick >= collapseEndTick) {
+		if(nowTick >= blackholeItsHereFxCollapseEndTick) {
 			return 0.0F;
 		}
-
-		long elapsedMs = System.currentTimeMillis() - blackholeItsHereFxTimestampMs;
-		if(elapsedMs < 0L) {
-			return 0.0F;
-		}
-
-		long ticksLeft = collapseEndTick - nowTick;
-		float fadeIn = MathHelper.clamp_float(elapsedMs / (float)BLACKHOLE_ITS_HERE_WORLD_TINT_FADE_IN_MS, 0.0F, 1.0F);
-		float fadeOut = MathHelper.clamp_float(ticksLeft / (float)BLACKHOLE_ITS_HERE_WORLD_TINT_END_FADE_TICKS, 0.0F, 1.0F);
-		return fadeIn * fadeOut;
+		return 1.0F;
 	}
 
 	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {

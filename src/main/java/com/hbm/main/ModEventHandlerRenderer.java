@@ -4,6 +4,7 @@ import com.hbm.blocks.ICustomBlockHighlight;
 import com.hbm.config.ClientConfig;
 import com.hbm.config.RadiationConfig;
 import com.hbm.dim.WorldProviderCelestial;
+import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.entity.missile.EntityRideableRocket;
 import com.hbm.extprop.HbmLivingProps;
 import com.hbm.handler.pollution.PollutionHandler.PollutionType;
@@ -549,14 +550,18 @@ public class ModEventHandlerRenderer {
 			}
 		}
 
-		float blackholeTint = ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(player.worldObj);
-		if(blackholeTint > 0.001F) {
-			float red = event.red * (1.0F + 0.55F * blackholeTint) + 0.25F * blackholeTint;
-			float green = event.green * (1.0F - 0.78F * blackholeTint);
-			float blue = event.blue * (1.0F - 0.88F * blackholeTint);
-			event.red = MathHelper.clamp_float(red, 0.0F, 1.0F);
-			event.green = MathHelper.clamp_float(green, 0.0F, 1.0F);
-			event.blue = MathHelper.clamp_float(blue, 0.0F, 1.0F);
+		boolean providerHasBlackholeTint = player.worldObj.provider instanceof WorldProviderCelestial
+			|| player.worldObj.provider instanceof WorldProviderOrbit;
+		if(!providerHasBlackholeTint) {
+			float blackholeTint = ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(player.worldObj);
+			if(blackholeTint > 0.001F) {
+				float red = event.red * (1.0F + 0.55F * blackholeTint) + 0.25F * blackholeTint;
+				float green = event.green * (1.0F - 0.78F * blackholeTint);
+				float blue = event.blue * (1.0F - 0.88F * blackholeTint);
+				event.red = MathHelper.clamp_float(red, 0.0F, 1.0F);
+				event.green = MathHelper.clamp_float(green, 0.0F, 1.0F);
+				event.blue = MathHelper.clamp_float(blue, 0.0F, 1.0F);
+			}
 		}
 
 		float soot = (float) (renderSoot - RadiationConfig.sootFogThreshold);

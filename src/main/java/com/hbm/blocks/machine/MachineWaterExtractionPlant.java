@@ -38,7 +38,7 @@ public class MachineWaterExtractionPlant extends BlockDummyable implements ILook
 
 	@Override
 	public int getOffset() {
-		return -1;
+		return 1;
 	}
 
 	@Override
