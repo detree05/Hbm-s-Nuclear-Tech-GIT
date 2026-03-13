@@ -469,11 +469,14 @@ public class ModEventHandler {
 
 			if(event.player.worldObj.getWorldInfo().getTerrainType() instanceof WorldTypeTeleport) {
 				HbmPlayerProps props = HbmPlayerProps.getData(event.player);
+				WorldTypeTeleport teleport = (WorldTypeTeleport) event.player.worldObj.getWorldInfo().getTerrainType();
 
-				if(!props.hasWarped) {
-					WorldTypeTeleport teleport = (WorldTypeTeleport) event.player.worldObj.getWorldInfo().getTerrainType();
+				if(teleport == WorldTypeTeleport.martian) {
+					if(!props.hasWarped && teleport.onPlayerJoin(event.player)) {
+						props.hasWarped = true;
+					}
+				} else {
 					teleport.onPlayerJoin(event.player);
-					props.hasWarped = true;
 				}
 			}
 
@@ -2171,6 +2174,72 @@ public class ModEventHandler {
 	public void onPlayerLogout(PlayerEvent.PlayerLoggedOutEvent event) {
 		if(event.player != null && event.player.getUniqueID() != null) {
 			DmitriyVoidFightsBackManager.clearPlayer(event.player.getUniqueID());
+		}
+	}
+
+	private static boolean isWaterBlock(Block block) {
+		return block == Blocks.water || block == Blocks.flowing_water;
+	}
+
+	private static void freezeWaterSurfaceLayers(World world, int x, int y, int z) {
+		if(y < 0 || y > 255) {
+			return;
+		}
+
+		Block top = world.getBlock(x, y, z);
+		if(!isWaterBlock(top) && top != Blocks.ice) {
+			return;
+		}
+
+		world.setBlock(x, y, z, Blocks.ice, 0, 2);
+
+		for(int depth = 1; depth <= 2; depth++) {
+			int py = y - depth;
+			if(py < 0) {
+				break;
+			}
+
+			Block block = world.getBlock(x, py, z);
+			if(isWaterBlock(block)) {
+				world.setBlock(x, py, z, Blocks.packed_ice, 0, 2);
+			}
+		}
+	}
+
+	@SubscribeEvent(priority = EventPriority.LOWEST)
+	public void generateBlackHoleSunSurface(PopulateChunkEvent.Post event) {
+		World world = event.world;
+		if(world.isRemote || world.provider.dimensionId != 0) {
+			return;
+		}
+		if(world.getWorldInfo().getTerrainType() != WorldTypeTeleport.blackHoleSun) {
+			return;
+		}
+
+		int baseX = event.chunkX << 4;
+		int baseZ = event.chunkZ << 4;
+
+		for(int x = 0; x < 16; x++) {
+			for(int z = 0; z < 16; z++) {
+				int worldX = baseX + x;
+				int worldZ = baseZ + z;
+				int y = world.getPrecipitationHeight(worldX, worldZ);
+
+				if(y <= 0) {
+					continue;
+				}
+
+				Block topBlock = world.getBlock(worldX, y - 1, worldZ);
+				if(isWaterBlock(topBlock) || topBlock == Blocks.ice) {
+					freezeWaterSurfaceLayers(world, worldX, y - 1, worldZ);
+				} else if(world.isBlockFreezable(worldX, y - 1, worldZ)) {
+					world.setBlock(worldX, y - 1, worldZ, Blocks.ice, 0, 2);
+				}
+
+				if(Blocks.snow_layer.canPlaceBlockAt(world, worldX, y, worldZ)) {
+					world.setBlock(worldX, y, worldZ, Blocks.snow_layer, 0, 2);
+				}
+			}
 		}
 	}
 

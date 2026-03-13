@@ -1112,6 +1112,33 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 		// 				new ComparableStack(ModItems.thruster_small, 1),
 		// 				new ComparableStack(ModItems.photo_panel, 12),
 		// 				new ComparableStack(ModItems.battery_pack, 1, EnumBatteryPack.BATTERY_LITHIUM)));
+		this.register(new GenericRecipe("ass.coincreeper").setup(400, 100).outputItems(new ItemStack(ModItems.coin_creeper, 1))
+				.inputItems(
+						new ComparableStack(ModBlocks.det_charge, 16),
+						new ComparableStack(Items.gunpowder, 16),
+						new OreDictStack(U235.ingot(), 8)));
+		this.register(new GenericRecipe("ass.coinmaskman").setup(600, 100).outputItems(new ItemStack(ModItems.coin_maskman, 1))
+				.inputItems(
+						new ComparableStack(ModBlocks.det_miner, 32),
+						new ComparableStack(ModItems.nuclear_waste_vitrified, 16),
+						new ComparableStack(ModItems.nuclear_waste, 16),
+						new ComparableStack(ModItems.nuclear_waste_pearl, 1)));
+		this.register(new GenericRecipe("ass.coinworm").setup(1_200, 100).outputItems(new ItemStack(ModItems.coin_worm, 1))
+				.inputItems(
+						new ComparableStack(ModItems.ingot_meteorite, 32),
+						new OreDictStack(TI.plateWelded(), 32),
+						new OreDictStack(MAGTUNG.wireDense(), 64),
+						new OreDictStack(MAGTUNG.wireDense(), 64),
+						new ComparableStack(ModItems.part_generic, 32, EnumPartType.HDE),
+						new ComparableStack(ModBlocks.det_nuke, 1)));
+		this.register(new GenericRecipe("ass.coinufo").setup(2_400, 100).outputItems(new ItemStack(ModItems.coin_ufo, 1))
+				.inputItems(
+						new OreDictStack(SBD.plateCast(), 32),
+						new OreDictStack(W.plateWelded(), 32),
+						new OreDictStack(BSCCO.wireDense(), 64),
+						new OreDictStack(BSCCO.wireDense(), 64),
+						new ComparableStack(ModItems.circuit, 1, EnumCircuitType.CONTROLLER_QUANTUM),
+						new ComparableStack(ModBlocks.det_nuke, 4)));
 		this.register(new GenericRecipe("ass.gerald").setup(6_000, 100).outputItems(new ItemStack(ModItems.sat_gerald, 1))
 				.inputItems(new OreDictStack(SBD.plateCast(), 64),
 						new OreDictStack(SBD.plateCast(), 64),
