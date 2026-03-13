@@ -14,11 +14,14 @@ import com.hbm.inventory.gui.GUICoreManipulator;
 import com.hbm.items.ISatChip;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemBlueprints;
+import com.hbm.main.MainRegistry;
 import com.hbm.saveddata.SatelliteSavedData;
 import com.hbm.saveddata.satellites.Satellite;
 import com.hbm.saveddata.satellites.SatelliteDysonRelay;
+import com.hbm.sound.AudioWrapper;
 import com.hbm.tileentity.IGUIProvider;
 import com.hbm.tileentity.TileEntityMachineBase;
+import com.hbm.util.ParticleUtil;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -62,7 +65,15 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private static final int SLOT_BLUEPRINT = 0;
 	private static final int SLOT_DYSON_CHIP = 1;
 	private static final int CORE_OPERATION_INTERVAL = 20;
-	private static final float CORE_OPERATION_VALUE_STEP = 0.001F;
+	private static final float CORE_CHANGE_PER_REAL_DAY = 0.1F;
+	private static final float REAL_DAY_SECONDS = 24.0F * 60.0F * 60.0F;
+	private static final float CORE_OPERATION_VALUE_STEP =
+		CORE_CHANGE_PER_REAL_DAY * CORE_OPERATION_INTERVAL / (20.0F * REAL_DAY_SECONDS);
+	private static final float WORKING_SOUND_VOLUME = 0.375F;
+	private static final double WORKING_SOUND_Y_OFFSET = 4.0D;
+	private static final double TOP_PARTICLE_ZONE_MIN_OFFSET = -1.5D;
+	private static final double TOP_PARTICLE_ZONE_SIZE = 4.0D;
+	private static final double TOP_PARTICLE_Y_OFFSET = 8.05D;
 	public static final int MIN_DYSON_SWARM_MEMBERS = 4096;
 	private static final String NULL_SELECTION = "null";
 	private CoreChangeMode coreChangeMode = CoreChangeMode.PUSH;
@@ -72,6 +83,8 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private int dysonSwarmCount = 0;
 	private int dysonSwarmConsumers = 0;
 	private boolean dysonPowered = false;
+	private boolean working = false;
+	private AudioWrapper audio;
 	private AxisAlignedBB renderBounds;
 
 	public TileEntityCoreManipulator() {
@@ -80,7 +93,12 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 
 	@Override
 	public void updateEntity() {
-		if(this.worldObj == null || this.worldObj.isRemote) {
+		if(this.worldObj == null) {
+			return;
+		}
+
+		if(this.worldObj.isRemote) {
+			this.updateClientEffects();
 			return;
 		}
 
@@ -91,8 +109,12 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		}
 
 		this.updateDysonPowerState();
+		boolean nextWorking = this.computeWorkingState();
+		if(this.working != nextWorking) {
+			this.working = nextWorking;
+		}
 
-		if(this.machineEnabled && this.dysonPowered && this.worldObj.getTotalWorldTime() % CORE_OPERATION_INTERVAL == 0) {
+		if(this.working && this.worldObj.getTotalWorldTime() % CORE_OPERATION_INTERVAL == 0) {
 			if(this.processCoreChange()) {
 				changed = true;
 			}
@@ -195,6 +217,10 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		return this.dysonPowered;
 	}
 
+	public boolean isWorking() {
+		return this.working;
+	}
+
 	public long getDysonEnergyOutputPerSecond() {
 		if(!this.dysonPowered || this.dysonSwarmCount < MIN_DYSON_SWARM_MEMBERS || this.dysonSwarmConsumers <= 0) {
 			return 0;
@@ -250,6 +276,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		buf.writeInt(this.dysonSwarmCount);
 		buf.writeInt(this.dysonSwarmConsumers);
 		buf.writeBoolean(this.dysonPowered);
+		buf.writeBoolean(this.working);
 	}
 
 	@Override
@@ -262,6 +289,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.dysonSwarmCount = buf.readInt();
 		this.dysonSwarmConsumers = buf.readInt();
 		this.dysonPowered = buf.readBoolean();
+		this.working = buf.readBoolean();
 	}
 
 	@Override
@@ -312,6 +340,36 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 
 	private boolean isSelectionValidForBlueprint(String oreDict) {
 		return ItemBlueprints.blueprintContainsCoreMaterial(this.getBlueprintStack(), oreDict);
+	}
+
+	private boolean computeWorkingState() {
+		if(!this.machineEnabled || !this.dysonPowered) {
+			return false;
+		}
+		if(this.selectedMaterialOreDict == null || !this.isSelectionValidForBlueprint(this.selectedMaterialOreDict)) {
+			return false;
+		}
+
+		String category = CelestialCore.getCategoryForOreDict(this.selectedMaterialOreDict);
+		if(category == null || category.isEmpty()) {
+			return false;
+		}
+
+		CelestialBody body = resolveTargetBody();
+		if(body == null) {
+			return false;
+		}
+
+		CelestialCore core = body.getCore();
+		if(core == null) {
+			return false;
+		}
+
+		if(this.coreChangeMode == CoreChangeMode.PULL) {
+			return core.getEntry(category, this.selectedMaterialOreDict) != null;
+		}
+
+		return true;
 	}
 
 	private boolean processCoreChange() {
@@ -451,12 +509,68 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		SolarSystemWorldSavedData.get(this.worldObj).setCore(body.name, core);
 	}
 
+	@SideOnly(Side.CLIENT)
+	private void updateClientEffects() {
+		if(this.working) {
+			if(this.audio == null) {
+				this.audio = MainRegistry.proxy.getLoopedSound(
+					"hbm:block.dysonBeam",
+					this.xCoord + 0.5F,
+					(float)(this.yCoord + WORKING_SOUND_Y_OFFSET),
+					this.zCoord + 0.5F,
+					WORKING_SOUND_VOLUME,
+					20F,
+					1.0F,
+					20
+				);
+				this.audio.startSound();
+			}
+
+			this.audio.keepAlive();
+			this.audio.updatePitch(0.85F);
+
+			if(this.worldObj.rand.nextInt(10) == 0) {
+				ParticleUtil.spawnFlare(
+					this.worldObj,
+					this.xCoord + TOP_PARTICLE_ZONE_MIN_OFFSET + this.worldObj.rand.nextDouble() * TOP_PARTICLE_ZONE_SIZE,
+					this.yCoord + TOP_PARTICLE_Y_OFFSET,
+					this.zCoord + TOP_PARTICLE_ZONE_MIN_OFFSET + this.worldObj.rand.nextDouble() * TOP_PARTICLE_ZONE_SIZE,
+					0,
+					0.1D + this.worldObj.rand.nextFloat() * 0.1D,
+					0,
+					4F + this.worldObj.rand.nextFloat() * 2F
+				);
+			}
+		} else {
+			this.stopAudio();
+		}
+	}
+
+	private void stopAudio() {
+		if(this.audio != null) {
+			this.audio.stopSound();
+			this.audio = null;
+		}
+	}
+
+	@Override
+	public void onChunkUnload() {
+		super.onChunkUnload();
+		this.stopAudio();
+	}
+
+	@Override
+	public void invalidate() {
+		super.invalidate();
+		this.stopAudio();
+	}
+
 	@Override
 	public AxisAlignedBB getRenderBoundingBox() {
 		if(this.renderBounds == null) {
 			this.renderBounds = AxisAlignedBB.getBoundingBox(
 				this.xCoord - 6,
-				this.yCoord,
+				0,
 				this.zCoord - 6,
 				this.xCoord + 7,
 				this.yCoord + 11,
