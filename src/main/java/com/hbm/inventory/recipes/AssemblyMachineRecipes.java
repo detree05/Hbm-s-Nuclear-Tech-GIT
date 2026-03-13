@@ -1211,6 +1211,18 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 						new ComparableStack(ModItems.circuit, 16, EnumCircuitType.BISMOID),
 						new ComparableStack(ModItems.circuit, 4, EnumCircuitType.CONTROLLER_QUANTUM),
 						new OreDictStack(OSMIRIDIUM.plateWelded(), 4)));
+		this.register(new GenericRecipe("ass.coremanipulator").setup(6_000, 100).outputItems(new ItemStack(ModBlocks.machine_core_manipulator, 1))
+				.inputItems(
+						new OreDictStack(ANY_RESISTANTALLOY.plateWelded(), 64),
+						new OreDictStack(OSMIRIDIUM.plateWelded(), 16),
+						new ComparableStack(ModItems.circuit, 32, EnumCircuitType.CONTROLLER_QUANTUM),
+						new ComparableStack(ModBlocks.fusion_component, 64, 0),
+						new ComparableStack(ModBlocks.fusion_component, 64, 0),
+						new ComparableStack(ModBlocks.machine_transformer_dnt, 16),
+						new ComparableStack(ModBlocks.machine_fel, 16),
+						new ComparableStack(ModItems.circuit, 16, EnumCircuitType.QUANTUM),
+						new ComparableStack(ModItems.ingot_cft, 64),
+						new ComparableStack(ModItems.ingot_cft, 64)));
 
 		this.register(new GenericRecipe("ass.dysonmember").setup(100, 100).outputItems(new ItemStack(ModItems.swarm_member, 1))
 				.inputItems(
