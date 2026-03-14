@@ -962,6 +962,8 @@ public class ModItems {
 	public static Item particle_sparkticle;
 	public static Item particle_digamma;
 	public static Item particle_lutece;
+	public static Item particle_rift;
+	public static Item particle_abyss;
 
 	public static Item pellet_antimatter;
 	public static Item singularity;
@@ -3183,6 +3185,8 @@ public class ModItems {
 		particle_sparkticle = new Item().setUnlocalizedName("particle_sparkticle").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.particle_empty).setTextureName(RefStrings.MODID + ":particle_sparkticle");
 		particle_digamma = new ItemDigamma(60).setUnlocalizedName("particle_digamma").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.particle_empty).setTextureName(RefStrings.MODID + ":particle_digamma");
 		particle_lutece = new Item().setUnlocalizedName("particle_lutece").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.particle_empty).setTextureName(RefStrings.MODID + ":particle_lutece");
+		particle_rift = new Item().setUnlocalizedName("particle_rift").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.particle_empty).setTextureName(RefStrings.MODID + ":particle_rift");
+		particle_abyss = new Item().setUnlocalizedName("particle_abyss").setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.particle_empty).setTextureName(RefStrings.MODID + ":particle_abyss");
 
 		singularity = new ItemDrop().setUnlocalizedName("singularity").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.nuclear_waste).setTextureName(RefStrings.MODID + ":singularity");
 		singularity_counter_resonant = new ItemDrop().setUnlocalizedName("singularity_counter_resonant").setMaxStackSize(1).setCreativeTab(MainRegistry.controlTab).setContainerItem(ModItems.nuclear_waste).setTextureName(RefStrings.MODID + ":singularity_alt");
@@ -6188,6 +6192,8 @@ public class ModItems {
 		GameRegistry.registerItem(particle_sparkticle, particle_sparkticle.getUnlocalizedName());
 		GameRegistry.registerItem(particle_digamma, particle_digamma.getUnlocalizedName());
 		GameRegistry.registerItem(particle_lutece, particle_lutece.getUnlocalizedName());
+		GameRegistry.registerItem(particle_rift, particle_rift.getUnlocalizedName());
+		GameRegistry.registerItem(particle_abyss, particle_abyss.getUnlocalizedName());
 
 		//Singularities, black holes and other cosmic horrors
 		GameRegistry.registerItem(singularity, singularity.getUnlocalizedName());

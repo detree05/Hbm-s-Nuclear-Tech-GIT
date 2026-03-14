@@ -188,7 +188,7 @@ public class Mats {
 	public static final NTMMaterial MAT_HARDPLASTIC	= makeNonSmeltable(_ES + 04, 		PC,				0xEDE7C4, 0x908A67, 0xE1DBB8).setAutogen(STOCK, GRIP).n();
 	public static final NTMMaterial MAT_PVC			= makeNonSmeltable(_ES + 05, 		PVC,			0xFCFCFC, 0x9F9F9F, 0xF0F0F0).setAutogen(FRAGMENT, DUST, STOCK, GRIP).n();
 	public static final NTMMaterial MAT_EUPHEMIUM	= makeSmeltable(_ES + 6,			EUPH,			0xFF9EDE, 0x5A1E4A, 0xE368BE).setAutogen(FRAGMENT).m();
-	public static final NTMMaterial MAT_ETHYROITE	= makeSmeltable(_ES + 7,			ETHYROITE,		0x5A2A22, 0x1F0B08, 0x4A1A14).setAutogen(FRAGMENT).m();
+	public static final NTMMaterial MAT_ETHYROITE	= makeSmeltable(_ES + 7,			ETHYROITE,		0x8A3E3B, 0x3D1414, 0x7A2A2A).setAutogen(FRAGMENT, DENSEWIRE).m();
 	public static final NTMMaterial MAT_RIFT		= makeSmeltable(_ES + 8,			RIFT,			0x2A2A2A, 0x0A0A0A, 0x1A1A1A).setAutogen(FRAGMENT).m();
 	public static final NTMMaterial MAT_ABYSS		= makeSmeltable(_ES + 9,			ABYSS,			0xE8E8E8, 0xC8C8C8, 0xDCDCDC).setAutogen(FRAGMENT).m();
 	public static final NTMMaterial MAT_YHARONITE	= makeSmeltable(_ES + 10,			YHARONITE,		0xFF5A5A, 0x5C0000, 0xCF2A2A).setAutogen(FRAGMENT).m();

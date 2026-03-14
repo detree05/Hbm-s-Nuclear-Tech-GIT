@@ -747,6 +747,7 @@ import net.minecraft.item.ItemStack;
 		makeRecipe(new ComparableStack(ModItems.pa_coil, 1, EnumCoilType.NIOBIUM), new AStack[] { new OreDictStack(NB.wireDense(), 64), new OreDictStack(TI.wireDense(), 64) }, 400);
 		makeRecipe(new ComparableStack(ModItems.pa_coil, 1, EnumCoilType.BSCCO), new AStack[] { new OreDictStack(BSCCO.wireDense(), 64), new OreDictStack(ANY_PLASTIC.ingot(), 64) }, 400);
 		makeRecipe(new ComparableStack(ModItems.pa_coil, 1, EnumCoilType.CHLOROPHYTE), new AStack[] { new OreDictStack(CU.wireDense(), 128), new ComparableStack(ModItems.powder_chlorophyte, 16) }, 400);
+		makeRecipe(new ComparableStack(ModItems.pa_coil, 1, EnumCoilType.ETHYROITE), new AStack[] { new OreDictStack(ETHYROITE.wireDense(), 128), new ComparableStack(ModItems.powder_euphemium, 8) }, 400);
 
 		makeRecipe(new ComparableStack(ModBlocks.pa_beamline), new AStack[] {
 				new OreDictStack(STEEL.plateCast(), 8),

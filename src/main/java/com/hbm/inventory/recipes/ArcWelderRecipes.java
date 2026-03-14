@@ -55,6 +55,8 @@ public class ArcWelderRecipes extends SerializableRecipe {
 				new OreDictStack(ALLOY.wireFine(), 8)));
 		recipes.add(new ArcWelderRecipe(new ItemStack(ModItems.wire_dense, 1, Mats.MAT_GOLD.id), 100, 10_000L,
 				new OreDictStack(GOLD.wireFine(), 8)));
+		recipes.add(new ArcWelderRecipe(new ItemStack(ModItems.wire_dense, 1, Mats.MAT_ETHYROITE.id), 1_200, 1_000_000L,
+				new OreDictStack(ETHYROITE.ingot(), 8)));
 
 		//earlygame welded parts
 		recipes.add(new ArcWelderRecipe(new ItemStack(ModItems.plate_welded, 1, Mats.MAT_IRON.id), 100, 100L,
