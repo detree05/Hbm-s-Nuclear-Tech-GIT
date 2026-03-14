@@ -1,6 +1,5 @@
 package com.hbm.commands;
 
-import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_SkyState;
@@ -40,8 +39,10 @@ public class CommandCollapse extends CommandBase {
 			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "No valid server world available."));
 			return;
 		}
-		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
-			sender.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + "Blackhole collapse cannot be started from Dmitriy dimension."));
+		if(!StarcoreSkyEffects.isBlackholeCollapseStartAllowedDimension(world.provider.dimensionId)) {
+			sender.addChatMessage(new ChatComponentText(
+				EnumChatFormatting.RED + "Blackhole collapse cannot be started from Nether, The End, or Dmitriy dimensions."
+			));
 			return;
 		}
 

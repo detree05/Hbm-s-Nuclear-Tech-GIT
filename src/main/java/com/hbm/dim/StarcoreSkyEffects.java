@@ -19,13 +19,21 @@ public class StarcoreSkyEffects {
 	public static final int BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS = 28 * 20;
 	public static final int BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS = 15 * 20;
 
+	public static boolean isBlackholeCollapseStartAllowedDimension(int dimensionId) {
+		return dimensionId != -1 && dimensionId != 1 && dimensionId != SpaceConfig.dmitriyDimension;
+	}
+
+	public static boolean isBlackholeGravityLiftFxAllowedDimension(int dimensionId) {
+		return dimensionId == 0 || dimensionId == SpaceConfig.moonDimension;
+	}
+
 	public static void sendIgnition(World world) {
 		if(world == null) return;
 		long worldTime = world.getTotalWorldTime();
 		for(WorldServer targetWorld : DimensionManager.getWorlds()) {
 			if(targetWorld == null || targetWorld.provider == null) continue;
 			int dim = targetWorld.provider.dimensionId;
-			if(dim == -1 || dim == 1 || dim == SpaceConfig.dmitriyDimension) {
+			if(!isBlackholeCollapseStartAllowedDimension(dim)) {
 				continue;
 			}
 			PacketDispatcher.wrapper.sendToDimension(
@@ -41,7 +49,7 @@ public class StarcoreSkyEffects {
 		for(WorldServer targetWorld : DimensionManager.getWorlds()) {
 			if(targetWorld == null || targetWorld.provider == null) continue;
 			int dim = targetWorld.provider.dimensionId;
-			if(dim == -1 || dim == 1 || dim == SpaceConfig.dmitriyDimension) {
+			if(!isBlackholeCollapseStartAllowedDimension(dim)) {
 				continue;
 			}
 			PacketDispatcher.wrapper.sendToDimension(
@@ -57,7 +65,7 @@ public class StarcoreSkyEffects {
 		for(WorldServer targetWorld : DimensionManager.getWorlds()) {
 			if(targetWorld == null || targetWorld.provider == null) continue;
 			int dim = targetWorld.provider.dimensionId;
-			if(dim == -1 || dim == 1 || dim == SpaceConfig.dmitriyDimension) {
+			if(!isBlackholeCollapseStartAllowedDimension(dim)) {
 				continue;
 			}
 			PacketDispatcher.wrapper.sendToDimension(
@@ -98,7 +106,7 @@ public class StarcoreSkyEffects {
 
 	public static boolean startBlackholeCollapse(World world, CBT_SkyState skyState) {
 		if(world == null || skyState == null) return false;
-		if(world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) return false;
+		if(world.provider == null || !isBlackholeCollapseStartAllowedDimension(world.provider.dimensionId)) return false;
 		if(skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) return false;
 		if(skyState.getBlackholeCollapseEndTick() > 0L) {
 			return false;
