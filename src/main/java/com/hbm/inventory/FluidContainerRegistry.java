@@ -53,6 +53,7 @@ public class FluidContainerRegistry {
 			FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModBlocks.ore_gas, 1, i), null, Fluids.GAS, 100));
 			FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModBlocks.ore_shale, 1, i), null, Fluids.GAS, GeneralConfig.enable528 ? 50 : 250));
 		}
+		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModBlocks.ore_shale_xenon, 1, SolarSystem.Body.EVE.ordinal()), null, Fluids.XENON, 250));
 
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.cell_deuterium), new ItemStack(ModItems.cell_empty), Fluids.DEUTERIUM, 1000));
 		FluidContainerRegistry.registerContainer(new FluidContainer(new ItemStack(ModItems.cell_tritium), new ItemStack(ModItems.cell_empty), Fluids.TRITIUM, 1000));

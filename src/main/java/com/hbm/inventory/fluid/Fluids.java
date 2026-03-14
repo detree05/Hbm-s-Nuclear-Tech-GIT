@@ -119,6 +119,8 @@ public class Fluids {
 	public static FluidType MINSOL;
 	public static FluidType BALEFIRE;
 	public static FluidType MERCURY;
+	public static FluidType AMIDO_MERCURY_SOLUTION;
+	public static FluidType AMIDO_MERCURY_COMPLEX;
 	public static FluidType PAIN;				//tantalite solution
 	public static FluidType WASTEFLUID;
 	public static FluidType WASTEGAS;
@@ -555,6 +557,14 @@ public class Fluids {
 				.setTemp(100)
 				.addTraits(GASEOUS, UNSIPHONABLE)
 				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/steam.png"));
+		AMIDO_MERCURY_COMPLEX = new FluidType("AMIDO_MERCURY_COMPLEX", 0x2E0B3F, 3, 0, 2, EnumSymbol.ACID)
+				.addTraits(LIQUID, new FT_Corrosive(30), new FT_Poison(false, 2))
+				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/water_base.png"))
+				.setGuiTint(0x2E0B3F);
+		AMIDO_MERCURY_SOLUTION = new FluidType("AMIDO_MERCURY_SOLUTION", 0x4090BC, 2, 0, 0, EnumSymbol.NONE)
+				.addTraits(LIQUID, new FT_Poison(false, 1))
+				.setTexture(new ResourceLocation(RefStrings.MODID + ":textures/gui/fluids/water_base.png"))
+				.setGuiTint(0x4090BC);
 
 		// ^ ^ ^ ^ ^ ^ ^ ^
 		//ADD NEW FLUIDS HERE
@@ -625,6 +635,8 @@ public class Fluids {
 		metaOrder.add(CHLORINE);
 		metaOrder.add(FLUORINE);
 		metaOrder.add(MERCURY);
+		metaOrder.add(AMIDO_MERCURY_SOLUTION);
+		metaOrder.add(AMIDO_MERCURY_COMPLEX);
 		metaOrder.add(NITROGEN);
 		//oils, fuels
 		metaOrder.add(OIL);

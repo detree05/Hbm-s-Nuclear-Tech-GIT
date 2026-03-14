@@ -34,6 +34,8 @@ import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.MathHelper;
 import net.minecraft.world.World;
+import net.minecraft.world.WorldProviderEnd;
+import net.minecraft.world.WorldProviderHell;
 
 public class TileEntityCoreManipulator extends TileEntityMachineBase implements IGUIProvider, IControlReceiver {
 
@@ -65,6 +67,8 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private static final int SLOT_BLUEPRINT = 0;
 	private static final int SLOT_DYSON_CHIP = 1;
 	private static final int CORE_OPERATION_INTERVAL = 20;
+	private static final int NETWORK_SYNC_INTERVAL = 20;
+	private static final int DYSON_ENVIRONMENT_CHECK_INTERVAL = 20;
 	private static final float CORE_CHANGE_PER_REAL_DAY = 0.1F;
 	private static final float REAL_DAY_SECONDS = 24.0F * 60.0F * 60.0F;
 	private static final float CORE_OPERATION_VALUE_STEP =
@@ -84,6 +88,14 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	private int dysonSwarmConsumers = 0;
 	private boolean dysonPowered = false;
 	private boolean working = false;
+	private boolean selectedMaterialValidityDirty = true;
+	private boolean selectedMaterialValid = false;
+	private String selectedMaterialCategoryKey = null;
+	private String selectedMaterialCategory = null;
+	private ItemStack cachedBlueprintSnapshot;
+	private long nextDysonEnvironmentCheckTick = 0L;
+	private int cachedDysonEnvironmentSwarmId = Integer.MIN_VALUE;
+	private boolean cachedDysonEnvironmentPowered = false;
 	private AudioWrapper audio;
 	private AxisAlignedBB renderBounds;
 
@@ -102,28 +114,48 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 			return;
 		}
 
+		this.refreshBlueprintSnapshot();
+		long worldTime = this.worldObj.getTotalWorldTime();
 		boolean changed = false;
-		if(this.selectedMaterialOreDict != null && !this.isSelectionValidForBlueprint(this.selectedMaterialOreDict)) {
+		boolean syncNeeded = false;
+		int prevDysonSwarmId = this.dysonSwarmId;
+		int prevDysonSwarmCount = this.dysonSwarmCount;
+		int prevDysonSwarmConsumers = this.dysonSwarmConsumers;
+		boolean prevDysonPowered = this.dysonPowered;
+		if(this.selectedMaterialOreDict != null && !this.hasValidSelectedMaterial()) {
 			this.selectedMaterialOreDict = null;
+			this.invalidateSelectionCaches();
 			changed = true;
+			syncNeeded = true;
 		}
 
 		this.updateDysonPowerState();
+		if(prevDysonSwarmId != this.dysonSwarmId
+			|| prevDysonSwarmCount != this.dysonSwarmCount
+			|| prevDysonSwarmConsumers != this.dysonSwarmConsumers
+			|| prevDysonPowered != this.dysonPowered) {
+			syncNeeded = true;
+		}
+
 		boolean nextWorking = this.computeWorkingState();
 		if(this.working != nextWorking) {
 			this.working = nextWorking;
+			syncNeeded = true;
 		}
 
-		if(this.working && this.worldObj.getTotalWorldTime() % CORE_OPERATION_INTERVAL == 0) {
+		if(this.working && worldTime % CORE_OPERATION_INTERVAL == 0) {
 			if(this.processCoreChange()) {
 				changed = true;
+				syncNeeded = true;
 			}
 		}
 
 		if(changed) {
 			this.markChanged();
 		}
-		this.networkPackNT(64);
+		if(syncNeeded || worldTime % NETWORK_SYNC_INTERVAL == 0) {
+			this.networkPackNT(64);
+		}
 	}
 
 	@Override
@@ -184,6 +216,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		}
 
 		this.machineEnabled = enabled;
+		this.invalidateDysonEnvironmentCache();
 		if(this.worldObj != null && !this.worldObj.isRemote) {
 			this.markChanged();
 		}
@@ -243,6 +276,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		}
 
 		this.selectedMaterialOreDict = normalizedSelection;
+		this.invalidateSelectionCaches();
 		if(this.worldObj != null && !this.worldObj.isRemote) {
 			this.markChanged();
 		}
@@ -254,6 +288,9 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.coreChangeMode = CoreChangeMode.fromId(nbt.getString(NBT_KEY_CORE_CHANGE_MODE));
 		this.machineEnabled = nbt.getBoolean(NBT_KEY_MACHINE_ENABLED);
 		this.selectedMaterialOreDict = normalizeSelection(nbt.getString(NBT_KEY_SELECTED_MATERIAL));
+		this.cachedBlueprintSnapshot = null;
+		this.invalidateSelectionCaches();
+		this.invalidateDysonEnvironmentCache();
 	}
 
 	@Override
@@ -290,6 +327,9 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.dysonSwarmConsumers = buf.readInt();
 		this.dysonPowered = buf.readBoolean();
 		this.working = buf.readBoolean();
+		this.cachedBlueprintSnapshot = null;
+		this.invalidateSelectionCaches();
+		this.invalidateDysonEnvironmentCache();
 	}
 
 	@Override
@@ -343,14 +383,17 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	}
 
 	private boolean computeWorkingState() {
+		if(this.isDisabledDimension()) {
+			return false;
+		}
 		if(!this.machineEnabled || !this.dysonPowered) {
 			return false;
 		}
-		if(this.selectedMaterialOreDict == null || !this.isSelectionValidForBlueprint(this.selectedMaterialOreDict)) {
+		if(!this.hasValidSelectedMaterial()) {
 			return false;
 		}
 
-		String category = CelestialCore.getCategoryForOreDict(this.selectedMaterialOreDict);
+		String category = this.getSelectedMaterialCategory();
 		if(category == null || category.isEmpty()) {
 			return false;
 		}
@@ -373,18 +416,18 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 	}
 
 	private boolean processCoreChange() {
-		if(this.worldObj != null && this.worldObj.provider != null && this.worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+		if(this.isDisabledDimension()) {
 			return false;
 		}
 
 		if(this.selectedMaterialOreDict == null) {
 			return false;
 		}
-		if(!this.isSelectionValidForBlueprint(this.selectedMaterialOreDict)) {
+		if(!this.hasValidSelectedMaterial()) {
 			return false;
 		}
 
-		String category = CelestialCore.getCategoryForOreDict(this.selectedMaterialOreDict);
+		String category = this.getSelectedMaterialCategory();
 		if(category == null || category.isEmpty()) {
 			return false;
 		}
@@ -432,14 +475,14 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		this.dysonSwarmCount = 0;
 		this.dysonSwarmConsumers = 0;
 		this.dysonPowered = false;
-		boolean hasValidMaterialSelection = this.selectedMaterialOreDict != null && this.isSelectionValidForBlueprint(this.selectedMaterialOreDict);
+		boolean hasValidMaterialSelection = this.hasValidSelectedMaterial();
 		boolean shouldConsumeDysonPower = this.machineEnabled && hasValidMaterialSelection;
 
 		if(this.worldObj == null || this.worldObj.provider == null || this.dysonSwarmId <= 0) {
 			return;
 		}
 
-		if(this.worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+		if(this.isDisabledDimension()) {
 			return;
 		}
 
@@ -453,13 +496,7 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 			return;
 		}
 
-		SatelliteSavedData data = SatelliteSavedData.getData(this.worldObj, this.xCoord, this.zCoord);
-		Satellite sat = data != null ? data.getSatFromFreq(this.dysonSwarmId) : null;
-		CBT_SkyState skyState = CBT_SkyState.get(this.worldObj);
-		boolean hasDaylight = hasNaturalSunlight(skyState);
-		boolean occluded = isSkyOccludedForDyson();
-
-		this.dysonPowered = (sat instanceof SatelliteDysonRelay || hasDaylight) && !occluded;
+		this.dysonPowered = this.getDysonEnvironmentPowered();
 	}
 
 	private boolean isSkyOccludedForDyson() {
@@ -500,6 +537,20 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 		return CelestialBody.getBodyOrNull(this.worldObj.provider.dimensionId);
 	}
 
+	private boolean isDisabledDimension() {
+		if(this.worldObj == null || this.worldObj.provider == null) {
+			return false;
+		}
+
+		int dimensionId = this.worldObj.provider.dimensionId;
+		return dimensionId == SpaceConfig.dmitriyDimension
+			|| dimensionId == SpaceConfig.orbitDimension
+			|| dimensionId == -1
+			|| dimensionId == 1
+			|| this.worldObj.provider instanceof WorldProviderHell
+			|| this.worldObj.provider instanceof WorldProviderEnd;
+	}
+
 	private void applyAndPersistCore(CelestialBody body, CelestialCore core) {
 		if(body == null || core == null || this.worldObj == null || this.worldObj.isRemote) {
 			return;
@@ -507,6 +558,100 @@ public class TileEntityCoreManipulator extends TileEntityMachineBase implements 
 
 		CelestialBody.applyMassFromCore(body, core);
 		SolarSystemWorldSavedData.get(this.worldObj).setCore(body.name, core);
+	}
+
+	private void refreshBlueprintSnapshot() {
+		ItemStack currentBlueprint = this.getBlueprintStack();
+		if(this.areBlueprintStacksEqual(this.cachedBlueprintSnapshot, currentBlueprint)) {
+			return;
+		}
+
+		this.cachedBlueprintSnapshot = currentBlueprint != null ? currentBlueprint.copy() : null;
+		this.invalidateSelectionCaches();
+		this.invalidateDysonEnvironmentCache();
+	}
+
+	private boolean areBlueprintStacksEqual(ItemStack a, ItemStack b) {
+		if(a == b) {
+			return true;
+		}
+		if(a == null || b == null) {
+			return false;
+		}
+		if(a.getItem() != b.getItem()) {
+			return false;
+		}
+		if(a.getItemDamage() != b.getItemDamage()) {
+			return false;
+		}
+		if(a.stackSize != b.stackSize) {
+			return false;
+		}
+
+		return ItemStack.areItemStackTagsEqual(a, b);
+	}
+
+	private void invalidateSelectionCaches() {
+		this.selectedMaterialValidityDirty = true;
+		this.selectedMaterialValid = false;
+		this.selectedMaterialCategoryKey = null;
+		this.selectedMaterialCategory = null;
+	}
+
+	private boolean hasValidSelectedMaterial() {
+		if(this.selectedMaterialOreDict == null) {
+			return false;
+		}
+
+		if(this.selectedMaterialValidityDirty) {
+			this.selectedMaterialValid = this.isSelectionValidForBlueprint(this.selectedMaterialOreDict);
+			this.selectedMaterialValidityDirty = false;
+		}
+
+		return this.selectedMaterialValid;
+	}
+
+	private String getSelectedMaterialCategory() {
+		if(this.selectedMaterialOreDict == null) {
+			return null;
+		}
+
+		if(!this.selectedMaterialOreDict.equals(this.selectedMaterialCategoryKey)) {
+			this.selectedMaterialCategoryKey = this.selectedMaterialOreDict;
+			this.selectedMaterialCategory = CelestialCore.getCategoryForOreDict(this.selectedMaterialOreDict);
+		}
+
+		return this.selectedMaterialCategory;
+	}
+
+	private void invalidateDysonEnvironmentCache() {
+		this.nextDysonEnvironmentCheckTick = 0L;
+		this.cachedDysonEnvironmentSwarmId = Integer.MIN_VALUE;
+		this.cachedDysonEnvironmentPowered = false;
+	}
+
+	private boolean getDysonEnvironmentPowered() {
+		if(this.worldObj == null) {
+			return false;
+		}
+
+		long time = this.worldObj.getTotalWorldTime();
+		if(time >= this.nextDysonEnvironmentCheckTick || this.cachedDysonEnvironmentSwarmId != this.dysonSwarmId) {
+			this.cachedDysonEnvironmentSwarmId = this.dysonSwarmId;
+			this.cachedDysonEnvironmentPowered = this.computeDysonEnvironmentPowered();
+			this.nextDysonEnvironmentCheckTick = time + DYSON_ENVIRONMENT_CHECK_INTERVAL;
+		}
+
+		return this.cachedDysonEnvironmentPowered;
+	}
+
+	private boolean computeDysonEnvironmentPowered() {
+		SatelliteSavedData data = SatelliteSavedData.getData(this.worldObj, this.xCoord, this.zCoord);
+		Satellite sat = data != null ? data.getSatFromFreq(this.dysonSwarmId) : null;
+		CBT_SkyState skyState = CBT_SkyState.get(this.worldObj);
+		boolean hasDaylight = hasNaturalSunlight(skyState);
+		boolean occluded = isSkyOccludedForDyson();
+		return (sat instanceof SatelliteDysonRelay || hasDaylight) && !occluded;
 	}
 
 	@SideOnly(Side.CLIENT)

@@ -6,6 +6,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -37,6 +38,7 @@ public class ItemBlueprints extends Item {
 	private static final String NBT_KEY_POOL = "pool";
 	private static final String NBT_KEY_CORE_CATEGORY = "coreCategory";
 	private static final String NBT_KEY_CORE_MATERIALS = "coreMaterials";
+	private static final HashMap<String, List<String>> CORE_CATEGORY_MATERIAL_CACHE = new HashMap<String, List<String>>();
 
 	@SideOnly(Side.CLIENT) protected IIcon iconDiscover;
 	@SideOnly(Side.CLIENT) protected IIcon iconSecret;
@@ -362,6 +364,16 @@ public class ItemBlueprints extends Item {
 	}
 
 	public static List<String> getAllCoreCategoryMaterials(String category) {
+		String categoryKey = normalizeCategoryKey(category);
+		if(categoryKey == null || categoryKey.isEmpty()) {
+			return new ArrayList<String>();
+		}
+
+		List<String> cached = CORE_CATEGORY_MATERIAL_CACHE.get(categoryKey);
+		if(cached != null) {
+			return new ArrayList<String>(cached);
+		}
+
 		ArrayList<String> out = new ArrayList<String>();
 		if(category == null || category.isEmpty()) {
 			return out;
@@ -389,7 +401,13 @@ public class ItemBlueprints extends Item {
 		out.addAll(bestByToken.values());
 		out = dedupeMaterialsByLabel(out);
 		sortMaterialsByDisplayName(out);
+		CORE_CATEGORY_MATERIAL_CACHE.put(categoryKey, new ArrayList<String>(out));
 		return out;
+	}
+
+	private static String normalizeCategoryKey(String category) {
+		if(category == null) return null;
+		return category.trim().toLowerCase(Locale.US);
 	}
 
 	private static int compareMaterialCandidates(String a, String b) {

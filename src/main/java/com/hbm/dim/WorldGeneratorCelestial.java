@@ -161,6 +161,7 @@ public class WorldGeneratorCelestial implements IWorldGenerator {
 		BlockOre.addValidBody(ModBlocks.ore_bedrock_oil, SolarSystem.Body.KERBIN);
 		BlockOre.addValidBody(ModBlocks.ore_bedrock_subsurface_water, SolarSystem.Body.KERBIN);
 		BlockOre.addValidBody(ModBlocks.ore_bedrock_subsurface_water, SolarSystem.Body.LAYTHE);
+		BlockOre.addValidBody(ModBlocks.ore_bedrock_amido_mercury_complex, SolarSystem.Body.EVE);
 		BlockOre.addValidBody(ModBlocks.ore_coltan, SolarSystem.Body.KERBIN);
 
 		BlockOre.addAllExcept(ModBlocks.ore_nickel, SolarSystem.Body.KERBIN);

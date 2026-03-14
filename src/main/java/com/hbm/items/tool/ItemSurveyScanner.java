@@ -30,6 +30,7 @@ public class ItemSurveyScanner extends Item {
 			boolean hasColtan = false;
 			boolean hasBedrockOil = false;
 			boolean hasBedrockWater = false;
+			boolean hasBedrockAmidoMercuryComplex = false;
 			boolean hasDepth = false;
 			boolean hasSchist = false;
 			boolean hasAussie = false;
@@ -48,6 +49,7 @@ public class ItemSurveyScanner extends Item {
 						else if(block == ModBlocks.ore_coltan) hasColtan = true;
 						else if(block == ModBlocks.ore_bedrock_oil) hasBedrockOil = true;
 						else if(block == ModBlocks.ore_bedrock_subsurface_water) hasBedrockWater = true;
+						else if(block == ModBlocks.ore_bedrock_amido_mercury_complex) hasBedrockAmidoMercuryComplex = true;
 						else if(block == ModBlocks.stone_depth) hasDepth = true;
 						else if(block == ModBlocks.stone_depth_nether) hasDepth = true;
 						else if(block == ModBlocks.stone_gneiss) hasSchist = true;
@@ -66,7 +68,8 @@ public class ItemSurveyScanner extends Item {
 			if(hasGas) player.addChatComponentMessage(new ChatComponentText("Found NATURAL GAS!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.WHITE)));
 			if(hasBrine) player.addChatComponentMessage(new ChatComponentText("Found BRINE!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.WHITE)));
 			if(hasBedrockOil) player.addChatComponentMessage(new ChatComponentText("Found BEDROCK OIL!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.BLACK)));
-			if(hasBedrockWater) player.addChatComponentMessage(new ChatComponentText("Found BEDROCK SUBSURFACE WATER!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.AQUA)));
+			if(hasBedrockWater) player.addChatComponentMessage(new ChatComponentText("Found SUBSURFACE WATER!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.AQUA)));
+			if(hasBedrockAmidoMercuryComplex) player.addChatComponentMessage(new ChatComponentText("Found BEDROCK AMIDO-MERCURY COMPLEX!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.DARK_PURPLE)));
 			if(hasColtan) player.addChatComponentMessage(new ChatComponentText("Found COLTAN!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.GOLD)));
 			if(hasDepth) player.addChatComponentMessage(new ChatComponentText("Found DEPTH ROCK!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.GRAY)));
 			if(hasSchist) player.addChatComponentMessage(new ChatComponentText("Found SCHIST!").setChatStyle(new ChatStyle().setColor(EnumChatFormatting.DARK_AQUA)));

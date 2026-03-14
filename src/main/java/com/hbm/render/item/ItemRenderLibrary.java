@@ -249,7 +249,7 @@ public class ItemRenderLibrary {
 				GL11.glShadeModel(GL11.GL_FLAT);
 			}});
 
-		renderers.put(Item.getItemFromBlock(ModBlocks.machine_water_extraction_plant), new ItemRenderBase() {
+		renderers.put(Item.getItemFromBlock(ModBlocks.machine_sub_liquid_extraction_plant), new ItemRenderBase() {
 			public void renderInventory() {
 				GL11.glTranslated(0, -4, 0);
 				GL11.glScaled(4, 4, 4);

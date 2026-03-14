@@ -87,7 +87,7 @@ public class ItemOilDetector extends Item {
 	private Block searchDirect(World world, int x, int y, int z) {
 		for(int i =  y + 15; i > 5; i--) {
 			Block block = world.getBlock(x, i, z);
-			if(block instanceof BlockOreFluid && block != ModBlocks.ore_bedrock_subsurface_water) return block;
+			if(block instanceof BlockOreFluid && block != ModBlocks.ore_bedrock_subsurface_water && block != ModBlocks.ore_bedrock_amido_mercury_complex) return block;
 		}
 
 		return null;

@@ -26,6 +26,7 @@ public class BlockOreFluid extends BlockOre {
 		GAS,
 		BRINE,
 		SUBSURFACE_WATER,
+		AMIDO_MERCURY_COMPLEX,
 	}
 
 	public BlockOreFluid(Material mat, Block empty, ReserveType type) {
@@ -54,6 +55,7 @@ public class BlockOreFluid extends BlockOre {
 		case GAS: return Fluids.GAS;
 		case BRINE: return Fluids.BRINE;
 		case SUBSURFACE_WATER: return Fluids.SUBSURFACE_WATER;
+		case AMIDO_MERCURY_COMPLEX: return Fluids.AMIDO_MERCURY_COMPLEX;
 		default: return Fluids.NONE;
 		}
 	}
@@ -96,7 +98,7 @@ public class BlockOreFluid extends BlockOre {
 	}
 
 	public int getSecondaryFluidAmount(int meta) {
-		if(type == ReserveType.SUBSURFACE_WATER) return 0;
+		if(type == ReserveType.SUBSURFACE_WATER || type == ReserveType.AMIDO_MERCURY_COMPLEX) return 0;
 		if(empty == null) {
 			if(meta == SolarSystem.Body.TEKTO.ordinal()) return WorldConfig.tektoBedrockGasPerDepositMin + rand.nextInt(WorldConfig.tektoBedrockGasPerDepositMax - WorldConfig.tektoBedrockGasPerDepositMin);
 			return WorldConfig.bedrockGasPerDepositMin + rand.nextInt(WorldConfig.bedrockGasPerDepositMax - WorldConfig.bedrockGasPerDepositMin);

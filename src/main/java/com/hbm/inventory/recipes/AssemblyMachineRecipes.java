@@ -258,7 +258,7 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 				.inputItems(new OreDictStack(DURA.plate(), 8), new OreDictStack(STEEL.plateWelded(), 8), new OreDictStack(STEEL.pipe(), 12), new ComparableStack(ModItems.motor_desh), new ComparableStack(ModItems.drill_titanium, 1))
 				.inputItemsEx(new ComparableStack(ModItems.item_expensive, 1, EnumExpensiveType.HEAVY_FRAME), new OreDictStack(STEEL.pipe(), 12), new ComparableStack(ModItems.motor_desh, 3), new ComparableStack(ModItems.drill_titanium, 1))
 				.setPools528(GenericRecipes.POOL_PREFIX_528 + "steel"));
-		this.register(new GenericRecipe("ass.waterextractor").setup(400, 100).outputItems(new ItemStack(ModBlocks.machine_water_extraction_plant, 1))
+		this.register(new GenericRecipe("ass.waterextractor").setup(400, 100).outputItems(new ItemStack(ModBlocks.machine_sub_liquid_extraction_plant, 1))
 				.inputItems(new OreDictStack(STEEL.shell(), 4), new OreDictStack(STAINLESS.plate(), 8), new ComparableStack(ModItems.turbine_syngas, 4), new ComparableStack(ModItems.drill_titanium, 1), new ComparableStack(ModItems.motor_desh, 2), new OreDictStack(CU.plateCast(), 16))
 				.inputItemsEx(new ComparableStack(ModItems.item_expensive, 2, EnumExpensiveType.HEAVY_FRAME), new ComparableStack(ModItems.turbine_syngas, 4), new ComparableStack(ModItems.drill_titanium, 1), new ComparableStack(ModItems.motor_desh, 4), new OreDictStack(CU.plateCast(), 16), new ComparableStack(ModItems.item_expensive, 2, EnumExpensiveType.CIRCUIT))
 				.setPools528(GenericRecipes.POOL_PREFIX_528 + "steel"));

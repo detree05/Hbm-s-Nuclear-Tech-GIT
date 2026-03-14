@@ -36,8 +36,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	public long power;
 	public static final long MAX_POWER = 20_000_000;
 
-	private static final int MEMBERS_PER_LAUNCH = 64;
-	public static final int BLACKHOLE_CLUSTER_LIMIT = 1;
+	public static final int BLACKHOLE_CLUSTER_LIMIT = 1024;
 
 	// SHAKE IT LIKE IT'S HEAT, OVERDRIVE
 	boolean sunsetOverdrive = false;
@@ -251,7 +250,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
 		if(slots[0] != null) {
 			if(slots[0].getItem() == ModItems.star_core) return;
-			if(slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
+			if(slots[0].stackSize >= getInventoryStackLimit()) return;
 		}
 
 		TileEntity te = worldObj.getTileEntity(x, y, z);

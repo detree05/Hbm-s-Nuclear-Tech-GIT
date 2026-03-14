@@ -110,6 +110,7 @@ public class ModBlocks {
 	public static Block ore_silicon;
 	public static Block ore_fire;
 	public static Block ore_shale;
+	public static Block ore_shale_xenon;
 
 	public static Block ore_bedrock;
 	public static Block ore_volcano;
@@ -186,6 +187,7 @@ public class ModBlocks {
 	public static Block ore_oil_sand;
 	public static Block ore_bedrock_oil;
 	public static Block ore_bedrock_subsurface_water;
+	public static Block ore_bedrock_amido_mercury_complex;
 	public static Block ore_lignite;
 	public static Block ore_asbestos;
 	public static Block ore_gas;
@@ -1064,7 +1066,7 @@ public class ModBlocks {
 	public static Block machine_alkylation;
 
 	public static Block machine_well;
-	public static Block machine_water_extraction_plant;
+	public static Block machine_sub_liquid_extraction_plant;
 	public static Block oil_pipe;
 	public static Block subsurface_water_pipe;
 	public static Block machine_pumpjack;
@@ -1482,6 +1484,7 @@ public class ModBlocks {
 		ore_silicon = new BlockOre(Material.rock).setBlockName("ore_silicon").setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_silicon");
 		ore_fire = new BlockOre(Material.rock).setBlockName("ore_fire").setCreativeTab(MainRegistry.blockTab).setHardness(0.4F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_fire");
 		ore_shale = new BlockOre(Material.rock).setBlockName("ore_shale").setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_shale");
+		ore_shale_xenon = new BlockOre(Material.rock).setBlockName("ore_shale_xenon").setCreativeTab(MainRegistry.blockTab).setHardness(1.5F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_shale_xenon");
 
 		cluster_iron = new BlockCluster(Material.rock).setBlockName("cluster_iron").setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(15.0F).setBlockTextureName(RefStrings.MODID + ":cluster_iron");
 		cluster_titanium = new BlockCluster(Material.rock).setBlockName("cluster_titanium").setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(15.0F).setBlockTextureName(RefStrings.MODID + ":cluster_titanium");
@@ -1566,6 +1569,7 @@ public class ModBlocks {
 		ore_oil_sand = new BlockFalling(Material.sand).setBlockName("ore_oil_sand").setCreativeTab(MainRegistry.blockTab).setStepSound(Block.soundTypeSand).setHardness(0.5F).setResistance(1.0F).setBlockTextureName(RefStrings.MODID + ":ore_oil_sand_alt");
 		ore_bedrock_oil = new BlockOreFluid(Material.rock, null, ReserveType.OIL).setBlockName("ore_bedrock_oil").setCreativeTab(MainRegistry.blockTab).setBlockUnbreakable().setResistance(1_000_000).setBlockTextureName(RefStrings.MODID + ":ore_bedrock_oil");
 		ore_bedrock_subsurface_water = new BlockOreFluid(Material.rock, null, ReserveType.SUBSURFACE_WATER).setBlockName("ore_bedrock_subsurface_water").setCreativeTab(MainRegistry.blockTab).setBlockUnbreakable().setResistance(1_000_000).setBlockTextureName(RefStrings.MODID + ":ore_bedrock_water");
+		ore_bedrock_amido_mercury_complex = new BlockOreFluid(Material.rock, null, ReserveType.AMIDO_MERCURY_COMPLEX).setBlockName("ore_bedrock_amido_mercury_complex").setCreativeTab(MainRegistry.blockTab).setBlockUnbreakable().setResistance(1_000_000).setBlockTextureName(RefStrings.MODID + ":ore_bedrock_eve_complex");
 		ore_gas_empty = new BlockOre(Material.rock).setBlockName("ore_gas_empty").setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_oil_empty");
 		ore_gas = new BlockOreFluid(Material.rock, ore_gas_empty, ReserveType.GAS).setBlockName("ore_gas").setCreativeTab(MainRegistry.blockTab).setHardness(5.0F).setResistance(10.0F).setBlockTextureName(RefStrings.MODID + ":ore_gas");
 
@@ -2496,7 +2500,7 @@ public class ModBlocks {
 		war_controller = new WarController().setBlockName("war_controller").setStepSound(Block.soundTypeMetal).setHardness(10.0F).setResistance(10.0F).setCreativeTab(null).setBlockTextureName(RefStrings.MODID + ":block_steel");
 
 		machine_well = new MachineOilWell().setBlockName("machine_well").setHardness(5.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":machine_well");
-		machine_water_extraction_plant = new MachineWaterExtractionPlant().setBlockName("machine_water_extraction_plant").setHardness(5.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":machine_well");
+		machine_sub_liquid_extraction_plant = new MachineWaterExtractionPlant().setBlockName("machine_sub_liquid_extraction_plant").setHardness(5.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":machine_well");
 		machine_pumpjack = new MachinePumpjack().setBlockName("machine_pumpjack").setHardness(5.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":machine_pumpjack");
 		machine_fracking_tower = new MachineFrackingTower().setBlockName("machine_fracking_tower").setHardness(5.0F).setResistance(20.0F).setCreativeTab(MainRegistry.machineTab).setBlockTextureName(RefStrings.MODID + ":block_steel");
 		oil_pipe = new BlockNoDrop(Material.iron).setBlockName("oil_pipe").setHardness(5.0F).setResistance(10.0F).setCreativeTab(null).setBlockTextureName(RefStrings.MODID + ":oil_pipe");
@@ -2834,6 +2838,7 @@ public class ModBlocks {
 		GameRegistry.registerBlock(ore_silicon, ItemBlockBase.class, ore_silicon.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_fire, ItemBlockBase.class, ore_fire.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_shale, ItemBlockBase.class, ore_shale.getUnlocalizedName());
+		GameRegistry.registerBlock(ore_shale_xenon, ItemBlockBase.class, ore_shale_xenon.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_brine, ItemBlockLore.class, ore_brine.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_brine_empty, ItemBlockLore.class, ore_brine_empty.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_tekto, ItemBlockLore.class, ore_tekto.getUnlocalizedName());
@@ -2856,6 +2861,7 @@ public class ModBlocks {
 		//Bedrock ores
 		GameRegistry.registerBlock(ore_bedrock_oil, ItemBlockBase.class, ore_bedrock_oil.getUnlocalizedName());
 		GameRegistry.registerBlock(ore_bedrock_subsurface_water, ItemBlockBase.class, ore_bedrock_subsurface_water.getUnlocalizedName());
+		GameRegistry.registerBlock(ore_bedrock_amido_mercury_complex, ItemBlockBase.class, ore_bedrock_amido_mercury_complex.getUnlocalizedName());
 
 		//Nether Ores
 		GameRegistry.registerBlock(ore_nether_coal, ore_nether_coal.getUnlocalizedName());
@@ -3814,7 +3820,7 @@ public class ModBlocks {
 		GameRegistry.registerBlock(machine_storage_drum, machine_storage_drum.getUnlocalizedName());
 		GameRegistry.registerBlock(machine_shredder, machine_shredder.getUnlocalizedName());
 		register(machine_well);
-		register(machine_water_extraction_plant);
+		register(machine_sub_liquid_extraction_plant);
 		register(machine_pumpjack);
 		register(machine_fracking_tower);
 		register(machine_flare);

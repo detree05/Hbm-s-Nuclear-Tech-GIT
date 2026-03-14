@@ -2,7 +2,10 @@ package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockOreFluid;
+import com.hbm.dim.CelestialBody;
+import com.hbm.dim.SolarSystem;
 import com.hbm.inventory.fluid.Fluids;
+import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.main.MainRegistry;
 import com.hbm.util.fauxpointtwelve.DirPos;
@@ -29,6 +32,11 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 
 	@Override
 	public void updateEntity() {
+		// Keep empty tank display/context aligned with current celestial body.
+		if(worldObj != null && water.getFill() <= 0) {
+			water.setTankType(getPreferredFluidForWorld());
+		}
+
 		if(worldObj.isRemote) {
 			if(this.pumping) {
 				MainRegistry.proxy.playSoundClient(xCoord, yCoord, zCoord, "hbm:block.steamEngineOperate", 0.5F, 0.75F);
@@ -68,7 +76,7 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 		}
 
 		Block block = worldObj.getBlock(xCoord, bedrockY, zCoord);
-		if(block != ModBlocks.ore_bedrock_subsurface_water) {
+		if(!isValidDeposit(block)) {
 			return false;
 		}
 
@@ -86,7 +94,7 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 			if(block == ModBlocks.subsurface_water_pipe) {
 				continue;
 			}
-			if(block == ModBlocks.ore_bedrock_subsurface_water) {
+			if(isValidDeposit(block)) {
 				return y;
 			}
 			if(block.getExplosionResistance(null) < 1000) {
@@ -96,6 +104,18 @@ public class TileEntityWaterExtractionPlant extends TileEntityLoadedBase impleme
 		}
 
 		return -1;
+	}
+
+	private boolean isValidDeposit(Block block) {
+		return block == ModBlocks.ore_bedrock_subsurface_water || block == ModBlocks.ore_bedrock_amido_mercury_complex;
+	}
+
+	private FluidType getPreferredFluidForWorld() {
+		SolarSystem.Body body = CelestialBody.getEnum(worldObj);
+		if(body == SolarSystem.Body.EVE) {
+			return Fluids.AMIDO_MERCURY_COMPLEX;
+		}
+		return Fluids.SUBSURFACE_WATER;
 	}
 
 	@Override

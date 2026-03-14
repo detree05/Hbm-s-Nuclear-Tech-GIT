@@ -30,7 +30,7 @@ public class WorldGeneratorEve implements IWorldGenerator {
 		BlockOre.addValidBody(ModBlocks.ore_niobium, SolarSystem.Body.EVE);
 		BlockOre.addValidBody(ModBlocks.ore_iodine, SolarSystem.Body.EVE);
 		BlockOre.addValidBody(ModBlocks.ore_schrabidium, SolarSystem.Body.EVE);
-		BlockOre.addValidBody(ModBlocks.ore_gas, SolarSystem.Body.EVE);
+		BlockOre.addValidBody(ModBlocks.ore_shale_xenon, SolarSystem.Body.EVE);
 	}
 
 	@Override
@@ -47,6 +47,7 @@ public class WorldGeneratorEve implements IWorldGenerator {
 		DungeonToolbox.generateOre(world, rand, i, j, 12,  8, 1, 33, ModBlocks.ore_niobium, meta, stone);
 		DungeonToolbox.generateOre(world, rand, i, j, 8,  4, 5, 48, ModBlocks.ore_iodine, meta, stone);
 		DungeonToolbox.generateOre(world, rand, i, j, 1,  4, 1, 16, ModBlocks.ore_schrabidium, meta, stone);
+		DungeonToolbox.generateOre(world, rand, i, j, 1, 12, 8, 32, ModBlocks.ore_shale_xenon, meta, stone);
 
 		int x = i + rand.nextInt(16) + 8;
 		int z = j + rand.nextInt(16) + 8;

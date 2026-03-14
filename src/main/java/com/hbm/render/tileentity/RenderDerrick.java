@@ -41,7 +41,7 @@ public class RenderDerrick extends TileEntitySpecialRenderer implements IItemRen
 	}
 
 	private boolean isWaterExtractionPlant(TileEntity tileEntity) {
-		return tileEntity instanceof TileEntityWaterExtractionPlant || tileEntity.getBlockType() == ModBlocks.machine_water_extraction_plant;
+		return tileEntity instanceof TileEntityWaterExtractionPlant || tileEntity.getBlockType() == ModBlocks.machine_sub_liquid_extraction_plant;
 	}
 
 	@Override

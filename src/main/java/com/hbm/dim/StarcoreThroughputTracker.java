@@ -15,6 +15,8 @@ import net.minecraft.world.WorldProviderHell;
 
 public class StarcoreThroughputTracker {
 
+	private static final long SUN_STORAGE_LOSS_SLOWDOWN = 5L;
+
 	private static class Accumulator {
 		private long totalThisTick;
 		private long lastTickTotal;
@@ -256,8 +258,12 @@ public class StarcoreThroughputTracker {
 			}
 			long current = skyState.getSunCharge();
 			long decay = supportRequirement - effective;
-			if(decay > 0) {
-				long next = Math.max(0L, current - decay);
+			long slowedDecay = decay / SUN_STORAGE_LOSS_SLOWDOWN;
+			if(decay > 0 && slowedDecay <= 0) {
+				slowedDecay = 1L;
+			}
+			if(slowedDecay > 0) {
+				long next = Math.max(0L, current - slowedDecay);
 				if(next != current) {
 					skyState.setSunCharge(next);
 					CelestialBody.getStar(world).modifyTraits(skyState);
