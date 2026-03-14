@@ -2212,9 +2212,6 @@ public class ModEventHandler {
 		if(world.isRemote || world.provider.dimensionId != 0) {
 			return;
 		}
-		if(world.getWorldInfo().getTerrainType() != WorldTypeTeleport.blackHoleSun) {
-			return;
-		}
 
 		int baseX = event.chunkX << 4;
 		int baseZ = event.chunkZ << 4;

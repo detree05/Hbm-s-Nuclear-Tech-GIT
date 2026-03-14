@@ -85,6 +85,7 @@ import com.hbm.util.Tuple;
 import com.hbm.util.ArmorRegistry.HazardClass;
 import com.hbm.util.i18n.I18nUtil;
 import com.hbm.wiaj.GuiWorldInAJar;
+import com.hbm.wiaj.WorldInAJar;
 import com.hbm.wiaj.cannery.CanneryBase;
 import com.hbm.wiaj.cannery.Jars;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture.Type;
@@ -114,8 +115,10 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.client.settings.GameSettings;
@@ -202,6 +205,88 @@ public class ModEventHandlerClient {
 	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
 	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
 	private static long blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
+	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS = 72;
+	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 16;
+	private static final double BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS = 150.0D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_SPAWN_RADIUS_BLOCKS = 100.0D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MIN = 0.018D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MAX = 0.042D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MIN = 0.010D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MAX = 0.022D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MIN = 0.04D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MAX = 0.16D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MIN = 0.02D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MAX = 0.08D;
+	private static final int BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MIN_TICKS = 2;
+	private static final int BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MAX_TICKS = 8;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS = 18;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MAX_TICKS = 45;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN = 6;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX = 10;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_RETRIES_PER_LAYER = 22;
+	private static int blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
+	private static long blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
+	private static long blackholeGravityLiftFxNextSpawnTick = Long.MIN_VALUE;
+	private static long blackholeGravityLiftFxNextChunkSpawnTick = Long.MIN_VALUE;
+	private static final List<BlackholeGravityLiftBlock> blackholeGravityLiftBlocks = new ArrayList<BlackholeGravityLiftBlock>();
+	private static final List<BlackholeGravityLiftChunk> blackholeGravityLiftChunks = new ArrayList<BlackholeGravityLiftChunk>();
+
+	private static class BlackholeGravityLiftBlock {
+		private final WorldInAJar jar;
+		private final double x;
+		private final double y;
+		private final double z;
+		private final double riseSpeed;
+		private final double rotYaw;
+		private final double rotPitch;
+		private final double rotYawSpeed;
+		private final double rotPitchSpeed;
+		private final int maxAgeTicks;
+		private int ageTicks;
+
+		private BlackholeGravityLiftBlock(Block block, int meta, double x, double y, double z, double riseSpeed, int maxAgeTicks, double rotYaw, double rotPitch, double rotYawSpeed, double rotPitchSpeed) {
+			this.jar = new WorldInAJar(1, 1, 1);
+			this.jar.setBlock(0, 0, 0, block, meta);
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.riseSpeed = riseSpeed;
+			this.rotYaw = rotYaw;
+			this.rotPitch = rotPitch;
+			this.rotYawSpeed = rotYawSpeed;
+			this.rotPitchSpeed = rotPitchSpeed;
+			this.maxAgeTicks = maxAgeTicks;
+			this.ageTicks = 0;
+		}
+	}
+
+	private static class BlackholeGravityLiftChunk {
+		private final WorldInAJar jar;
+		private final double x;
+		private final double y;
+		private final double z;
+		private final double riseSpeed;
+		private final double rotYaw;
+		private final double rotPitch;
+		private final double rotYawSpeed;
+		private final double rotPitchSpeed;
+		private final int maxAgeTicks;
+		private int ageTicks;
+
+		private BlackholeGravityLiftChunk(WorldInAJar jar, double x, double y, double z, double riseSpeed, int maxAgeTicks, double rotYaw, double rotPitch, double rotYawSpeed, double rotPitchSpeed) {
+			this.jar = jar;
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.riseSpeed = riseSpeed;
+			this.rotYaw = rotYaw;
+			this.rotPitch = rotPitch;
+			this.rotYawSpeed = rotYawSpeed;
+			this.rotPitchSpeed = rotPitchSpeed;
+			this.maxAgeTicks = maxAgeTicks;
+			this.ageTicks = 0;
+		}
+	}
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -1316,6 +1401,8 @@ public class ModEventHandlerClient {
 
 	private static ISound currentSong;
 
+	private static final ResourceLocation BLACKHOLE_COLLAPSE_EVENT_MUSIC = new ResourceLocation("hbm:music.collapseImminent");
+
 	public static void stopCurrentMusic() {
 		Minecraft mc = Minecraft.getMinecraft();
 		if(mc == null || mc.getSoundHandler() == null) return;
@@ -1585,6 +1672,391 @@ public class ModEventHandlerClient {
 		blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
 	}
 
+	private static void resetBlackholeGravityLiftFxState() {
+		blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
+		blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
+		blackholeGravityLiftFxNextSpawnTick = Long.MIN_VALUE;
+		blackholeGravityLiftFxNextChunkSpawnTick = Long.MIN_VALUE;
+		blackholeGravityLiftBlocks.clear();
+		blackholeGravityLiftChunks.clear();
+	}
+
+	private static void updateBlackholeGravityLiftFx(Minecraft mc) {
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null || mc.theWorld.provider == null) {
+			return;
+		}
+
+		World world = mc.theWorld;
+		int dimension = world.provider.dimensionId;
+		if(dimension == -1 || dimension == 1 || dimension == SpaceConfig.dmitriyDimension) {
+			return;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityEndTick = collapseStartTick
+			+ StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS
+			+ StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+
+		if(now < gravityEndTick || now >= collapseEndTick) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		boolean newCollapseWindow = blackholeGravityLiftFxDimension != dimension || blackholeGravityLiftFxCollapseEndTick != collapseEndTick;
+		if(newCollapseWindow) {
+			blackholeGravityLiftFxDimension = dimension;
+			blackholeGravityLiftFxCollapseEndTick = collapseEndTick;
+			blackholeGravityLiftFxNextSpawnTick = now + 1L;
+			blackholeGravityLiftFxNextChunkSpawnTick = now + 8L;
+			blackholeGravityLiftBlocks.clear();
+			blackholeGravityLiftChunks.clear();
+		}
+
+		tickBlackholeGravityLiftFx();
+
+		Random rand = world.rand;
+		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
+		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
+		if(blackholeGravityLiftBlocks.size() < BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS && now >= blackholeGravityLiftFxNextSpawnTick) {
+			int delayRange = BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MAX_TICKS - BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MIN_TICKS + 1;
+			boolean spawned = false;
+			for(int i = 0; i < 20; i++) {
+				double angle = rand.nextDouble() * Math.PI * 2.0D;
+				double radius = Math.sqrt(rand.nextDouble()) * BLACKHOLE_GRAVITY_LIFT_SPAWN_RADIUS_BLOCKS;
+				int x = baseX + MathHelper.floor_double(Math.cos(angle) * radius);
+				int z = baseZ + MathHelper.floor_double(Math.sin(angle) * radius);
+
+				int topY = world.getTopSolidOrLiquidBlock(x, z);
+				if(topY <= 0) {
+					continue;
+				}
+
+				int y = topY - 1;
+				Block block = world.getBlock(x, y, z);
+				if(block == null || block.isAir(world, x, y, z) || block.getMaterial() == Material.air || block.getMaterial().isLiquid()) {
+					continue;
+				}
+
+				int meta = world.getBlockMetadata(x, y, z);
+				if(block.hasTileEntity(meta)) {
+					continue;
+				}
+
+				double px = x + 0.5D;
+				double pz = z + 0.5D;
+				if(isLiftBlockTooClose(px, pz)) {
+					continue;
+				}
+
+				double riseSpeed = BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MIN + rand.nextDouble() * (BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MAX - BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MIN);
+				int maxAgeTicks = Math.max(1, MathHelper.ceiling_double_int(BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS / riseSpeed));
+				double rotYaw = 0.0D;
+				double rotPitch = 0.0D;
+				double rotYawSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MAX);
+				double rotPitchSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MAX);
+				blackholeGravityLiftBlocks.add(new BlackholeGravityLiftBlock(block, meta, px, y + 1.02D, pz, riseSpeed, maxAgeTicks, rotYaw, rotPitch, rotYawSpeed, rotPitchSpeed));
+				spawned = true;
+				break;
+			}
+
+			int nextDelay = BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MIN_TICKS + rand.nextInt(delayRange);
+			if(!spawned) {
+				nextDelay += 6;
+			}
+			blackholeGravityLiftFxNextSpawnTick = now + nextDelay;
+		}
+
+		if(blackholeGravityLiftChunks.size() < BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS && now >= blackholeGravityLiftFxNextChunkSpawnTick) {
+			int chunkDelayRange = BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MAX_TICKS - BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS + 1;
+			boolean chunkSpawned = trySpawnLiftChunk(world, baseX, baseZ, rand);
+			int nextChunkDelay = BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS + rand.nextInt(chunkDelayRange);
+			if(!chunkSpawned) {
+				nextChunkDelay += 35;
+			}
+			blackholeGravityLiftFxNextChunkSpawnTick = now + nextChunkDelay;
+		}
+	}
+
+	private static boolean isLiftBlockTooClose(double x, double z) {
+		for(BlackholeGravityLiftBlock block : blackholeGravityLiftBlocks) {
+			double dx = block.x - x;
+			double dz = block.z - z;
+			if(dx * dx + dz * dz < 0.65D) {
+				return true;
+			}
+		}
+		for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+			double dx = chunk.x - x;
+			double dz = chunk.z - z;
+			if(dx * dx + dz * dz < 2.0D) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isLiftChunkTooClose(double x, double z) {
+		for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+			double dx = chunk.x - x;
+			double dz = chunk.z - z;
+			if(dx * dx + dz * dz < 36.0D) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean trySpawnLiftChunk(World world, int baseX, int baseZ, Random rand) {
+		for(int attempt = 0; attempt < 28; attempt++) {
+			double angle = rand.nextDouble() * Math.PI * 2.0D;
+			double radius = Math.sqrt(rand.nextDouble()) * BLACKHOLE_GRAVITY_LIFT_SPAWN_RADIUS_BLOCKS;
+			int x = baseX + MathHelper.floor_double(Math.cos(angle) * radius);
+			int z = baseZ + MathHelper.floor_double(Math.sin(angle) * radius);
+			int topY = world.getTopSolidOrLiquidBlock(x, z);
+			if(topY <= 0) {
+				continue;
+			}
+
+			int y = topY - 1;
+			Block centerBlock = world.getBlock(x, y, z);
+			if(centerBlock == null || centerBlock.isAir(world, x, y, z) || centerBlock.getMaterial() == Material.air || centerBlock.getMaterial().isLiquid()) {
+				continue;
+			}
+			int centerMeta = world.getBlockMetadata(x, y, z);
+			if(centerBlock.hasTileEntity(centerMeta)) {
+				continue;
+			}
+
+			double px = x + 0.5D;
+			double pz = z + 0.5D;
+			if(isLiftChunkTooClose(px, pz)) {
+				continue;
+			}
+
+			int size = BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN + rand.nextInt(BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX - BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN + 1);
+			WorldInAJar jar = new WorldInAJar(size, size, size);
+			int middle = size / 2 - 1;
+			int copied = 0;
+
+			for(int ix = 0; ix < 2; ix++) {
+				for(int iy = 0; iy < 2; iy++) {
+					for(int iz = 0; iz < 2; iz++) {
+						copied += copyLiftBlockIntoJar(world, jar, middle + ix, middle + iy, middle + iz, x + ix, y + iy, z + iz);
+					}
+				}
+			}
+
+			for(int layer = 2; layer <= (size / 2); layer++) {
+				for(int i = 0; i < BLACKHOLE_GRAVITY_LIFT_CHUNK_RETRIES_PER_LAYER; i++) {
+					int jx = -layer + rand.nextInt(layer * 2 + 1);
+					int jy = -layer + rand.nextInt(layer * 2 + 1);
+					int jz = -layer + rand.nextInt(layer * 2 + 1);
+					int jarX = middle + jx;
+					int jarY = middle + jy;
+					int jarZ = middle + jz;
+					if(jar.getBlock(jarX + 1, jarY, jarZ) != Blocks.air
+						|| jar.getBlock(jarX - 1, jarY, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY + 1, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY - 1, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY, jarZ + 1) != Blocks.air
+						|| jar.getBlock(jarX, jarY, jarZ - 1) != Blocks.air) {
+						copied += copyLiftBlockIntoJar(world, jar, jarX, jarY, jarZ, x + jx, y + jy, z + jz);
+					}
+				}
+			}
+
+			if(copied < 6) {
+				continue;
+			}
+
+			double riseSpeed = BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MIN + rand.nextDouble() * (BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MAX - BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MIN);
+			int maxAgeTicks = Math.max(1, MathHelper.ceiling_double_int(BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS / riseSpeed));
+			double rotYaw = 0.0D;
+			double rotPitch = 0.0D;
+			double rotYawSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MAX);
+			double rotPitchSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MAX);
+			blackholeGravityLiftChunks.add(new BlackholeGravityLiftChunk(jar, px, y + 1.0D, pz, riseSpeed, maxAgeTicks, rotYaw, rotPitch, rotYawSpeed, rotPitchSpeed));
+			return true;
+		}
+		return false;
+	}
+
+	private static double randomSignedSpeed(Random rand, double min, double max) {
+		double mag = min + rand.nextDouble() * (max - min);
+		return rand.nextBoolean() ? mag : -mag;
+	}
+
+	private static int copyLiftBlockIntoJar(World world, WorldInAJar jar, int jarX, int jarY, int jarZ, int worldX, int worldY, int worldZ) {
+		Block block = world.getBlock(worldX, worldY, worldZ);
+		if(block == null || block.isAir(world, worldX, worldY, worldZ) || block == Blocks.air) {
+			return 0;
+		}
+		if(block.getMaterial() == Material.air || block.getMaterial().isLiquid()) {
+			return 0;
+		}
+		int meta = world.getBlockMetadata(worldX, worldY, worldZ);
+		if(block.hasTileEntity(meta)) {
+			return 0;
+		}
+		jar.setBlock(jarX, jarY, jarZ, block, meta);
+		return 1;
+	}
+
+	private static void tickBlackholeGravityLiftFx() {
+		Iterator<BlackholeGravityLiftBlock> iterator = blackholeGravityLiftBlocks.iterator();
+		while(iterator.hasNext()) {
+			BlackholeGravityLiftBlock block = iterator.next();
+			block.ageTicks++;
+			if(block.ageTicks >= block.maxAgeTicks) {
+				iterator.remove();
+			}
+		}
+
+		Iterator<BlackholeGravityLiftChunk> chunkIterator = blackholeGravityLiftChunks.iterator();
+		while(chunkIterator.hasNext()) {
+			BlackholeGravityLiftChunk chunk = chunkIterator.next();
+			chunk.ageTicks++;
+			if(chunk.ageTicks >= chunk.maxAgeTicks) {
+				chunkIterator.remove();
+			}
+		}
+	}
+
+	private static boolean isBlackholeCollapseMusicLockActive(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return false;
+		}
+		long collapseEndTick = getBlackholeCollapseEndTick(world);
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long now = world.getTotalWorldTime();
+		return now >= collapseStartTick && now < collapseEndTick;
+	}
+
+	private static boolean shouldBlockMusicDuringBlackholeCollapse(World world, ResourceLocation soundLocation) {
+		if(!isBlackholeCollapseMusicLockActive(world) || soundLocation == null) {
+			return false;
+		}
+		if(BLACKHOLE_COLLAPSE_EVENT_MUSIC.equals(soundLocation)) {
+			return false;
+		}
+		return soundLocation.getResourcePath().startsWith("music.");
+	}
+
+	@SideOnly(Side.CLIENT)
+	private static void renderBlackholeGravityLiftFx(RenderWorldLastEvent event) {
+		if(blackholeGravityLiftBlocks.isEmpty() && blackholeGravityLiftChunks.isEmpty()) {
+			return;
+		}
+
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.thePlayer == null) {
+			return;
+		}
+
+		EntityPlayer player = mc.thePlayer;
+		World world = player.worldObj;
+		if(world == null) {
+			return;
+		}
+		double cameraX = player.prevPosX + (player.posX - player.prevPosX) * event.partialTicks;
+		double cameraY = player.prevPosY + (player.posY - player.prevPosY) * event.partialTicks;
+		double cameraZ = player.prevPosZ + (player.posZ - player.prevPosZ) * event.partialTicks;
+
+		RenderHelper.disableStandardItemLighting();
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.glPushMatrix();
+		{
+			mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+			GL11.glShadeModel(GL11.GL_SMOOTH);
+			for(BlackholeGravityLiftBlock block : blackholeGravityLiftBlocks) {
+				double y = block.y + (block.ageTicks + event.partialTicks) * block.riseSpeed;
+				double rotTicks = block.ageTicks + event.partialTicks;
+				float yaw = (float)(block.rotYaw + rotTicks * block.rotYawSpeed);
+				float pitch = (float)(block.rotPitch + rotTicks * block.rotPitchSpeed);
+				int bx = MathHelper.floor_double(block.x);
+				int by = MathHelper.floor_double(y);
+				int bz = MathHelper.floor_double(block.z);
+				int brightness = world.getLightBrightnessForSkyBlocks(bx, by, bz, 0);
+				block.jar.lightlevel = brightness;
+				GL11.glPushMatrix();
+				{
+					GL11.glTranslated(block.x - cameraX, y - cameraY, block.z - cameraZ);
+					GL11.glTranslated(0.5D, 0.5D, 0.5D);
+					GL11.glRotatef(yaw, 0.0F, 1.0F, 0.0F);
+					GL11.glRotatef(pitch, 1.0F, 0.0F, 0.0F);
+					GL11.glTranslated(-0.5D, -0.5D, -0.5D);
+					GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+					Tessellator.instance.startDrawingQuads();
+					Tessellator.instance.setBrightness(brightness);
+					try {
+						RenderBlocks renderer = new RenderBlocks(block.jar);
+						renderer.enableAO = true;
+						renderer.renderBlockByRenderType(block.jar.getBlock(0, 0, 0), 0, 0, 0);
+					} catch(Exception ignored) { }
+					Tessellator.instance.draw();
+				}
+				GL11.glPopMatrix();
+			}
+			for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+				double y = chunk.y + (chunk.ageTicks + event.partialTicks) * chunk.riseSpeed;
+				double rotTicks = chunk.ageTicks + event.partialTicks;
+				float yaw = (float)(chunk.rotYaw + rotTicks * chunk.rotYawSpeed);
+				float pitch = (float)(chunk.rotPitch + rotTicks * chunk.rotPitchSpeed);
+				int bx = MathHelper.floor_double(chunk.x);
+				int by = MathHelper.floor_double(y + chunk.jar.sizeY * 0.5D);
+				int bz = MathHelper.floor_double(chunk.z);
+				int brightness = world.getLightBrightnessForSkyBlocks(bx, by, bz, 0);
+				chunk.jar.lightlevel = brightness;
+				GL11.glPushMatrix();
+				{
+					GL11.glTranslated(chunk.x - cameraX, y - cameraY, chunk.z - cameraZ);
+					GL11.glRotatef(yaw, 0.0F, 1.0F, 0.0F);
+					GL11.glRotatef(pitch, 1.0F, 0.0F, 0.0F);
+					GL11.glTranslated(-chunk.jar.sizeX / 2.0D, -chunk.jar.sizeY / 2.0D, -chunk.jar.sizeZ / 2.0D);
+					GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+					Tessellator.instance.startDrawingQuads();
+					Tessellator.instance.setBrightness(brightness);
+					try {
+						RenderBlocks renderer = new RenderBlocks(chunk.jar);
+						renderer.enableAO = true;
+						for(int ix = 0; ix < chunk.jar.sizeX; ix++) {
+							for(int iy = 0; iy < chunk.jar.sizeY; iy++) {
+								for(int iz = 0; iz < chunk.jar.sizeZ; iz++) {
+									renderer.renderBlockByRenderType(chunk.jar.getBlock(ix, iy, iz), ix, iy, iz);
+								}
+							}
+						}
+					} catch(Exception ignored) { }
+					Tessellator.instance.draw();
+				}
+				GL11.glPopMatrix();
+			}
+			GL11.glShadeModel(GL11.GL_FLAT);
+		}
+		GL11.glPopMatrix();
+		RenderHelper.enableStandardItemLighting();
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
 	private static void triggerBlackholeItsHereFx(World world, long collapseEndTick) {
 		if(world == null || world.provider == null || collapseEndTick <= 0L) {
 			return;
@@ -1681,19 +2153,27 @@ public class ModEventHandlerClient {
 	public void onPlayMusic(PlaySoundEvent17 event) {
 		final ResourceLocation musicLocation = new ResourceLocation("hbm:music.game.space");
 		final ResourceLocation musicLocationDmitriy = new ResourceLocation("hbm:music.game.dmitriy");
+		if(event == null || event.sound == null) return;
 		ResourceLocation r = event.sound.getPositionedSoundLocation();
-		if(Minecraft.getMinecraft().theWorld == null) return;
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc.theWorld == null || r == null) return;
+		if(shouldBlockMusicDuringBlackholeCollapse(mc.theWorld, r)) {
+			stopCurrentMusic();
+			event.setResult(Result.DENY);
+			event.result = null;
+			return;
+		}
 		if(!r.toString().equals("minecraft:music.game.creative") && !r.toString().equals("minecraft:music.game")) return;
 
 		// Prevent songs playing over the top of each other
-		if(Minecraft.getMinecraft().getSoundHandler().isSoundPlaying(currentSong)) {
+		if(mc.getSoundHandler().isSoundPlaying(currentSong)) {
 			event.setResult(Result.DENY);
 			event.result = null;
 			return;
 		}
 
 		// Dmitriy: match space music cadence
-		WorldProvider provider = Minecraft.getMinecraft().theWorld.provider;
+		WorldProvider provider = mc.theWorld.provider;
 		if(provider != null && provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			event.result = currentSong = PositionedSoundRecord.func_147673_a(musicLocationDmitriy);
 			return;
@@ -2091,6 +2571,7 @@ public class ModEventHandlerClient {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			resetDmitriyCameraEffects(mc);
 			resetBlackholeItsHereFxState();
+			resetBlackholeGravityLiftFxState();
 			lastClientDimensionId = null;
 			return;
 		}
@@ -2101,6 +2582,7 @@ public class ModEventHandlerClient {
 				resetDmitriyCameraEffects(mc);
 			}
 			resetBlackholeItsHereFxState();
+			resetBlackholeGravityLiftFxState();
 			lastClientDimensionId = currentDimension;
 		} else if(currentDimension != SpaceConfig.dmitriyDimension) {
 			resetDmitriyCameraEffects(mc);
@@ -2129,6 +2611,7 @@ public class ModEventHandlerClient {
 				MainRegistry.proxy.displayTooltip(EnumChatFormatting.RED + "Your mask has no filter!", ServerProxy.ID_FILTER);
 			}
 			updateBlackholeGravityWarningTooltip(mc);
+			updateBlackholeGravityLiftFx(mc);
 			
 			//prune other entities' muzzle flashes
 			if(mc.theWorld.getTotalWorldTime() % 30 == 0) {
@@ -2969,6 +3452,7 @@ public class ModEventHandlerClient {
 		Clock.update();
 
 		BlockRebar.renderRebar(Minecraft.getMinecraft().theWorld.loadedTileEntityList, event.partialTicks);
+		renderBlackholeGravityLiftFx(event);
 
 		GL11.glPushMatrix();
 

@@ -8,7 +8,6 @@ import net.minecraft.world.WorldType;
 public class WorldTypeTeleport extends WorldType {
 
 	public static WorldType martian;
-	public static WorldType blackHoleSun;
 
 	public WorldTypeTeleport(String name) {
 		super(name);
@@ -16,7 +15,6 @@ public class WorldTypeTeleport extends WorldType {
 
 	public static void init() {
 		martian = new WorldTypeTeleport("martian");
-		blackHoleSun = new WorldTypeTeleport("black_hole_sun");
 	}
 
 	public boolean onPlayerJoin(EntityPlayer player) {
