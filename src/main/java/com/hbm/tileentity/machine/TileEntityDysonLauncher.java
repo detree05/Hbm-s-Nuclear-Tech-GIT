@@ -118,7 +118,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 				power -= getPowerPerTick();
 
 				if(operatingTime > getSpinUpTime()) {
-					int toLaunch = Math.min(payload.stackSize, MEMBERS_PER_LAUNCH);
+					int toLaunch = Math.min(payload.stackSize, getInventoryStackLimit());
 					if(isNothing) {
 						toLaunch = 1;
 						skyState.setState(CBT_SkyState.SkyState.STARCORE);
