@@ -204,7 +204,6 @@ public class ModEventHandlerClient {
 	private static final float BLACKHOLE_CAMERA_TILT_AMPLITUDE_DEG = 1.25F;
 	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
 	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
-	private static long blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
 	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS = 72;
 	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 16;
 	private static final double BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS = 150.0D;
@@ -1669,7 +1668,6 @@ public class ModEventHandlerClient {
 	private static void resetBlackholeItsHereFxState() {
 		blackholeItsHereFxDimension = Integer.MIN_VALUE;
 		blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
-		blackholeItsHereFxTimestampMs = Long.MIN_VALUE;
 	}
 
 	private static void resetBlackholeGravityLiftFxState() {
@@ -2069,25 +2067,12 @@ public class ModEventHandlerClient {
 
 		blackholeItsHereFxDimension = dimension;
 		blackholeItsHereFxCollapseEndTick = collapseEndTick;
-		long now = System.currentTimeMillis();
-		blackholeItsHereFxTimestampMs = now;
-		starcoreFlashTimestamp = now;
+		starcoreFlashTimestamp = System.currentTimeMillis();
 	}
 
 	public static float getBlackholeItsHereWorldTintStrength(World world) {
-		if(world == null || world.provider == null) {
-			return 0.0F;
-		}
-		if(blackholeItsHereFxTimestampMs <= 0L
-			|| blackholeItsHereFxCollapseEndTick <= 0L
-			|| world.provider.dimensionId != blackholeItsHereFxDimension) {
-			return 0.0F;
-		}
-		long nowTick = world.getTotalWorldTime();
-		if(nowTick >= blackholeItsHereFxCollapseEndTick) {
-			return 0.0F;
-		}
-		return 1.0F;
+		// Blackhole collapse no longer applies any global red world tint.
+		return 0.0F;
 	}
 
 	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {

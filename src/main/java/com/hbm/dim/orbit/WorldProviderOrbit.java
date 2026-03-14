@@ -13,7 +13,6 @@ import com.hbm.dim.trait.CBT_Destroyed;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
 import com.hbm.config.SpaceConfig;
-import com.hbm.main.ModEventHandlerClient;
 import com.hbm.util.AstronomyUtil;
 import com.hbm.util.BobMathUtil;
 import com.hbm.util.Compat;
@@ -193,11 +192,6 @@ public class WorldProviderOrbit extends WorldProvider {
 	@SideOnly(Side.CLIENT)
 	public boolean updateLightmap(int[] lightmap) {
 		boolean changed = false;
-		final float collapseRedTint = getBlackholeCollapseRedTintStrength();
-		final float redScale = 1.0F + 0.22F * collapseRedTint;
-		final int redBoost = MathHelper.clamp_int(MathHelper.floor_float(48.0F * collapseRedTint), 0, 96);
-		final float greenScale = 0.95F - 0.70F * collapseRedTint;
-		final float blueScale = 0.95F - 0.82F * collapseRedTint;
 		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
@@ -205,16 +199,15 @@ public class WorldProviderOrbit extends WorldProvider {
 			int r = colors[0];
 			int g = colors[1];
 			int b = colors[2];
+			int nr = r;
+			int ng = g;
+			int nb = b;
 
 			if(skyDim < 1.0F) {
-				r = (int)(r * skyDim);
-				g = (int)(g * skyDim);
-				b = (int)(b * skyDim);
+				nr = MathHelper.clamp_int((int)(nr * skyDim), 0, 255);
+				ng = MathHelper.clamp_int((int)(ng * skyDim), 0, 255);
+				nb = MathHelper.clamp_int((int)(nb * skyDim), 0, 255);
 			}
-
-			int nr = MathHelper.clamp_int((int)(r * redScale) + redBoost, 0, 255);
-			int ng = MathHelper.clamp_int((int)(g * greenScale), 0, 255);
-			int nb = MathHelper.clamp_int((int)(b * blueScale), 0, 255);
 
 			if(nr != r || ng != g || nb != b) {
 				lightmap[i] = packColor(nr, ng, nb);
@@ -278,12 +271,7 @@ public class WorldProviderOrbit extends WorldProvider {
 
 	@SideOnly(Side.CLIENT)
 	public boolean shouldForceLightmapRefresh() {
-		return getBlackholeCollapseRedTintStrength() > 0.0F;
-	}
-
-	@SideOnly(Side.CLIENT)
-	private float getBlackholeCollapseRedTintStrength() {
-		return ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(worldObj);
+		return getSkyLightDimmer() < 1.0F;
 	}
 
 	@SideOnly(Side.CLIENT)
