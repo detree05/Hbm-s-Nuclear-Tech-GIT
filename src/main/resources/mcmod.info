@@ -1,7 +1,7 @@
 [
 {
   "modid": "hbm",
-  "name": "NTM: Space",
+  "name": "Evil NTM: Space",
   "description": "A mod that adds weapons, nuclear themed stuff and space travel",
   "version":"${version}",
   "mcversion": "1.7.10",
