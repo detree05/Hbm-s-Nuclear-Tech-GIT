@@ -168,7 +168,6 @@ public class ModEventHandlerClient {
 	public static long starcoreFlashTimestamp;
 	public static long shakeTimestamp;
 	private static Float lastDmitriyGravity;
-	private static long lastDmitriyHeartbeatBeat = -1L;
 	private static float dmitriyStarStareIntensity = 0.0F;
 	private static Integer lastClientDimensionId = null;
 	private static final List<DmitriyStareTextEntry> dmitriyStarStareTextEntries = new ArrayList<DmitriyStareTextEntry>();
@@ -967,10 +966,6 @@ public class ModEventHandlerClient {
 		return 15;
 	}
 
-	private static float getDmitriyStarStareTextFade(int ageTicks) {
-		return ageTicks < 15 ? 1.0F : 0.0F;
-	}
-
 	private static Vec3 getDmitriyStarADirection(World world, float partialTicks) {
 		if(world == null) {
 			return null;
@@ -1424,18 +1419,6 @@ public class ModEventHandlerClient {
 		return isBlackholeCollapseCameraTiltActive(world);
 	}
 
-	private static float getBlackholeCollapseCameraTiltRoll(World world, float partialTicks) {
-		if(!isBlackholeCollapseCameraTiltActive(world)) {
-			return 0.0F;
-		}
-
-		double t = (double)world.getTotalWorldTime() + (double)partialTicks;
-		double primaryWave = Math.sin(t * 0.00028F);
-		double secondaryWave = Math.sin(t * 0.00013F + 1.1D) * 0.35D;
-		double blendedWave = (primaryWave + secondaryWave) / 1.35D;
-		return (float)(blendedWave * 1.25F);
-	}
-
 	private static boolean isBlackholeGravityRampWarningActive(World world) {
 		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
 			return false;
@@ -1716,7 +1699,7 @@ public class ModEventHandlerClient {
 			blackholeGravityLiftFxNextSpawnTick = now + nextDelay;
 		}
 
-		if(blackholeGravityLiftChunks.size() < 50 && now >= blackholeGravityLiftFxNextChunkSpawnTick) {
+		if(blackholeGravityLiftChunks.size() < 10 && now >= blackholeGravityLiftFxNextChunkSpawnTick) {
 			int chunkDelayRange = 28 - 10 + 1;
 			boolean chunkSpawned = trySpawnLiftChunk(world, baseX, baseZ, rand);
 			int nextChunkDelay = 10 + rand.nextInt(chunkDelayRange);
@@ -2832,23 +2815,6 @@ public class ModEventHandlerClient {
 				ParticleUtil.spawnDmitriyDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
 			}
 		}
-	}
-
-	private void maybePlayDmitriyHeartbeat(Minecraft mc) {
-		final double dmitriyHeartbeatPeriodTicks = 200.0D;
-		if(mc.theWorld == null || mc.thePlayer == null) {
-			return;
-		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
-			return;
-		}
-		long tick = mc.theWorld.getTotalWorldTime();
-		long beatIndex = (long) Math.floor(tick / dmitriyHeartbeatPeriodTicks);
-		if(beatIndex == lastDmitriyHeartbeatBeat) {
-			return;
-		}
-		lastDmitriyHeartbeatBeat = beatIndex;
-		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
 	}
 
 	private void maybePlayDmitriyDialogue(Minecraft mc) {
