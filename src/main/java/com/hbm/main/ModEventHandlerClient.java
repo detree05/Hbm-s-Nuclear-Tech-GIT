@@ -206,8 +206,8 @@ public class ModEventHandlerClient {
 	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
 	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
 	private static final float BLACKHOLE_ITS_HERE_RED_TINT_MAX_ALPHA = 0.32F;
-	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS = 72;
-	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 28;
+	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS = 100;
+	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 50;
 	private static final double BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS = 150.0D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_SPAWN_RADIUS_BLOCKS = 100.0D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_FOLLOW_DESPAWN_RADIUS_BLOCKS = 100.0D;
@@ -223,8 +223,8 @@ public class ModEventHandlerClient {
 	private static final int BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MAX_TICKS = 8;
 	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS = 10;
 	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MAX_TICKS = 28;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN = 8;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX = 14;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN = 32;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX = 64;
 	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_RETRIES_PER_LAYER = 34;
 	private static int blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
 	private static long blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
