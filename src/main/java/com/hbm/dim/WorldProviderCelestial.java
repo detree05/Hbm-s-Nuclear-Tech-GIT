@@ -275,12 +275,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 	@SideOnly(Side.CLIENT)
 	public boolean shouldForceLightmapRefresh() {
-		return getSkyLightDimmer() < 1.0F;
-	}
-
-	@SideOnly(Side.CLIENT)
-	private Vec3 applyBlackholeCollapseRedTint(Vec3 color) {
-		return color;
+		return false;
 	}
 
 	protected final int packColor(final int[] colors) {
@@ -349,7 +344,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
 
 		// The cold hard vacuum of space
-		if(atmosphere == null) return applyBlackholeCollapseRedTint(Vec3.createVectorHelper(0, 0, 0));
+		if(atmosphere == null) return Vec3.createVectorHelper(0, 0, 0);
 
 		float sun = MathHelper.clamp_float(MathHelper.cos(solarAngle * (float)Math.PI * 2.0F) * 2.0F + 0.5F, 0.0F, 1.0F);
 
@@ -443,7 +438,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			color.zCoord *= 1 - dust;
 		}
 
-		return applyBlackholeCollapseRedTint(color);
+		return color;
 	}
 
 	@Override
@@ -469,7 +464,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
 		// The cold hard vacuum of space
 		if(atmosphere == null) {
-			return applyBlackholeCollapseRedTint(color);
+			return color;
 		}
 
 		float sun = this.getSunBrightnessFactor(1.0F);
@@ -559,7 +554,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			color.zCoord *= fire + (1 - dust);
 		}
 
-		return applyBlackholeCollapseRedTint(color);
+		return color;
 	}
 
 	private Vec3 getColorFromHex(int hexColor) {

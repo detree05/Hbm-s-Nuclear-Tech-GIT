@@ -271,7 +271,7 @@ public class WorldProviderOrbit extends WorldProvider {
 
 	@SideOnly(Side.CLIENT)
 	public boolean shouldForceLightmapRefresh() {
-		return getSkyLightDimmer() < 1.0F;
+		return false;
 	}
 
 	@SideOnly(Side.CLIENT)

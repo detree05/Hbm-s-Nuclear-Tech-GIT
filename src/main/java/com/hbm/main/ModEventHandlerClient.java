@@ -166,6 +166,7 @@ public class ModEventHandlerClient {
 
 	public static long flashTimestamp;
 	public static long starcoreFlashTimestamp;
+	private static final int STARCORE_FLASH_DURATION_MS = 9_000;
 	public static long shakeTimestamp;
 	private static Float lastDmitriyGravity;
 	private static long lastDmitriyHeartbeatBeat = -1L;
@@ -204,10 +205,14 @@ public class ModEventHandlerClient {
 	private static final float BLACKHOLE_CAMERA_TILT_AMPLITUDE_DEG = 1.25F;
 	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
 	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+	private static long blackholeItsHereTintTimestamp = 0L;
+	private static final int BLACKHOLE_ITS_HERE_RED_TINT_DURATION_MS = 2200;
+	private static final float BLACKHOLE_ITS_HERE_RED_TINT_MAX_ALPHA = 0.32F;
 	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS = 72;
-	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 16;
+	private static final int BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_CHUNKS = 28;
 	private static final double BLACKHOLE_GRAVITY_LIFT_ASCENT_HEIGHT_BLOCKS = 150.0D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_SPAWN_RADIUS_BLOCKS = 100.0D;
+	private static final double BLACKHOLE_GRAVITY_LIFT_FOLLOW_DESPAWN_RADIUS_BLOCKS = 100.0D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MIN = 0.018D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_RISE_SPEED_MAX = 0.042D;
 	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_RISE_SPEED_MIN = 0.010D;
@@ -218,11 +223,11 @@ public class ModEventHandlerClient {
 	private static final double BLACKHOLE_GRAVITY_LIFT_CHUNK_ROT_SPEED_MAX = 0.08D;
 	private static final int BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MIN_TICKS = 2;
 	private static final int BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MAX_TICKS = 8;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS = 18;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MAX_TICKS = 45;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN = 6;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX = 10;
-	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_RETRIES_PER_LAYER = 22;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MIN_TICKS = 10;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SPAWN_DELAY_MAX_TICKS = 28;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MIN = 8;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_SIZE_MAX = 14;
+	private static final int BLACKHOLE_GRAVITY_LIFT_CHUNK_RETRIES_PER_LAYER = 34;
 	private static int blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
 	private static long blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
 	private static long blackholeGravityLiftFxNextSpawnTick = Long.MIN_VALUE;
@@ -407,9 +412,9 @@ public class ModEventHandlerClient {
 
 		EntityPlayer player = Minecraft.getMinecraft().thePlayer;
 		final int flashDuration = 5_000;
-		final int starcoreFlashDuration = 9_000;
+		final int starcoreFlashDuration = STARCORE_FLASH_DURATION_MS;
 
-		// removed custom tints; only nuke flash remains
+		// nuke/starcore flash
 
 		/// NUKE FLASH ///
 		long now = Clock.get_ms();
@@ -442,15 +447,6 @@ public class ModEventHandlerClient {
 		}
 
 		if(event.type == ElementType.CROSSHAIRS) {
-			World world = player != null ? player.worldObj : null;
-			boolean providerHasBlackholeTint = world != null
-				&& (world.provider instanceof WorldProviderCelestial || world.provider instanceof WorldProviderOrbit);
-			if(!providerHasBlackholeTint) {
-				float blackholeTint = getBlackholeItsHereWorldTintStrength(world);
-				if(blackholeTint > 0.001F) {
-					renderBlackholeItsHereOverlay(event.resolution, blackholeTint);
-				}
-			}
 			float intensity = getVoidStareIntensity(player);
 			float overlayIntensity = Math.max(intensity, dmitriyStarStareIntensity);
 			if(overlayIntensity > 0.001F) {
@@ -1128,37 +1124,6 @@ public class ModEventHandlerClient {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
-	private static void renderBlackholeItsHereOverlay(ScaledResolution resolution, float tintStrength) {
-		if(resolution == null || tintStrength <= 0.0F) {
-			return;
-		}
-
-		int width = resolution.getScaledWidth();
-		int height = resolution.getScaledHeight();
-		float clampedTint = MathHelper.clamp_float(tintStrength, 0.0F, 1.0F);
-		float alpha = MathHelper.clamp_float(0.12F + 0.30F * clampedTint, 0.0F, 0.48F);
-		Tessellator tess = Tessellator.instance;
-
-		GL11.glDisable(GL11.GL_TEXTURE_2D);
-		GL11.glEnable(GL11.GL_BLEND);
-		OpenGlHelper.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA, 1, 0);
-		GL11.glAlphaFunc(GL11.GL_GEQUAL, 0.0F);
-		GL11.glDepthMask(false);
-
-		tess.startDrawingQuads();
-		tess.setColorRGBA_F(0.96F, 0.10F, 0.08F, alpha);
-		tess.addVertex(width, 0, 0);
-		tess.addVertex(0, 0, 0);
-		tess.addVertex(0, height, 0);
-		tess.addVertex(width, height, 0);
-		tess.draw();
-
-		OpenGlHelper.glBlendFunc(770, 771, 1, 0);
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glAlphaFunc(GL11.GL_GREATER, 0.1F);
-		GL11.glDepthMask(true);
-	}
-
 	private static void renderDmitriyStarStareText(ScaledResolution resolution, float intensity) {
 		final float dmitriyStarStareTextMaxAlpha = 1.0F;
 		final float dmitriyStarStareTextShakePx = 3.0F;
@@ -1668,6 +1633,28 @@ public class ModEventHandlerClient {
 	private static void resetBlackholeItsHereFxState() {
 		blackholeItsHereFxDimension = Integer.MIN_VALUE;
 		blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+		blackholeItsHereTintTimestamp = 0L;
+	}
+
+	public static float getBlackholeItsHereWorldTintStrength(World world) {
+		if(world == null || world.provider == null) {
+			return 0.0F;
+		}
+		if(blackholeItsHereTintTimestamp <= 0L) {
+			return 0.0F;
+		}
+		if(world.provider.dimensionId != blackholeItsHereFxDimension) {
+			return 0.0F;
+		}
+
+		long elapsed = Clock.get_ms() - blackholeItsHereTintTimestamp;
+		if(elapsed < 0L || elapsed >= BLACKHOLE_ITS_HERE_RED_TINT_DURATION_MS) {
+			return 0.0F;
+		}
+
+		float normalized = 1.0F - (elapsed / (float)BLACKHOLE_ITS_HERE_RED_TINT_DURATION_MS);
+		float eased = normalized * normalized * (3.0F - 2.0F * normalized);
+		return BLACKHOLE_ITS_HERE_RED_TINT_MAX_ALPHA * eased;
 	}
 
 	private static void resetBlackholeGravityLiftFxState() {
@@ -1723,11 +1710,13 @@ public class ModEventHandlerClient {
 			blackholeGravityLiftChunks.clear();
 		}
 
-		tickBlackholeGravityLiftFx();
-
-		Random rand = world.rand;
 		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
 		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
+		double playerX = mc.thePlayer.posX;
+		double playerZ = mc.thePlayer.posZ;
+		tickBlackholeGravityLiftFx(playerX, playerZ);
+
+		Random rand = world.rand;
 		if(blackholeGravityLiftBlocks.size() < BLACKHOLE_GRAVITY_LIFT_MAX_ACTIVE_BLOCKS && now >= blackholeGravityLiftFxNextSpawnTick) {
 			int delayRange = BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MAX_TICKS - BLACKHOLE_GRAVITY_LIFT_SPAWN_DELAY_MIN_TICKS + 1;
 			boolean spawned = false;
@@ -1744,14 +1733,10 @@ public class ModEventHandlerClient {
 
 				int y = topY - 1;
 				Block block = world.getBlock(x, y, z);
-				if(block == null || block.isAir(world, x, y, z) || block.getMaterial() == Material.air || block.getMaterial().isLiquid()) {
+				if(!isLiftBlockEligible(world, x, y, z, block)) {
 					continue;
 				}
-
 				int meta = world.getBlockMetadata(x, y, z);
-				if(block.hasTileEntity(meta)) {
-					continue;
-				}
 
 				double px = x + 0.5D;
 				double pz = z + 0.5D;
@@ -1765,6 +1750,9 @@ public class ModEventHandlerClient {
 				double rotPitch = 0.0D;
 				double rotYawSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MAX);
 				double rotPitchSpeed = randomSignedSpeed(rand, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MIN, BLACKHOLE_GRAVITY_LIFT_BLOCK_ROT_SPEED_MAX);
+				if(!world.setBlockToAir(x, y, z)) {
+					continue;
+				}
 				blackholeGravityLiftBlocks.add(new BlackholeGravityLiftBlock(block, meta, px, y + 1.02D, pz, riseSpeed, maxAgeTicks, rotYaw, rotPitch, rotYawSpeed, rotPitchSpeed));
 				spawned = true;
 				break;
@@ -1830,11 +1818,7 @@ public class ModEventHandlerClient {
 
 			int y = topY - 1;
 			Block centerBlock = world.getBlock(x, y, z);
-			if(centerBlock == null || centerBlock.isAir(world, x, y, z) || centerBlock.getMaterial() == Material.air || centerBlock.getMaterial().isLiquid()) {
-				continue;
-			}
-			int centerMeta = world.getBlockMetadata(x, y, z);
-			if(centerBlock.hasTileEntity(centerMeta)) {
+			if(!isLiftBlockEligible(world, x, y, z, centerBlock)) {
 				continue;
 			}
 
@@ -1848,11 +1832,12 @@ public class ModEventHandlerClient {
 			WorldInAJar jar = new WorldInAJar(size, size, size);
 			int middle = size / 2 - 1;
 			int copied = 0;
+			Set<Long> sourcePositions = new HashSet<Long>();
 
 			for(int ix = 0; ix < 2; ix++) {
 				for(int iy = 0; iy < 2; iy++) {
 					for(int iz = 0; iz < 2; iz++) {
-						copied += copyLiftBlockIntoJar(world, jar, middle + ix, middle + iy, middle + iz, x + ix, y + iy, z + iz);
+						copied += copyLiftBlockIntoJar(world, jar, middle + ix, middle + iy, middle + iz, x + ix, y + iy, z + iz, sourcePositions);
 					}
 				}
 			}
@@ -1871,12 +1856,15 @@ public class ModEventHandlerClient {
 						|| jar.getBlock(jarX, jarY - 1, jarZ) != Blocks.air
 						|| jar.getBlock(jarX, jarY, jarZ + 1) != Blocks.air
 						|| jar.getBlock(jarX, jarY, jarZ - 1) != Blocks.air) {
-						copied += copyLiftBlockIntoJar(world, jar, jarX, jarY, jarZ, x + jx, y + jy, z + jz);
+						copied += copyLiftBlockIntoJar(world, jar, jarX, jarY, jarZ, x + jx, y + jy, z + jz, sourcePositions);
 					}
 				}
 			}
 
 			if(copied < 6) {
+				continue;
+			}
+			if(!removeLiftSourceBlocks(world, sourcePositions)) {
 				continue;
 			}
 
@@ -1897,28 +1885,82 @@ public class ModEventHandlerClient {
 		return rand.nextBoolean() ? mag : -mag;
 	}
 
-	private static int copyLiftBlockIntoJar(World world, WorldInAJar jar, int jarX, int jarY, int jarZ, int worldX, int worldY, int worldZ) {
+	private static int copyLiftBlockIntoJar(World world, WorldInAJar jar, int jarX, int jarY, int jarZ, int worldX, int worldY, int worldZ, Set<Long> sourcePositions) {
 		Block block = world.getBlock(worldX, worldY, worldZ);
-		if(block == null || block.isAir(world, worldX, worldY, worldZ) || block == Blocks.air) {
-			return 0;
-		}
-		if(block.getMaterial() == Material.air || block.getMaterial().isLiquid()) {
+		if(!isLiftBlockEligible(world, worldX, worldY, worldZ, block)) {
 			return 0;
 		}
 		int meta = world.getBlockMetadata(worldX, worldY, worldZ);
-		if(block.hasTileEntity(meta)) {
-			return 0;
-		}
 		jar.setBlock(jarX, jarY, jarZ, block, meta);
+		sourcePositions.add(packBlockPos(worldX, worldY, worldZ));
 		return 1;
 	}
 
-	private static void tickBlackholeGravityLiftFx() {
+	private static boolean removeLiftSourceBlocks(World world, Set<Long> sourcePositions) {
+		if(sourcePositions.isEmpty()) {
+			return false;
+		}
+		int removedCount = 0;
+		for(Long packed : sourcePositions) {
+			int x = unpackBlockX(packed.longValue());
+			int y = unpackBlockY(packed.longValue());
+			int z = unpackBlockZ(packed.longValue());
+			if(world.setBlockToAir(x, y, z)) {
+				removedCount++;
+			}
+		}
+		return removedCount == sourcePositions.size();
+	}
+
+	private static boolean isLiftBlockEligible(World world, int x, int y, int z, Block block) {
+		if(block == null || block == Blocks.air || block.isAir(world, x, y, z)) {
+			return false;
+		}
+		Material material = block.getMaterial();
+		if(material == Material.air || material.isLiquid()) {
+			return false;
+		}
+		if(!isVanillaBlock(block)) {
+			return false;
+		}
+		int meta = world.getBlockMetadata(x, y, z);
+		return !block.hasTileEntity(meta);
+	}
+
+	private static boolean isVanillaBlock(Block block) {
+		Object nameObj = Block.blockRegistry.getNameForObject(block);
+		if(!(nameObj instanceof String)) {
+			return false;
+		}
+		String registryName = (String)nameObj;
+		return registryName.startsWith("minecraft:");
+	}
+
+	private static long packBlockPos(int x, int y, int z) {
+		return ((long)(x & 67108863) << 38) | ((long)(z & 67108863) << 12) | (long)(y & 4095);
+	}
+
+	private static int unpackBlockX(long packed) {
+		int x = (int)(packed >> 38);
+		return x >= 33554432 ? x - 67108864 : x;
+	}
+
+	private static int unpackBlockY(long packed) {
+		int y = (int)(packed & 4095L);
+		return y >= 2048 ? y - 4096 : y;
+	}
+
+	private static int unpackBlockZ(long packed) {
+		int z = (int)((packed >> 12) & 67108863L);
+		return z >= 33554432 ? z - 67108864 : z;
+	}
+
+	private static void tickBlackholeGravityLiftFx(double playerX, double playerZ) {
 		Iterator<BlackholeGravityLiftBlock> iterator = blackholeGravityLiftBlocks.iterator();
 		while(iterator.hasNext()) {
 			BlackholeGravityLiftBlock block = iterator.next();
 			block.ageTicks++;
-			if(block.ageTicks >= block.maxAgeTicks) {
+			if(block.ageTicks >= block.maxAgeTicks || isLiftOutsideFollowRadius(block.x, block.z, playerX, playerZ)) {
 				iterator.remove();
 			}
 		}
@@ -1927,10 +1969,17 @@ public class ModEventHandlerClient {
 		while(chunkIterator.hasNext()) {
 			BlackholeGravityLiftChunk chunk = chunkIterator.next();
 			chunk.ageTicks++;
-			if(chunk.ageTicks >= chunk.maxAgeTicks) {
+			if(chunk.ageTicks >= chunk.maxAgeTicks || isLiftOutsideFollowRadius(chunk.x, chunk.z, playerX, playerZ)) {
 				chunkIterator.remove();
 			}
 		}
+	}
+
+	private static boolean isLiftOutsideFollowRadius(double x, double z, double playerX, double playerZ) {
+		double dx = x - playerX;
+		double dz = z - playerZ;
+		double maxDist = BLACKHOLE_GRAVITY_LIFT_FOLLOW_DESPAWN_RADIUS_BLOCKS;
+		return dx * dx + dz * dz > maxDist * maxDist;
 	}
 
 	private static boolean isBlackholeCollapseMusicLockActive(World world) {
@@ -2068,11 +2117,8 @@ public class ModEventHandlerClient {
 		blackholeItsHereFxDimension = dimension;
 		blackholeItsHereFxCollapseEndTick = collapseEndTick;
 		starcoreFlashTimestamp = System.currentTimeMillis();
-	}
-
-	public static float getBlackholeItsHereWorldTintStrength(World world) {
-		// Blackhole collapse no longer applies any global red world tint.
-		return 0.0F;
+		blackholeItsHereTintTimestamp = starcoreFlashTimestamp
+			+ (ClientConfig.NUKE_HUD_FLASH.get() ? STARCORE_FLASH_DURATION_MS : 0L);
 	}
 
 	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {
