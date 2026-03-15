@@ -60,8 +60,8 @@ public class TileEntityDiFurnaceRTG extends TileEntityMachineBase implements IGU
 		if(worldObj.isRemote)
 			return;
 
-		boolean markDirty = false;
-
+		boolean hasProgress = progress > 0;
+		
 		if(canProcess() && hasPower()) {
 			progress += processSpeed;
 			if(progress >= timeRequired) {
@@ -72,16 +72,10 @@ public class TileEntityDiFurnaceRTG extends TileEntityMachineBase implements IGU
 		} else {
 			progress = 0;
 		}
-
-		boolean trigger = true;
-
-		if (hasPower() && canProcess() && this.progress == 0) {
-			markDirty = true;
-			trigger = false;
+		
+		if(hasProgress != progress > 0) {
+			MachineDiFurnaceRTG.updateBlockState(isProcessing() || (canProcess() && hasPower()), getWorldObj(), xCoord, yCoord, zCoord);
 		}
-
-		if(trigger)
-			MachineDiFurnaceRTG.updateBlockState(this.progress > 0, getWorldObj(), xCoord, yCoord, zCoord);
 
 		networkPackNT(10);
 
@@ -95,7 +89,8 @@ public class TileEntityDiFurnaceRTG extends TileEntityMachineBase implements IGU
 		super.serialize(buf);
 		buf.writeShort(progress);
 		buf.writeShort(processSpeed);
-		buf.writeBytes(new byte[] {sideUpper, sideLower});
+		buf.writeByte(sideUpper);
+		buf.writeByte(sideLower);
 	}
 
 	@Override
@@ -103,10 +98,8 @@ public class TileEntityDiFurnaceRTG extends TileEntityMachineBase implements IGU
 		super.deserialize(buf);
 		progress = buf.readShort();
 		processSpeed = buf.readShort();
-		byte[] bytes = new byte[2];
-		buf.readBytes(bytes);
-		this.sideUpper = bytes[0];
-		this.sideLower = bytes[1];
+		this.sideUpper = buf.readByte();
+		this.sideLower = buf.readByte();
 	}
 
 	private void processItem() {
