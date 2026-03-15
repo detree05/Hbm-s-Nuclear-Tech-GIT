@@ -576,6 +576,15 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 				.inputItems(new OreDictStack(ANY_HARDPLASTIC.ingot(), 4), new OreDictStack(CU.pipe(), 2), new ComparableStack(ModItems.motor, 2), new ComparableStack(ModItems.circuit, 1, EnumCircuitType.BASIC))
 				.inputItemsEx(new ComparableStack(ModItems.item_expensive, 1, EnumExpensiveType.PLASTIC), new OreDictStack(CU.pipe(), 4), new ComparableStack(ModItems.item_expensive, 1, EnumExpensiveType.CIRCUIT))
 				.setPools528(GenericRecipes.POOL_PREFIX_528 + "tcalloy"));
+		this.register(new GenericRecipe("ass.fusionreactor").setup(1200, 10000).outputItems(new ItemStack(ModBlocks.fusion_torus, 1))
+			.inputItems(new ComparableStack(ModBlocks.fusion_component, 64, 0), new ComparableStack(ModBlocks.fusion_component, 64, 0),
+						new ComparableStack(ModBlocks.fusion_component, 64, 0), new ComparableStack(ModBlocks.fusion_component, 64, 0),
+						new OreDictStack(STEEL.plateCast(), 64), new OreDictStack(STEEL.plateCast(), 64), new OreDictStack(STEEL.plateCast(), 64),
+						new ComparableStack(ModItems.motor_desh, 32),
+						new OreDictStack(W.plateWelded(), 48),
+						new OreDictStack(ANY_RESISTANTALLOY.plateWelded(), 16),
+						new ComparableStack(ModItems.circuit, 48, EnumCircuitType.BISMOID),
+						new ComparableStack(ModItems.circuit, 32, EnumCircuitType.QUANTUM)));
 
 		this.register(new GenericRecipe("ass.fusionklystron").setup(300, 100).outputItems(new ItemStack(ModBlocks.fusion_klystron, 1))
 				.inputItems(new OreDictStack(W.plateWelded(), 4), new OreDictStack(ANY_RESISTANTALLOY.plateCast(), 16), new OreDictStack(CU.plate(), 32), new OreDictStack(ANY_HARDPLASTIC.ingot(), 16), new OreDictStack(BSCCO.wireDense(), 8), new ComparableStack(ModItems.circuit, 2, EnumCircuitType.BISMOID))
