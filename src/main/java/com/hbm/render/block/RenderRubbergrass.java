@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import com.hbm.blocks.generic.BarbedWire;
 import com.hbm.blocks.generic.BlockRubberCacti;
 import com.hbm.main.ResourceManager;
+import com.hbm.render.loader.HFRWavefrontObject;
 import com.hbm.render.util.ObjUtil;
 
 import cpw.mods.fml.client.registry.ISimpleBlockRenderingHandler;
@@ -28,11 +29,11 @@ public class RenderRubbergrass implements ISimpleBlockRenderingHandler {
 	    }
 
 	    tessellator.startDrawingQuads();
-	    ObjUtil.renderWithIcon((WavefrontObject) ResourceManager.spike_plant, iicon, tessellator, 0, false); 
+	    ObjUtil.renderWithIcon(ResourceManager.spike_plant, iicon, tessellator, 0, false); 
 	    tessellator.draw();
 
 	    tessellator.startDrawingQuads();
-	    ObjUtil.renderWithIcon((WavefrontObject) ResourceManager.spike_plant, iicon, tessellator, 0, false); 
+	    ObjUtil.renderWithIcon(ResourceManager.spike_plant, iicon, tessellator, 0, false); 
 	    tessellator.draw();
 	}
 
@@ -51,11 +52,11 @@ public class RenderRubbergrass implements ISimpleBlockRenderingHandler {
 	    float rotation = (float) -Math.PI;
 
 	    tessellator.addTranslation(x + 0.5F, y, z + 0.5F);
-	    ObjUtil.renderWithIcon((WavefrontObject) ResourceManager.spike_plant, iicon, tessellator, rotation, false);
+	    ObjUtil.renderWithIcon(ResourceManager.spike_plant, iicon, tessellator, rotation, false);
 	    tessellator.addTranslation(-x - 0.5F, -y, -z - 0.5F);
 
 	    tessellator.addTranslation(x + 0.5F, y, z + 0.5F);
-	    ObjUtil.renderWithIcon((WavefrontObject) ResourceManager.spike_plant, iicon, tessellator, rotation + (float) Math.PI, false);
+	    ObjUtil.renderWithIcon( ResourceManager.spike_plant, iicon, tessellator, rotation + (float) Math.PI, false);
 	    tessellator.addTranslation(-x - 0.5F, -y, -z - 0.5F);
 
 	    return true;

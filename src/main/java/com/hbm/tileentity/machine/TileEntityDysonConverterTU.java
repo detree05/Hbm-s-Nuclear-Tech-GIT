@@ -37,7 +37,7 @@ public class TileEntityDysonConverterTU extends TileEntityMachineBase implements
 
 		if(x != rx || y != ry || z != rz) return false;
 
-		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			return true;
 		}
 
@@ -104,3 +104,4 @@ public class TileEntityDysonConverterTU extends TileEntityMachineBase implements
 	}
 
 }
+

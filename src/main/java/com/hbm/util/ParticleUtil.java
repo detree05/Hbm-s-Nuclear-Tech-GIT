@@ -119,10 +119,10 @@ public class ParticleUtil {
 		}
 	}
 
-	public static void spawnKerbolWind(World world, double x, double y, double z, double mX, double mY, double mZ, float scale, float r, float g, float b, float a) {
+	public static void spawnDmitriyWind(World world, double x, double y, double z, double mX, double mY, double mZ, float scale, float r, float g, float b, float a) {
 
 		NBTTagCompound data = new NBTTagCompound();
-		data.setString("type", "kerbolwind");
+		data.setString("type", "dmitriywind");
 		data.setDouble("mX", mX);
 		data.setDouble("mY", mY);
 		data.setDouble("mZ", mZ);
@@ -142,10 +142,10 @@ public class ParticleUtil {
 		}
 	}
 
-	public static void spawnKerbolDot(World world, double x, double y, double z, double mX, double mY, double mZ, float r, float g, float b) {
+	public static void spawnDmitriyDot(World world, double x, double y, double z, double mX, double mY, double mZ, float r, float g, float b) {
 
 		NBTTagCompound data = new NBTTagCompound();
-		data.setString("type", "kerboldot");
+		data.setString("type", "dmitriydot");
 		data.setDouble("mX", mX);
 		data.setDouble("mY", mY);
 		data.setDouble("mZ", mZ);

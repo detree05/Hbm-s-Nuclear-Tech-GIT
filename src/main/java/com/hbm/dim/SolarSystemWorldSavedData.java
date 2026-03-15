@@ -29,11 +29,13 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	public SolarSystemWorldSavedData(String name) {
 		super(name);
+		CelestialBody.resetAllCoresToDefault();
 	}
 
 	private Random rand = new Random();
 
 	private HashMap<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>> traitMap = new HashMap<String, HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait>>();
+	private HashMap<String, CelestialCore> coreMap = new HashMap<String, CelestialCore>();
 	private HashMap<ChunkCoordIntPair, OrbitalStation> stations = new HashMap<>();
 	private float kerbinGravityMultiplier = 1.0F;
 	private long kerbinGravityDay = -1L;
@@ -55,6 +57,11 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	@Override
 	public void readFromNBT(NBTTagCompound nbt) {
+		traitMap.clear();
+		coreMap.clear();
+		stations.clear();
+		CelestialBody.resetAllCoresToDefault();
+
 		if(nbt.hasKey("kerbinGravityMultiplier")) {
 			kerbinGravityMultiplier = nbt.getFloat("kerbinGravityMultiplier");
 		}
@@ -63,6 +70,15 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 		}
 
 		for(CelestialBody body : CelestialBody.getAllBodies()) {
+			if(nbt.hasKey("c_" + body.name)) {
+				try {
+					CelestialCore core = new CelestialCore();
+					core.readFromNBT(nbt.getCompoundTag("c_" + body.name));
+					body.withCore(core);
+					coreMap.put(body.name, body.getCore() != null ? body.getCore().copy() : null);
+				} catch(Exception ignored) { }
+			}
+
 			if(nbt.hasKey("b_" + body.name)) {
 				NBTTagCompound data = nbt.getCompoundTag("b_" + body.name);
 				HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = new HashMap<>();
@@ -76,7 +92,6 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 						} catch (Exception ex) {}
 					}
 				}
-
 				traitMap.put(body.name, traits);
 			}
 		}
@@ -125,6 +140,13 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 			}
 
 			nbt.setTag("b_" + entry.getKey(), data);
+		}
+
+		for(Entry<String, CelestialCore> entry : coreMap.entrySet()) {
+			if(entry.getValue() == null) continue;
+			NBTTagCompound coreData = new NBTTagCompound();
+			entry.getValue().writeToNBT(coreData);
+			nbt.setTag("c_" + entry.getKey(), coreData);
 		}
 
 		NBTTagList stationList = new NBTTagList();
@@ -189,6 +211,29 @@ public class SolarSystemWorldSavedData extends WorldSavedData {
 
 	public HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> getTraits(String bodyName) {
 		return traitMap.get(bodyName);
+	}
+
+	public void setCore(String bodyName, CelestialCore core) {
+		if(bodyName == null || bodyName.isEmpty()) return;
+		if(core == null) {
+			clearCore(bodyName);
+			return;
+		}
+
+		coreMap.put(bodyName, core.copy());
+		markDirty();
+	}
+
+	public void clearCore(String bodyName) {
+		if(bodyName == null || bodyName.isEmpty()) return;
+		if(coreMap.remove(bodyName) != null) {
+			markDirty();
+		}
+	}
+
+	public CelestialCore getCore(String bodyName) {
+		CelestialCore core = coreMap.get(bodyName);
+		return core != null ? core.copy() : null;
 	}
 
 	public HashMap<ChunkCoordIntPair, OrbitalStation> getStations() {

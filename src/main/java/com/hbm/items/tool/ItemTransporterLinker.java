@@ -61,7 +61,7 @@ public class ItemTransporterLinker extends Item implements IGUIProvider {
 		TileEntityTransporterBase transporter = (TileEntityTransporterBase) tile;
 		if(player.isSneaking()) {
 			if(!world.isRemote) {
-				if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+				if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 					player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED + randomizeSpaces("i cant do this...", world.rand)));
 					return true;
 				}
@@ -263,3 +263,4 @@ public class ItemTransporterLinker extends Item implements IGUIProvider {
 	}
 
 }
+

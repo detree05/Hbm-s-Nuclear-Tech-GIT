@@ -7,6 +7,7 @@ import static com.hbm.inventory.OreDictManager.KEY_STONE;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.UUID;
 
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockOreFluid;
@@ -79,6 +80,8 @@ public class TileEntityMachineMiningLaser extends TileEntityMachineBase implemen
 	public boolean beam;
 	boolean lock = false;
 	double breakProgress;
+	private String ownerName;
+	private String ownerUUID;
 
 	public UpgradeManagerNT upgradeManager = new UpgradeManagerNT();
 
@@ -185,7 +188,6 @@ public class TileEntityMachineMiningLaser extends TileEntityMachineBase implemen
 					}
 
 					if(beam && canBreak(block, targetX, targetY, targetZ)) {
-
 						breakProgress += getBreakSpeed(speed);
 						clientBreakProgress = Math.min(breakProgress, 1);
 
@@ -623,6 +625,8 @@ public class TileEntityMachineMiningLaser extends TileEntityMachineBase implemen
 		tank.readFromNBT(nbt, "oil");
 		power = nbt.getLong("power");
 		isOn = nbt.getBoolean("isOn");
+		ownerName = nbt.getString("ownerName");
+		ownerUUID = nbt.getString("ownerUUID");
 		redstonePowered = false;
 	}
 
@@ -632,6 +636,36 @@ public class TileEntityMachineMiningLaser extends TileEntityMachineBase implemen
 		tank.writeToNBT(nbt, "oil");
 		nbt.setLong("power", power);
 		nbt.setBoolean("isOn", isOn);
+		if(ownerName != null && !ownerName.isEmpty()) {
+			nbt.setString("ownerName", ownerName);
+		}
+		if(ownerUUID != null && !ownerUUID.isEmpty()) {
+			nbt.setString("ownerUUID", ownerUUID);
+		}
+	}
+
+	public void setOwner(EntityPlayer player) {
+		if(player == null) {
+			return;
+		}
+		this.ownerName = player.getCommandSenderName();
+		this.ownerUUID = player.getUniqueID() != null ? player.getUniqueID().toString().toLowerCase() : null;
+		this.markDirty();
+	}
+
+	public String getOwnerName() {
+		return this.ownerName;
+	}
+
+	public UUID getOwnerUUID() {
+		if(this.ownerUUID == null || this.ownerUUID.isEmpty()) {
+			return null;
+		}
+		try {
+			return UUID.fromString(this.ownerUUID);
+		} catch(IllegalArgumentException ignored) {
+			return null;
+		}
 	}
 
 	@Override

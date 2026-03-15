@@ -13,7 +13,7 @@ import net.minecraft.item.ItemStack;
 public class SubsurfaceWaterExtractionHandler extends NEICelestialHandler {
 
 	public SubsurfaceWaterExtractionHandler() {
-		super("Subsurface Water Extraction", new ItemStack[] { new ItemStack(ModBlocks.machine_water_extraction_plant) }, getRecipes());
+		super("Subsurface Liquid Extraction", new ItemStack[] { new ItemStack(ModBlocks.machine_sub_liquid_extraction_plant) }, getRecipes());
 	}
 
 	@Override
@@ -32,6 +32,9 @@ public class SubsurfaceWaterExtractionHandler extends NEICelestialHandler {
 				case KERBIN:
 				case LAYTHE:
 					map.put(body, new ItemStack[] { ItemFluidIcon.make(Fluids.SUBSURFACE_WATER, 1_000) });
+					break;
+				case EVE:
+					map.put(body, new ItemStack[] { ItemFluidIcon.make(Fluids.AMIDO_MERCURY_COMPLEX, 1_000) });
 					break;
 				default: break;
 			}

@@ -6,7 +6,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.ChunkProviderCelestial;
 import com.hbm.dim.eve.biome.BiomeGenBaseEve;
 import com.hbm.dim.noise.MapGenVNoise;
-import com.hbm.world.gen.terrain.MapGenBubble;
+import com.hbm.world.gen.terrain.MapGenBedrockSubsurfaceWater;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.world.World;
@@ -17,7 +17,7 @@ public class ChunkProviderEve extends ChunkProviderCelestial {
 	private final NoiseGeneratorPerlin crackNoise;
 	private final MapGenVNoise noise = new MapGenVNoise();
 
-	private MapGenBubble oil = new MapGenBubble(WorldConfig.eveGasSpawn);
+	private MapGenBedrockSubsurfaceWater bedrockAmidoMercuryComplex = new MapGenBedrockSubsurfaceWater(WorldConfig.bedrockOilSpawn);
 
 	public ChunkProviderEve(World world, long seed, boolean hasMapFeatures) {
 		super(world, seed, hasMapFeatures);
@@ -37,16 +37,16 @@ public class ChunkProviderEve extends ChunkProviderCelestial {
 
 		noise.applyToBiome = BiomeGenBaseEve.eveOcean;
 
-		oil.block = ModBlocks.ore_gas;
-		oil.meta = (byte)CelestialBody.getMeta(world);
-		oil.replace = ModBlocks.eve_rock;
-		oil.setSize(8, 16);
+		bedrockAmidoMercuryComplex.block = ModBlocks.ore_bedrock_amido_mercury_complex;
+		bedrockAmidoMercuryComplex.meta = (byte)CelestialBody.getMeta(world);
+		bedrockAmidoMercuryComplex.replace = ModBlocks.eve_rock;
+		bedrockAmidoMercuryComplex.spotCount = 0; // no surface markers for this deposit
 	}
 
 	@Override
 	public BlockMetaBuffer getChunkPrimer(int x, int z) {
 		BlockMetaBuffer buffer = super.getChunkPrimer(x, z);
-		oil.setMetas(buffer.metas);
+		bedrockAmidoMercuryComplex.setMetas(buffer.metas);
 
 		boolean hasOcean = false;
 		boolean hasSeismic = false;
@@ -60,7 +60,7 @@ public class ChunkProviderEve extends ChunkProviderCelestial {
 		if(hasSeismic) generateCracks(x, z, buffer);
 		if(hasOcean) noise.func_151539_a(this, worldObj, x, z, buffer.blocks);
 
-		oil.func_151539_a(this, worldObj, x, z, buffer.blocks);
+		bedrockAmidoMercuryComplex.func_151539_a(this, worldObj, x, z, buffer.blocks);
 
 		return buffer;
 	}

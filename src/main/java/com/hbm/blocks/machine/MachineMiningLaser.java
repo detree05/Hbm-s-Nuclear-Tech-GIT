@@ -8,6 +8,7 @@ import com.hbm.tileentity.TileEntityProxyEnergy;
 import com.hbm.tileentity.machine.TileEntityMachineMiningLaser;
 import cpw.mods.fml.common.network.internal.FMLNetworkHandler;
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -85,5 +86,24 @@ public class MachineMiningLaser extends BlockDummyable implements ITooltipProvid
 	public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean ext) {
 		list.add("3x3x3 Multiblock");
 		list.add("Only placeable on a ceiling.");
+	}
+
+	@Override
+	public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entity, ItemStack stack) {
+		super.onBlockPlacedBy(world, x, y, z, entity, stack);
+
+		if(world.isRemote || !(entity instanceof EntityPlayer)) {
+			return;
+		}
+
+		int[] core = this.findCore(world, x, y, z);
+		if(core == null) {
+			return;
+		}
+
+		TileEntity te = world.getTileEntity(core[0], core[1], core[2]);
+		if(te instanceof TileEntityMachineMiningLaser) {
+			((TileEntityMachineMiningLaser) te).setOwner((EntityPlayer) entity);
+		}
 	}
 }

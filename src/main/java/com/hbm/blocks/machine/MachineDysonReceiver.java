@@ -40,7 +40,7 @@ public class MachineDysonReceiver extends BlockDummyable implements ILookOverlay
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ) {
 		if(world.isRemote) {
 			return true;
-		} else if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		} else if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			return true;
 		} else if(!player.isSneaking()) {
 			int[] pos = this.findCore(world, x, y, z);
@@ -111,9 +111,9 @@ public class MachineDysonReceiver extends BlockDummyable implements ILookOverlay
 
 		if(pos == null) return;
 
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			List<String> text = new ArrayList<String>();
-			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getKerbolWarning(world));
+			text.add(EnumChatFormatting.RED + MachineDysonLauncher.getDmitriyWarning(world));
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 			return;
 		}
@@ -150,3 +150,5 @@ public class MachineDysonReceiver extends BlockDummyable implements ILookOverlay
 	}
 
 }
+
+

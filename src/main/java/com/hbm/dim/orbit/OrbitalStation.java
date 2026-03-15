@@ -125,7 +125,7 @@ public class OrbitalStation {
 				}
 			} else if(state == StationState.TRANSFER) {
 				if(stateTimer > maxStateTimer) {
-					if(target == SolarSystem.kerbol && relocateToKerbol(world)) {
+					if(target == SolarSystem.dmitriy && relocateToDmitriy(world)) {
 						return;
 					}
 					setState(StationState.ARRIVING, getArriveTime());
@@ -161,7 +161,7 @@ public class OrbitalStation {
 			}
 		} else if(state == StationState.TRANSFER) {
 			if(stateTimer > maxStateTimer) {
-				if(target == SolarSystem.kerbol && relocateToKerbol(world)) {
+				if(target == SolarSystem.dmitriy && relocateToDmitriy(world)) {
 					return;
 				}
 				setState(StationState.ARRIVING, getArriveTime());
@@ -182,7 +182,7 @@ public class OrbitalStation {
 
 		lastAttemptedTarget = to;
 
-		if(to != null && to.getEnum() == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+		if(to != null && to.getEnum() == SolarSystem.Body.DMITRIY && !SolarSystem.isKerbolBlackhole()) {
 			errorsAt = new ArrayList<ThreeInts>();
 			errorTimer = 100;
 			return false;
@@ -201,9 +201,9 @@ public class OrbitalStation {
 		double deltaV = SolarSystem.getDeltaVBetween(from, to);
 		int shipMass = 200_000; // Always static, to not punish building big cool stations
 		float totalThrust = getTotalThrust();
-		boolean isKerbolTarget = to == SolarSystem.kerbol;
+		boolean isDmitriyTarget = to == SolarSystem.dmitriy;
 		boolean hasSingularityThruster = false;
-		if(isKerbolTarget) {
+		if(isDmitriyTarget) {
 			for(IPropulsion engine : engines) {
 				if(engine instanceof TileEntityMachineHTRS5) {
 					hasSingularityThruster = true;
@@ -216,7 +216,7 @@ public class OrbitalStation {
 		errorsAt = new ArrayList<ThreeInts>();
 
 		for(IPropulsion engine : engines) {
-			if(isKerbolTarget && !hasSingularityThruster) {
+			if(isDmitriyTarget && !hasSingularityThruster) {
 				TileEntity te = engine.getTileEntity();
 				canTravel = false;
 				errorsAt.add(new ThreeInts(te.xCoord, te.yCoord, te.zCoord));
@@ -407,6 +407,14 @@ public class OrbitalStation {
 		return easeInOutCirc(getUnscaledProgress(partialTicks));
 	}
 
+	public CelestialBody getAnimationTarget() {
+		CelestialBody visualTarget = target;
+		if(visualTarget == SolarSystem.dmitriy && SolarSystem.kerbol != null) {
+			visualTarget = SolarSystem.kerbol;
+		}
+		return visualTarget != null ? visualTarget : orbiting;
+	}
+
 	private double easeInOutCirc(double t) {
 		return t < 0.5
 			? (1 - Math.sqrt(1 - Math.pow(2 * t, 3))) / 2
@@ -430,14 +438,14 @@ public class OrbitalStation {
 		return getStationFromPosition(x * STATION_SIZE, z * STATION_SIZE);
 	}
 
-	public static boolean isKerbolAttempt(TileEntity te) {
+	public static boolean isDmitriyAttempt(TileEntity te) {
 		if(te == null) return false;
 		if(te.getWorldObj() != null && te.getWorldObj().isRemote) {
-			return OrbitalStation.clientStation != null && OrbitalStation.clientStation.lastAttemptedTarget == SolarSystem.kerbol;
+			return OrbitalStation.clientStation != null && OrbitalStation.clientStation.lastAttemptedTarget == SolarSystem.dmitriy;
 		}
 
 		OrbitalStation station = getStationFromPosition(te.xCoord, te.zCoord);
-		return station != null && station.lastAttemptedTarget == SolarSystem.kerbol;
+		return station != null && station.lastAttemptedTarget == SolarSystem.dmitriy;
 	}
 
 	public static boolean isMinmusAttempt(TileEntity te) {
@@ -544,7 +552,7 @@ public class OrbitalStation {
 		}
 	}
 
-	private boolean relocateToKerbol(World world) {
+	private boolean relocateToDmitriy(World world) {
 		ensureMainPort(world);
 		if(mainPort == null) return false;
 
@@ -552,7 +560,7 @@ public class OrbitalStation {
 		StationBounds bounds = getStationBounds(world);
 		if(bounds == null) return false;
 
-		int targetDimensionId = SolarSystem.kerbol.dimensionId;
+		int targetDimensionId = SolarSystem.dmitriy.dimensionId;
 		WorldServer targetWorld = DimensionManager.getWorld(targetDimensionId);
 		if(targetWorld == null) {
 			DimensionManager.initDimension(targetDimensionId);
@@ -841,3 +849,6 @@ public class OrbitalStation {
 	}
 
 }
+
+
+

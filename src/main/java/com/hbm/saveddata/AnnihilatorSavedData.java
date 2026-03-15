@@ -5,9 +5,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
+import com.hbm.dim.CelestialCore;
 import com.hbm.inventory.fluid.FluidType;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.recipes.AnnihilatorRecipes;
+import com.hbm.items.machine.ItemBlueprints;
 import com.hbm.util.ItemStackUtil;
 import com.hbm.interfaces.NotableComments;
 import com.hbm.inventory.RecipesCommon.ComparableStack;
@@ -99,21 +101,66 @@ public class AnnihilatorSavedData extends WorldSavedData {
 		ItemStack itemPayout = poolInstance.increment(stack.getItem(), stack.stackSize, alwaysPayOut);
 		ItemStack compPayout = poolInstance.increment(new ComparableStack(stack).makeSingular(), stack.stackSize, alwaysPayOut);
 		ItemStack dictPayout = null;
+		ItemStack corePayout = null;
 		
 		List<String> oreDict = ItemStackUtil.getOreDictNames(stack);
 		for(String name : oreDict) if(name != null && !name.isEmpty()) { // because some assholes pollute the ore dict with crap values
 			ItemStack payout = poolInstance.increment(name, stack.stackSize, alwaysPayOut);
 			if(payout != null) dictPayout = payout;
 		}
+
+		if(!alwaysPayOut) {
+			String categoryOreDict = selectCoreCategoryOreDict(oreDict);
+			if(categoryOreDict != null) {
+				corePayout = poolInstance.incrementCoreCategory(categoryOreDict, stack.stackSize);
+			}
+		}
 		
 		// originally a lookup for fluid containers was considered, but no one would use the annihilator like that, and it adds unnecessary overhead
 		
 		this.markDirty();
 		
-		return dictPayout != null ? dictPayout : compPayout != null ? compPayout : itemPayout;
+		return corePayout != null ? corePayout : dictPayout != null ? dictPayout : compPayout != null ? compPayout : itemPayout;
+	}
+
+	private static String selectCoreCategoryOreDict(List<String> oreDictNames) {
+		if(oreDictNames == null || oreDictNames.isEmpty()) {
+			return null;
+		}
+
+		String best = null;
+		int bestPriority = Integer.MAX_VALUE;
+		for(String oreDict : oreDictNames) {
+			if(oreDict == null || oreDict.isEmpty()) continue;
+
+			int priority = getCoreOreDictPriority(oreDict);
+			if(priority == Integer.MAX_VALUE) continue;
+			if(CelestialCore.getCategoryForOreDict(oreDict) == null) continue;
+
+			if(best == null || priority < bestPriority || (priority == bestPriority && oreDict.compareToIgnoreCase(best) < 0)) {
+				best = oreDict;
+				bestPriority = priority;
+			}
+		}
+
+		return best;
+	}
+
+	private static int getCoreOreDictPriority(String oreDict) {
+		if(oreDict.startsWith("ingot")) return 0;
+		if(oreDict.startsWith("dust")) return 1;
+		if(oreDict.startsWith("powder")) return 2;
+		if(oreDict.startsWith("gem")) return 3;
+		if(oreDict.startsWith("crystal")) return 4;
+		if(oreDict.startsWith("billet")) return 5;
+		if(oreDict.startsWith("nugget")) return 6;
+		return Integer.MAX_VALUE;
 	}
 	
 	public static class AnnihilatorPool {
+
+		private static final String CORE_CATEGORY_COUNTER_PREFIX = "$corecat$";
+		private static final BigInteger CORE_BLUEPRINT_STEP = BigInteger.valueOf(16L);
 		
 		/**
 		 * Valid keys include:
@@ -140,6 +187,43 @@ public class AnnihilatorSavedData extends WorldSavedData {
 			}
 			items.put(type, counter);
 			return payout;
+		}
+
+		public ItemStack incrementCoreCategory(String oreDict, long amount) {
+			if(oreDict == null || oreDict.isEmpty() || amount <= 0) {
+				return null;
+			}
+
+			String category = CelestialCore.getCategoryForOreDict(oreDict);
+			if(category == null || category.isEmpty()) {
+				return null;
+			}
+
+			String categoryCounterKey = CORE_CATEGORY_COUNTER_PREFIX + category;
+			BigInteger previousAmount = items.get(categoryCounterKey);
+			if(previousAmount == null) {
+				previousAmount = BigInteger.ZERO;
+			}
+
+			BigInteger currentAmount = previousAmount.add(BigInteger.valueOf(amount));
+			items.put(categoryCounterKey, currentAmount);
+
+			BigInteger previousStep = previousAmount.divide(CORE_BLUEPRINT_STEP);
+			BigInteger currentStep = currentAmount.divide(CORE_BLUEPRINT_STEP);
+			if(currentStep.compareTo(previousStep) > 0) {
+				return createCoreCategoryBlueprint(category);
+			}
+
+			return null;
+		}
+
+		private ItemStack createCoreCategoryBlueprint(String category) {
+			List<String> materials = ItemBlueprints.getAllCoreCategoryMaterials(category);
+			if(materials.isEmpty()) {
+				return null;
+			}
+
+			return ItemBlueprints.makeCoreManipulatorBlueprint(category, materials);
 		}
 		
 		public void serialize(NBTTagList nbt) {

@@ -10,7 +10,7 @@ import java.util.Map.Entry;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.orbit.OrbitalStation;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CBT_Dyson;
@@ -35,6 +35,7 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.passive.EntityWaterMob;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
@@ -57,6 +58,7 @@ public class CelestialBody {
 	// Orbital elements
 	public float massKg = 0;
 	public float radiusKm = 0;
+	private float surfaceGravityOverride = -1.0F;
 	public float semiMajorAxisKm = 0; // Distance to the parent body
 	public float semiMinorAxisFactor = 0; // has a sqrt so done ahead of time
 	public float eccentricity = 0;
@@ -65,6 +67,16 @@ public class CelestialBody {
 	public float argumentPeriapsis = 0;
 
 	private int rotationalPeriod = 6 * 60 * 60; // Day length in seconds
+	private float baselineMassKg = -1.0F;
+	private float baselineSemiMajorAxisKm = -1.0F;
+	private float baselineEccentricity = 0.0F;
+	private float baselineInclination = 0.0F;
+	private float baselineAscendingNode = 0.0F;
+	private float baselineArgumentPeriapsis = 0.0F;
+	private float baselineOrbitalSpeedScale = 1.0F;
+	private int baselineRotationalPeriod = -1;
+	private boolean dynamicsBaselineCaptured = false;
+	private float orbitalSpeedScale = 1.0F;
 
 	public float axialTilt = 0;
 
@@ -85,6 +97,13 @@ public class CelestialBody {
 	public boolean hasIce = false; // has bedrock ice?
 
 	public FluidType gas;
+	private CelestialCore core;
+	private CelestialCore defaultCore;
+
+	private static final double ATM_OVERPRESSURE_DISSIPATION_FACTOR = 0.02D;
+	private static final double ATM_MIN_DISSIPATION_PER_UPDATE_ATM = 0.0001D;
+	private static final double ATM_MIN_PRESENT_PRESSURE_ATM = 0.0001D;
+	private static final double CORE_DYNAMICS_INFLUENCE_MULTIPLIER = 2.5D;
 
 	public List<CelestialBody> satellites = new ArrayList<CelestialBody>(); // moon boyes
 	public CelestialBody parent = null;
@@ -122,6 +141,14 @@ public class CelestialBody {
 	public CelestialBody withMassRadius(float kg, float km) {
 		this.massKg = kg;
 		this.radiusKm = km;
+		if(this.core != null) {
+			applyMassFromCore(this, this.core);
+		}
+		return this;
+	}
+
+	public CelestialBody withSurfaceGravity(float gravity) {
+		this.surfaceGravityOverride = Math.max(0.0F, gravity);
 		return this;
 	}
 
@@ -202,6 +229,69 @@ public class CelestialBody {
 		return this;
 	}
 
+	public CelestialBody withCore(CelestialCore core) {
+		this.core = core != null ? core.copy() : null;
+		if(this.core != null) {
+			this.core.clampRuntimeEntryValues();
+		}
+		if(this.core != null && this.radiusKm > 0.0F) {
+			applyMassFromCore(this, this.core);
+		}
+		return this;
+	}
+
+	public CelestialBody captureDefaultCore() {
+		this.defaultCore = this.core != null ? this.core.copy() : null;
+		return this;
+	}
+
+	public CelestialBody resetCoreToDefault() {
+		this.core = this.defaultCore != null ? this.defaultCore.copy() : null;
+		if(this.core != null && this.radiusKm > 0.0F) {
+			applyMassFromCore(this, this.core);
+		} else {
+			resetOrbitalDynamicsToBaseline();
+		}
+		return this;
+	}
+
+	private void resetOrbitalDynamicsToBaseline() {
+		if(!dynamicsBaselineCaptured) return;
+
+		if(baselineMassKg > 0.0F) {
+			massKg = baselineMassKg;
+		}
+		if(baselineSemiMajorAxisKm > 0.0F) {
+			semiMajorAxisKm = baselineSemiMajorAxisKm;
+		}
+		eccentricity = baselineEccentricity;
+		semiMinorAxisFactor = (float)Math.sqrt(Math.max(0.0D, 1.0D - eccentricity * eccentricity));
+		inclination = baselineInclination;
+		ascendingNode = baselineAscendingNode;
+		argumentPeriapsis = baselineArgumentPeriapsis;
+		orbitalSpeedScale = baselineOrbitalSpeedScale;
+		if(baselineRotationalPeriod > 0) {
+			rotationalPeriod = baselineRotationalPeriod;
+		}
+	}
+
+	private void resetOrbitalShapeAndRotationToBaseline() {
+		if(!dynamicsBaselineCaptured) return;
+
+		if(baselineSemiMajorAxisKm > 0.0F) {
+			semiMajorAxisKm = baselineSemiMajorAxisKm;
+		}
+		eccentricity = baselineEccentricity;
+		semiMinorAxisFactor = (float)Math.sqrt(Math.max(0.0D, 1.0D - eccentricity * eccentricity));
+		inclination = baselineInclination;
+		ascendingNode = baselineAscendingNode;
+		argumentPeriapsis = baselineArgumentPeriapsis;
+		orbitalSpeedScale = baselineOrbitalSpeedScale;
+		if(baselineRotationalPeriod > 0) {
+			rotationalPeriod = baselineRotationalPeriod;
+		}
+	}
+
 	public CelestialBody withSatellites(CelestialBody... bodies) {
 		Collections.addAll(satellites, bodies);
 		for(CelestialBody body : bodies) {
@@ -251,8 +341,9 @@ public class CelestialBody {
 
 	public static void setTraits(World world, CelestialBodyTrait... traits) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get(world);
-
-		traitsData.setTraits(getBody(world).name, traits);
+		CelestialBody body = getBody(world);
+		traitsData.setTraits(body.name, traits);
+		applyMassFromCurrentCore(body);
 	}
 
 	public static void setTraits(World world, Map<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits) {
@@ -261,8 +352,8 @@ public class CelestialBody {
 
 	public void setTraits(CelestialBodyTrait... traits) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get();
-
 		traitsData.setTraits(name, traits);
+		applyMassFromCurrentCore(this);
 	}
 
 	public void setTraits(Map<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits) {
@@ -278,7 +369,7 @@ public class CelestialBody {
 		if(currentTraits == null) {
 			currentTraits = new HashMap<>();
 			for(CelestialBodyTrait trait : body.traits.values()) {
-				currentTraits.put(trait.getClass(), trait);
+				currentTraits.put(trait.getClass(), cloneTrait(trait));
 			}
 		}
 
@@ -292,11 +383,23 @@ public class CelestialBody {
 		if(currentTraits == null) {
 			currentTraits = new HashMap<>();
 			for(CelestialBodyTrait trait : traits.values()) {
-				currentTraits.put(trait.getClass(), trait);
+				currentTraits.put(trait.getClass(), cloneTrait(trait));
 			}
 		}
 
 		return currentTraits;
+	}
+
+	private static CelestialBodyTrait cloneTrait(CelestialBodyTrait trait) {
+		try {
+			CelestialBodyTrait clone = trait.getClass().newInstance();
+			NBTTagCompound nbt = new NBTTagCompound();
+			trait.writeToNBT(nbt);
+			clone.readFromNBT(nbt);
+			return clone;
+		} catch(Exception ignored) {
+			return trait;
+		}
 	}
 
 	public static void modifyTraits(World world, CelestialBodyTrait... traits) {
@@ -321,14 +424,100 @@ public class CelestialBody {
 
 	public static void clearTraits(World world) {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get(world);
+		CelestialBody body = getBody(world);
 
-		traitsData.clearTraits(getBody(world).name);
+		traitsData.clearTraits(body.name);
+		applyMassFromCurrentCore(body);
 	}
 
 	public void clearTraits() {
 		SolarSystemWorldSavedData traitsData = SolarSystemWorldSavedData.get();
 
 		traitsData.clearTraits(name);
+		applyMassFromCurrentCore(this);
+	}
+
+	public static void applyMassFromCore(CelestialBody body, CelestialCore core) {
+		if(body != null && core != null) {
+			core.clampRuntimeEntryValues();
+			core.withMaxMassCapBypass("dmitriy".equalsIgnoreCase(body.name));
+		}
+		core.recalculateForRadius(body.radiusKm);
+		body.massKg = (float) core.computedTotalMassKg;
+		body.applyOrbitalDynamicsFromCore(core);
+	}
+
+	private static void applyMassFromCurrentCore(CelestialBody body) {
+		CelestialCore core = body.getCore();
+		if(core != null) {
+			applyMassFromCore(body, core);
+		}
+	}
+
+	public void captureDynamicBaselinesRecursive() {
+		CelestialCore core = getCore();
+		captureDynamicsBaseline(core);
+
+		for(CelestialBody satellite : satellites) {
+			satellite.captureDynamicBaselinesRecursive();
+		}
+	}
+
+	private void captureDynamicsBaseline(CelestialCore core) {
+		if(dynamicsBaselineCaptured) return;
+
+		baselineMassKg = massKg;
+		baselineSemiMajorAxisKm = semiMajorAxisKm;
+		baselineEccentricity = eccentricity;
+		baselineInclination = inclination;
+		baselineAscendingNode = ascendingNode;
+		baselineArgumentPeriapsis = argumentPeriapsis;
+		baselineOrbitalSpeedScale = orbitalSpeedScale;
+		baselineRotationalPeriod = rotationalPeriod;
+		if(core != null && core.computedRadiusKm != radiusKm) {
+			core.recalculateForRadius(radiusKm);
+		}
+
+		dynamicsBaselineCaptured = true;
+	}
+
+	private void applyOrbitalDynamicsFromCore(CelestialCore core) {
+		if(core == null) return;
+
+		captureDynamicsBaseline(core);
+		if(baselineRotationalPeriod > 0) {
+			rotationalPeriod = baselineRotationalPeriod;
+		}
+
+		if(parent == null || satellites.isEmpty()) return;
+
+		double massRatio = baselineMassKg > 0.0F ? (double)massKg / (double)baselineMassKg : 1.0D;
+		massRatio = clampDouble(massRatio, 0.25D, 8.0D);
+
+		double childOrbitScale = clampDouble(
+			Math.pow(massRatio, (-1.0D / 3.0D) * CORE_DYNAMICS_INFLUENCE_MULTIPLIER),
+			0.5D,
+			2.0D
+		);
+		double childOrbitSpeedScale = clampDouble(
+			Math.pow(massRatio, (1.0D / 3.0D) * CORE_DYNAMICS_INFLUENCE_MULTIPLIER),
+			0.5D,
+			2.0D
+		);
+
+		for(CelestialBody satellite : satellites) {
+			if(satellite == null) continue;
+			satellite.captureDynamicsBaseline(satellite.getCore());
+			satellite.resetOrbitalShapeAndRotationToBaseline();
+			satellite.orbitalSpeedScale = (float) childOrbitSpeedScale;
+			if(satellite.baselineSemiMajorAxisKm > 0.0F) {
+				satellite.semiMajorAxisKm = satellite.baselineSemiMajorAxisKm * (float)childOrbitScale;
+			}
+		}
+	}
+
+	private static double clampDouble(double value, double min, double max) {
+		return Math.max(min, Math.min(max, value));
 	}
 
 	// he has ceased to be
@@ -372,6 +561,8 @@ public class CelestialBody {
 	}
 
 	public static void emitGas(World world, FluidType fluid, double amount) {
+		if(amount <= 0.0D) return;
+
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = getTraits(world);
 
 		CBT_Atmosphere atmosphere = (CBT_Atmosphere) currentTraits.get(CBT_Atmosphere.class);
@@ -380,23 +571,35 @@ public class CelestialBody {
 			currentTraits.put(CBT_Atmosphere.class, atmosphere);
 		}
 
-		boolean hasFluid = false;
-		for(FluidEntry entry : atmosphere.fluids) {
+		double pressureDelta = amount / AstronomyUtil.MB_PER_ATM;
+		FluidEntry existingEntry = null;
+		int existingIndex = -1;
+
+		for(int i = 0; i < atmosphere.fluids.size(); i++) {
+			FluidEntry entry = atmosphere.fluids.get(i);
 			if(entry.fluid == fluid) {
-				entry.pressure += amount / AstronomyUtil.MB_PER_ATM;
-				hasFluid = true;
+				existingEntry = entry;
+				existingIndex = i;
 				break;
 			}
 		}
 
-		if(!hasFluid) {
+		if(existingEntry != null) {
+			existingEntry.pressure += pressureDelta;
+
+			// Keep "most recently added/touched" gases at the end so overpressure loss targets them first.
+			if(existingIndex >= 0 && existingIndex < atmosphere.fluids.size() - 1) {
+				atmosphere.fluids.remove(existingIndex);
+				atmosphere.fluids.add(existingEntry);
+			}
+		} else {
 			// Sort existing fluids and remove the lowest fraction
 			if(atmosphere.fluids.size() >= 8) {
 				atmosphere.sortDescending();
 				atmosphere.fluids.remove(atmosphere.fluids.size() - 1);
 			}
 
-			atmosphere.fluids.add(new FluidEntry(fluid, amount / AstronomyUtil.MB_PER_ATM));
+			atmosphere.fluids.add(new FluidEntry(fluid, pressureDelta));
 		}
 
 		setTraits(world, currentTraits);
@@ -430,6 +633,7 @@ public class CelestialBody {
 
 	public static void updateChemistry(World world) {
 		boolean hasUpdated = false;
+		CelestialBody body = getBody(world);
 		HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> currentTraits = getTraits(world);
 		CBT_Atmosphere atmosphere = (CBT_Atmosphere) currentTraits.get(CBT_Atmosphere.class);
 
@@ -462,10 +666,71 @@ public class CelestialBody {
 				}
 			}
 
+			if(dissipateOverpressureAtmosphere(body, atmosphere)) {
+				hasUpdated = true;
+				if(atmosphere.fluids.isEmpty()) {
+					currentTraits.remove(CBT_Atmosphere.class);
+				}
+			}
 		}
 
 		if(hasUpdated)
 			setTraits(world, currentTraits);
+	}
+
+	private static boolean dissipateOverpressureAtmosphere(CelestialBody body, CBT_Atmosphere atmosphere) {
+		if(body == null || atmosphere == null || atmosphere.fluids.isEmpty()) return false;
+
+		double maxPressure = getAtmosphereRetentionLimitAtm(body);
+		if(Double.isInfinite(maxPressure) || Double.isNaN(maxPressure)) return false;
+
+		double totalPressure = atmosphere.getPressure();
+		double excessPressure = totalPressure - maxPressure;
+		if(excessPressure <= 0.0D) return false;
+
+		int lastIndex = atmosphere.fluids.size() - 1;
+		FluidEntry lastAdded = atmosphere.fluids.get(lastIndex);
+		if(lastAdded == null || lastAdded.pressure <= 0.0D) {
+			atmosphere.fluids.remove(lastIndex);
+			return true;
+		}
+
+		double dissipatedPressure = Math.max(ATM_MIN_DISSIPATION_PER_UPDATE_ATM, excessPressure * ATM_OVERPRESSURE_DISSIPATION_FACTOR);
+		dissipatedPressure = Math.min(dissipatedPressure, lastAdded.pressure);
+
+		if(dissipatedPressure <= 0.0D) return false;
+
+		lastAdded.pressure -= dissipatedPressure;
+		if(lastAdded.pressure <= ATM_MIN_PRESENT_PRESSURE_ATM) {
+			atmosphere.fluids.remove(lastIndex);
+		}
+
+		return true;
+	}
+
+	public static double getAtmosphereRetentionLimitAtm(World world) {
+		return getAtmosphereRetentionLimitAtm(getBody(world));
+	}
+
+	public static double getAtmosphereRetentionLimitAtm(CelestialBody body) {
+		if(body == null) return Double.POSITIVE_INFINITY;
+
+		double bodyCoreMassKg = getBodyCoreMassKg(body);
+		if(bodyCoreMassKg <= 0.0D) return Double.POSITIVE_INFINITY;
+
+		double retention = 0.05D + (bodyCoreMassKg - 1.0E18D) * (5.0D - 0.05D) / (3.0E22D - 1.0E18D);
+		return Math.max(0.0D, retention);
+	}
+
+	private static double getBodyCoreMassKg(CelestialBody body) {
+		CelestialCore core = body.getCore();
+		if(core == null) return -1.0D;
+
+		if(core.computedRadiusKm != body.radiusKm) {
+			core.recalculateForRadius(body.radiusKm);
+		}
+
+		return core.computedCoreMassKg;
 	}
 
 	// Called once per tick to attenuate swarm counts based on a swarm half-life
@@ -517,6 +782,18 @@ public class CelestialBody {
 
 	public static Collection<CelestialBody> getAllBodies() {
 		return nameToBodyMap.values();
+	}
+
+	public static void captureDefaultCores() {
+		for(CelestialBody body : getAllBodies()) {
+			body.captureDefaultCore();
+		}
+	}
+
+	public static void resetAllCoresToDefault() {
+		for(CelestialBody body : getAllBodies()) {
+			body.resetCoreToDefault();
+		}
 	}
 
 	public static Collection<CelestialBody> getLandableBodies() {
@@ -616,6 +893,19 @@ public class CelestialBody {
 		return getBody(world).getTrait(trait);
 	}
 
+	public static CelestialCore getCore(World world) {
+		return getBody(world).getCore();
+	}
+
+	public static void setCore(World world, CelestialCore core) {
+		CelestialBody body = getBody(world);
+		body.withCore(core);
+		applyMassFromCurrentCore(body);
+		if(world != null && !world.isRemote) {
+			SolarSystemWorldSavedData.get(world).setCore(body.name, body.getCore());
+		}
+	}
+
 	public static boolean hasDefaultTrait(World world, Class<? extends CelestialBodyTrait> trait) {
 		return getBody(world).hasDefaultTrait(trait);
 	}
@@ -663,11 +953,15 @@ public class CelestialBody {
 		if(parent == null) return 0;
 		double semiMajorAxis = semiMajorAxisKm * 1_000;
 		double orbitalPeriod = 2 * Math.PI * Math.sqrt((semiMajorAxis * semiMajorAxis * semiMajorAxis) / (AstronomyUtil.GRAVITATIONAL_CONSTANT * parent.massKg));
-		return orbitalPeriod / (double)AstronomyUtil.SECONDS_IN_KSP_DAY;
+		double scaledPeriod = orbitalPeriod / Math.max(0.05D, (double)orbitalSpeedScale);
+		return scaledPeriod / (double)AstronomyUtil.SECONDS_IN_KSP_DAY;
 	}
 
 	// Get the gravitational force at the surface, derived from mass and radius
 	public float getSurfaceGravity() {
+		if(surfaceGravityOverride >= 0.0F) {
+			return surfaceGravityOverride;
+		}
 		float radius = radiusKm * 1000;
 		return AstronomyUtil.GRAVITATIONAL_CONSTANT * massKg / (radius * radius);
 	}
@@ -732,6 +1026,10 @@ public class CelestialBody {
 		return (T) traits.get(trait);
 	}
 
+	public CelestialCore getCore() {
+		return core;
+	}
+
 	// Loads in the heightmap data for a given chunk
 	public int[] getHeightmap(int chunkX, int chunkZ) {
 		WorldServer world = DimensionManager.getWorld(dimensionId);
@@ -750,3 +1048,4 @@ public class CelestialBody {
 	}
 
 }
+

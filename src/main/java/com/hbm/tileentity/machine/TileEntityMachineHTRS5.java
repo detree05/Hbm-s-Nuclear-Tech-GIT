@@ -407,7 +407,7 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 	public boolean canPerformBurn(int shipMass, double deltaV) {
 		if(!hasCatalyst()) return false;
 
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			fuelCost = 1_024_000; // 1024 buckets, static
 		} else {
 			FT_Rocket trait = tanks[0].getTankType().getTrait(FT_Rocket.class);
@@ -545,3 +545,4 @@ public class TileEntityMachineHTRS5 extends TileEntityMachineBase implements IPr
 		return prevSpinAngle + delta * interp;
 	}
 }
+

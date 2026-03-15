@@ -1,7 +1,7 @@
 package com.hbm.world;
 
 import com.hbm.dim.duna.biome.BiomeGenBaseDuna;
-import com.hbm.dim.kerbol.biome.BiomeGenKerbol;
+import com.hbm.dim.dmitriy.biome.BiomeGenDmitriy;
 import com.hbm.dim.minmus.biome.BiomeGenBaseMinmus;
 
 import net.minecraftforge.common.BiomeDictionary;
@@ -18,8 +18,9 @@ public class ModBiomes
         BiomeDictionary.registerBiomeType(BiomeGenBaseDuna.dunaHills, Type.COLD, Type.DRY, Type.DEAD, Type.SNOWY, Type.MOUNTAIN);
         BiomeDictionary.registerBiomeType(BiomeGenBaseMinmus.minmusCanyon, Type.COLD, Type.DRY, Type.DEAD, Type.SNOWY, Type.MOUNTAIN);
         BiomeDictionary.registerBiomeType(BiomeGenBaseMinmus.minmusPlains, Type.COLD, Type.DRY, Type.DEAD, Type.SNOWY, Type.MOUNTAIN);
-        BiomeDictionary.registerBiomeType(BiomeGenKerbol.digammaWastelands, Type.DEAD, Type.DRY, Type.HOT);
-        BiomeDictionary.registerBiomeType(BiomeGenKerbol.digammaOcean, Type.OCEAN, Type.DEAD, Type.HOT);
+        BiomeDictionary.registerBiomeType(BiomeGenDmitriy.digammaWastelands, Type.DEAD, Type.DRY, Type.HOT);
+        BiomeDictionary.registerBiomeType(BiomeGenDmitriy.digammaOcean, Type.OCEAN, Type.DEAD, Type.HOT);
 
     }
 }
+

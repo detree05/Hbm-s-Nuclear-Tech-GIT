@@ -29,6 +29,7 @@ import com.hbm.items.ItemEnums.EnumChunkType;
 import com.hbm.items.ModItems;
 import com.hbm.items.special.ItemBedrockOreNew;
 import com.hbm.items.special.ItemBedrockOre.EnumBedrockOre;
+import com.hbm.items.special.ItemBedrockOreNew.BedrockOreOutput;
 import com.hbm.items.special.ItemBedrockOreNew.BedrockOreGrade;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOre;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOreType;
@@ -411,10 +412,112 @@ public class CentrifugeRecipes extends SerializableRecipe {
 		}
 	}
 
+	private static ItemStack[] getDynamicBedrockOutput(ItemStack stack) {
+		if(stack == null || stack.getItem() != ModItems.bedrock_ore || !(stack.getItem() instanceof ItemBedrockOreNew)) {
+			return null;
+		}
+
+		ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+		int meta = stack.getItemDamage();
+		BedrockOreGrade grade = bedrock.getGrade(meta);
+		CelestialBedrockOreType type = bedrock.getType(meta);
+		if(!ItemBedrockOreNew.hasCategoryInCore(type)) {
+			return null;
+		}
+		BedrockOreOutput primary = ItemBedrockOreNew.getPrimaryOutput(type);
+		BedrockOreOutput sulfuric = ItemBedrockOreNew.getSulfuricOutput(type);
+		BedrockOreOutput solvent = ItemBedrockOreNew.getSolventOutput(type);
+		BedrockOreOutput rad = ItemBedrockOreNew.getRadOutput(type);
+
+		switch(grade) {
+			case BASE:
+			case BASE_ROASTED:
+				return new ItemStack[] {
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY, type),
+					new ItemStack(Blocks.gravel)
+				};
+			case BASE_WASHED:
+				return new ItemStack[] {
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY, type),
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY, type),
+					new ItemStack(Blocks.gravel)
+				};
+			case PRIMARY_SULFURIC:
+				return new ItemStack[] {
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY_NOSULFURIC, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.SULFURIC_BYPRODUCT, type, 2)
+				};
+			case PRIMARY_SOLVENT:
+				return new ItemStack[] {
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY_NOSOLVENT, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.SULFURIC_BYPRODUCT, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.SOLVENT_BYPRODUCT, type, 2)
+				};
+			case PRIMARY_RAD:
+				return new ItemStack[] {
+					ItemBedrockOreNew.make(BedrockOreGrade.PRIMARY_NORAD, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.SULFURIC_BYPRODUCT, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.SOLVENT_BYPRODUCT, type, 2),
+					ItemBedrockOreNew.make(BedrockOreGrade.RAD_BYPRODUCT, type, 2)
+				};
+			case PRIMARY:
+			case PRIMARY_ROASTED:
+				if(primary == null) return null;
+				return new ItemStack[] { ItemBedrockOreNew.extract(primary, 1) };
+			case PRIMARY_NOSULFURIC:
+			case PRIMARY_NOSOLVENT:
+			case PRIMARY_NORAD:
+				if(primary == null) return null;
+				return new ItemStack[] {
+					ItemBedrockOreNew.extract(primary, 1),
+					ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type)
+				};
+			case PRIMARY_FIRST:
+				if(primary == null) return null;
+				return new ItemStack[] {
+					ItemBedrockOreNew.extract(primary, 1),
+					ItemBedrockOreNew.extract(primary, 1),
+					ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type, 1)
+				};
+			case SULFURIC_WASHED:
+				if(sulfuric == null) return null;
+				return new ItemStack[] {
+					ItemBedrockOreNew.extract(sulfuric, 1),
+					ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type)
+				};
+			case SOLVENT_WASHED:
+				if(solvent == null) return null;
+				return new ItemStack[] {
+					ItemBedrockOreNew.extract(solvent, 1),
+					ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type)
+				};
+			case RAD_WASHED:
+				if(rad == null) return null;
+				return new ItemStack[] {
+					ItemBedrockOreNew.extract(rad, 1),
+					ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type)
+				};
+			default:
+				return null;
+		}
+	}
+
 	public static ItemStack[] getOutput(ItemStack stack) {
 
 		if(stack == null || stack.getItem() == null)
 			return null;
+
+		ItemStack[] dynamic = getDynamicBedrockOutput(stack);
+		if(dynamic != null) {
+			return RecipesCommon.copyStackArray(dynamic);
+		}
+		if(stack.getItem() == ModItems.bedrock_ore && stack.getItem() instanceof ItemBedrockOreNew) {
+			ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+			CelestialBedrockOreType type = bedrock.getType(stack.getItemDamage());
+			if(ItemBedrockOreNew.isCoreDrivenType(type)) {
+				return null;
+			}
+		}
 
 		ComparableStack comp = new ComparableStack(stack).makeSingular();
 

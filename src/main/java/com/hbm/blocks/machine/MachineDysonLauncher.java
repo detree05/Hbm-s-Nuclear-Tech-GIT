@@ -210,9 +210,9 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 
 		if(pos == null) return;
 
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			List<String> text = new ArrayList<String>();
-			text.add(EnumChatFormatting.RED + getKerbolWarning(world));
+			text.add(EnumChatFormatting.RED + getDmitriyWarning(world));
 			ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xff0000, 0x400000, text);
 			return;
 		}
@@ -251,7 +251,7 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 		ILookOverlay.printGeneric(event, I18nUtil.resolveKey(getUnlocalizedName() + ".name"), 0xffff00, 0x404000, text);
 	}
 
-	public static String getKerbolWarning(World world) {
+	public static String getDmitriyWarning(World world) {
 		return "what" + randomSpaces(world) + "were" + randomSpaces(world) + "you" + randomSpaces(world) + "thinking?";
 	}
 
@@ -266,3 +266,5 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 	}
 
 }
+
+

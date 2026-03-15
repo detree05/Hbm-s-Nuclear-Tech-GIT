@@ -21,7 +21,8 @@ public class ItemPACoil extends ItemEnumMulti {
 		GOLD(0, 2_200, 0, 2_200, 15),
 		NIOBIUM(1_500, 8_400, 1_500, 8_400, 21),
 		BSCCO(7_500, 15_000, 7_500, 15_000, 27),
-		CHLOROPHYTE(14_500, 75_000, 14_500, 75_000, 51);
+		CHLOROPHYTE(14_500, 75_000, 14_500, 75_000, 51),
+		ETHYROITE(70_000, 100_000, 70_000, 100_000, 64);
 
 		public int quadMin;
 		public int quadMax;

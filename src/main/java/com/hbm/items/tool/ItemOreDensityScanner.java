@@ -27,6 +27,7 @@ public class ItemOreDensityScanner extends Item {
 		CelestialBody body = CelestialBody.getBody(world);
 		
 		for(CelestialBedrockOreType type : CelestialBedrockOre.get(body.getEnum()).types) {
+			if(!ItemBedrockOreBase.hasCategoryInCore(world, type)) continue;
 			double level = ItemBedrockOreBase.getOreLevel(world, (int) Math.floor(player.posX), (int) Math.floor(player.posZ), type);
 			PacketDispatcher.wrapper.sendTo(new PlayerInformPacket(
 					ChatBuilder.startTranslation("item.bedrock_ore.type." + type.suffix + ".name")

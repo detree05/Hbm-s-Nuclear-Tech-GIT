@@ -93,6 +93,8 @@ public class ToolRecipes {
 		CraftingManager.addRecipeAuto(new ItemStack(ModItems.crowbar, 1), new Object[] { "II", " I", " I", 'I', STEEL.ingot() });
 		CraftingManager.addRecipeAuto(new ItemStack(ModItems.bottle_opener, 1), new Object[] { "S", "P", 'S', STEEL.plate(), 'P', KEY_PLANKS });
 		CraftingManager.addRecipeAuto(new ItemStack(Items.saddle, 1), new Object[] { "LLL", "LRL", " S ", 'S', STEEL.ingot(), 'L', Items.leather, 'R', DictFrame.fromOne(ModItems.plant_item, EnumPlantType.ROPE) });
+		CraftingManager.addRecipeAuto(new ItemStack(Items.skull, 1, 0), new Object[] { "BBB", "B B", "BBB", 'B', Items.bone });
+		CraftingManager.addRecipeAuto(new ItemStack(Items.skull, 1, 1), new Object[] { "PPP", "PSP", "PPP", 'P', "ingotPolymer", 'S', new ItemStack(Items.skull, 1, 0) });
 
 		//Matches
 		CraftingManager.addRecipeAuto(new ItemStack(ModItems.matchstick, 16), new Object[] { "I", "S", 'I', S.dust(), 'S', KEY_STICK });

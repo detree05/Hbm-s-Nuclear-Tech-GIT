@@ -214,7 +214,7 @@ public class TileEntityMachineStardar extends TileEntityMachineBase implements I
 	}
 
 	private void processDrive(int targetDimensionId, int ix, int iz) {
-		if(targetDimensionId == SpaceConfig.kerbolDimension) return;
+		if(targetDimensionId == SpaceConfig.dmitriyDimension) return;
 
 		CelestialBody body = CelestialBody.getBodyOrNull(targetDimensionId);
 		if(body == null && targetDimensionId != SpaceConfig.orbitDimension) return;
@@ -350,3 +350,4 @@ public class TileEntityMachineStardar extends TileEntityMachineBase implements I
 		return true;
 	}
 }
+

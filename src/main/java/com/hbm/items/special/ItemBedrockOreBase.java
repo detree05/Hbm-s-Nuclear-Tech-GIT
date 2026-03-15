@@ -1,11 +1,17 @@
 package com.hbm.items.special;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialCore;
+import com.hbm.dim.CelestialCore.CoreCategory;
+import com.hbm.dim.CelestialCore.CoreEntry;
 import com.hbm.dim.SolarSystem;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOre;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOreType;
@@ -26,6 +32,17 @@ import net.minecraft.world.World;
 import net.minecraft.world.gen.NoiseGeneratorPerlin;
 
 public class ItemBedrockOreBase extends Item {
+
+	private static final String[] TOOLTIP_CATEGORY_ORDER = new String[] {
+		CelestialCore.CAT_LIGHT,
+		CelestialCore.CAT_HEAVY,
+		CelestialCore.CAT_RARE,
+		CelestialCore.CAT_ACTINIDE,
+		CelestialCore.CAT_NONMETAL,
+		CelestialCore.CAT_CRYSTAL,
+		CelestialCore.CAT_SCHRABIDIC,
+		CelestialCore.CAT_LIVING
+	};
 
 	public ItemBedrockOreBase() {
 		this.setHasSubtypes(true);
@@ -61,11 +78,48 @@ public class ItemBedrockOreBase extends Item {
 		SolarSystem.Body body = getOreBody(stack);
 		list.add("Mined on: " + I18nUtil.resolveKey("body." + body.name));
 
-		for(CelestialBedrockOreType type : CelestialBedrockOre.get(body).types) {
+		for(CelestialBedrockOreType type : getTooltipOrderedTypes(body)) {
 			double amount = getOreAmount(stack, type);
+			if(amount <= 0.0D) continue;
 			String typeName = StatCollector.translateToLocalFormatted("item.bedrock_ore.type." + type.suffix + ".name");
 			list.add(typeName + ": " + ((int) (amount * 100)) / 100D + " (" + ItemOreDensityScanner.getColor(amount) + StatCollector.translateToLocalFormatted(ItemOreDensityScanner.translateDensity(amount)) + EnumChatFormatting.GRAY + ")");
 		}
+	}
+
+	private static List<CelestialBedrockOreType> getTooltipOrderedTypes(SolarSystem.Body body) {
+		CelestialBedrockOre ore = CelestialBedrockOre.get(body);
+		if(ore == null || ore.types == null || ore.types.length == 0) {
+			return Collections.emptyList();
+		}
+
+		Map<String, CelestialBedrockOreType> bySuffix = new HashMap<String, CelestialBedrockOreType>();
+		for(CelestialBedrockOreType type : ore.types) {
+			if(type == null || type.suffix == null || bySuffix.containsKey(type.suffix)) continue;
+			bySuffix.put(type.suffix, type);
+		}
+
+		ArrayList<CelestialBedrockOreType> ordered = new ArrayList<CelestialBedrockOreType>();
+		for(String suffix : TOOLTIP_CATEGORY_ORDER) {
+			CelestialBedrockOreType type = bySuffix.remove(suffix);
+			if(type != null) {
+				ordered.add(type);
+			}
+		}
+
+		if(!bySuffix.isEmpty()) {
+			ArrayList<CelestialBedrockOreType> extras = new ArrayList<CelestialBedrockOreType>(bySuffix.values());
+			Collections.sort(extras, new Comparator<CelestialBedrockOreType>() {
+				@Override
+				public int compare(CelestialBedrockOreType left, CelestialBedrockOreType right) {
+					if(left == null || left.suffix == null) return -1;
+					if(right == null || right.suffix == null) return 1;
+					return left.suffix.compareTo(right.suffix);
+				}
+			});
+			ordered.addAll(extras);
+		}
+
+		return ordered;
 	}
 
 	public static double getOreLevel(World world, int x, int z, CelestialBedrockOreType type) {
@@ -75,8 +129,38 @@ public class ItemBedrockOreBase extends Item {
 		NoiseGeneratorPerlin ore = getGenerator(seed - 4096 + type.index);
 
 		double scale = 0.01D;
+		double compositionMultiplier = getCoreCategoryMultiplier(world, type);
+		if(compositionMultiplier <= 0.0D) {
+			return 0.0D;
+		}
 
-		return MathHelper.clamp_double(Math.abs(level.func_151601_a(x * scale, z * scale) * ore.func_151601_a(x * scale, z * scale)) * 0.05, 0, 2);
+		return MathHelper.clamp_double(Math.abs(level.func_151601_a(x * scale, z * scale) * ore.func_151601_a(x * scale, z * scale)) * 0.05 * compositionMultiplier, 0, 2);
+	}
+
+	public static boolean hasCategoryInCore(World world, CelestialBedrockOreType type) {
+		return getCoreCategoryMultiplier(world, type) > 0.0D;
+	}
+
+	private static double getCoreCategoryMultiplier(World world, CelestialBedrockOreType type) {
+		if(world == null || type == null || type.suffix == null) return 1.0D;
+
+		CelestialCore core = CelestialBody.getCore(world);
+		if(core == null) {
+			return 1.0D;
+		}
+
+		CoreCategory category = core.getCategory(type.suffix);
+		if(category == null || category.entries == null || category.entries.isEmpty()) {
+			return 0.0D;
+		}
+
+		for(CoreEntry entry : category.entries) {
+			if(entry != null && entry.value >= ItemBedrockOreNew.MIN_PROCESSABLE_CORE_VALUE) {
+				return 1.0D;
+			}
+		}
+
+		return 0.0D;
 	}
 
 	private static Map<Long, NoiseGeneratorPerlin> generators = new HashMap<>();

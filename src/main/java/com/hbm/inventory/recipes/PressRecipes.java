@@ -24,8 +24,10 @@ import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemStamp;
 import com.hbm.items.machine.ItemCircuit.EnumCircuitType;
 import com.hbm.items.machine.ItemStamp.StampType;
+import com.hbm.util.Compat;
 import com.hbm.util.Tuple.Pair;
 
+import cpw.mods.fml.common.Loader;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.Item;
@@ -101,6 +103,19 @@ public class PressRecipes extends SerializableRecipe {
 
 		makeRecipe(StampType.CIRCUIT, new OreDictStack(SI.billet()),						DictFrame.fromOne(ModItems.circuit, EnumCircuitType.SILICON));
 		makeRecipe(StampType.CIRCUIT, new OreDictStack(GAAS.billet()),						DictFrame.fromOne(ModItems.circuit, EnumCircuitType.GAAS));
+		
+		if(Loader.isModLoaded("appliedenergistics2")) {
+			Item ae2Materials = Compat.tryLoadItem("appliedenergistics2", "item.ItemMultiMaterial");
+			if(ae2Materials == null) ae2Materials = Item.getItemById(4144); // fallback for legacy packs with numeric IDs
+			
+			if(ae2Materials != null) {
+				// Circuit stamp compat: vanilla/NTM inputs to AE2 printed processors
+				makeRecipe(StampType.CIRCUIT, new ComparableStack(Items.diamond), new ItemStack(ae2Materials, 1, 17)); // Printed Engineering Circuit
+				makeRecipe(StampType.CIRCUIT, new ComparableStack(ae2Materials, 1, 10), new ItemStack(ae2Materials, 1, 16)); // Pure Certus -> Printed Calculation Circuit
+				makeRecipe(StampType.CIRCUIT, new ComparableStack(Items.gold_ingot), new ItemStack(ae2Materials, 1, 18)); // Printed Logic Circuit
+				makeRecipe(StampType.CIRCUIT, new ComparableStack(ModItems.circuit, 1, EnumCircuitType.SILICON), new ItemStack(ae2Materials, 1, 20)); // Printed Silicon Wafer -> Printed Silicon
+			}
+		}
 
 		makeRecipe(StampType.PRINTING1, new ComparableStack(Items.paper), DictFrame.fromOne(ModItems.page_of_, EnumPages.PAGE1));
 		makeRecipe(StampType.PRINTING2, new ComparableStack(Items.paper), DictFrame.fromOne(ModItems.page_of_, EnumPages.PAGE2));

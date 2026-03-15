@@ -8,14 +8,14 @@ import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.CelestialBody;
 import com.hbm.config.SpaceConfig;
-import com.hbm.packet.PacketDispatcher;
-import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
 
 public class StarcoreThroughputTracker {
+
+	private static final long SUN_STORAGE_LOSS_SLOWDOWN = 5L;
 
 	private static class Accumulator {
 		private long totalThisTick;
@@ -198,6 +198,25 @@ public class StarcoreThroughputTracker {
 		long avgTotal = acc.lastSecondTotal > 0 ? acc.lastSecondTotal / 20L : total;
 
 		CBT_SkyState skyState = CBT_SkyState.get(world);
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		boolean collapseDirty = false;
+		if(collapseEndTick > 0L) {
+			if(skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE && now >= collapseEndTick) {
+				skyState.setState(CBT_SkyState.SkyState.NOTHING);
+				skyState.setStarcoreThroughput(0L);
+				skyState.setSunCharge(0L);
+				skyState.setSunLastSustainTick(0L);
+				skyState.setBlackholeCollapseEndTick(0L);
+				collapseDirty = true;
+			} else if(skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+				skyState.setBlackholeCollapseEndTick(0L);
+				collapseDirty = true;
+			}
+		}
+		if(collapseDirty) {
+			CelestialBody.getStar(world).modifyTraits(skyState);
+		}
+
 		CBT_SkyState.SkyState state = skyState.getState();
 		if(state == CBT_SkyState.SkyState.STARCORE) {
 			long effective = Math.min(avgTotal, threshold);
@@ -239,8 +258,12 @@ public class StarcoreThroughputTracker {
 			}
 			long current = skyState.getSunCharge();
 			long decay = supportRequirement - effective;
-			if(decay > 0) {
-				long next = Math.max(0L, current - decay);
+			long slowedDecay = decay / SUN_STORAGE_LOSS_SLOWDOWN;
+			if(decay > 0 && slowedDecay <= 0) {
+				slowedDecay = 1L;
+			}
+			if(slowedDecay > 0) {
+				long next = Math.max(0L, current - slowedDecay);
 				if(next != current) {
 					skyState.setSunCharge(next);
 					CelestialBody.getStar(world).modifyTraits(skyState);
@@ -253,12 +276,7 @@ public class StarcoreThroughputTracker {
 				skyState.setSunLastSustainTick(0);
 				CelestialBody.getStar(world).modifyTraits(skyState);
 				CBT_Dyson.clearAll(world);
-				if(world.provider != null) {
-					PacketDispatcher.wrapper.sendToDimension(
-						new StarcoreDecaySkyPacket(world.getTotalWorldTime(), world.provider.dimensionId),
-						world.provider.dimensionId
-					);
-				}
+				StarcoreSkyEffects.sendDecay(world);
 			}
 			if(skyState.getStarcoreThroughput() != 0) {
 				skyState.setStarcoreThroughput(0);
@@ -327,7 +345,7 @@ public class StarcoreThroughputTracker {
 	private static boolean shouldCountForSkyLines(World world) {
 		if(world == null || world.provider == null) return false;
 		if(world.provider instanceof WorldProviderHell || world.provider instanceof WorldProviderEnd) return false;
-		if(world.provider.dimensionId == SpaceConfig.kerbolDimension) return false;
+		if(world.provider.dimensionId == SpaceConfig.dmitriyDimension) return false;
 		return world.provider.dimensionId != SpaceConfig.orbitDimension;
 	}
 
@@ -343,3 +361,4 @@ public class StarcoreThroughputTracker {
 		acc.lastInjectorSyncTick = now;
 	}
 }
+

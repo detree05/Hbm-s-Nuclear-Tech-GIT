@@ -5,6 +5,7 @@ import java.util.List;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystem.AstroMetric;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.trait.CBT_Atmosphere;
@@ -35,6 +36,10 @@ public class WorldProviderOrbit extends WorldProvider {
 	// Orbit at an altitude that provides an hour-long realtime orbit (game time is fast so we go slow)
 	// We want a consistent orbital period to prevent orbiting too slow or fast (both for player comfort and feel)
 	private static final float ORBITAL_PERIOD = 7200;
+	private static final float SUN_MIN_SKY_DIM = 0.45F;
+	private static final float NOTHING_DIM_MULTIPLIER = 2.5F;
+	private static final float BLACKHOLE_SKY_DIM = 1.0F;
+	private static final float NOTHING_SKY_DIM = BLACKHOLE_SKY_DIM / NOTHING_DIM_MULTIPLIER;
 
 	public List<AstroMetric> metrics;
 
@@ -54,7 +59,9 @@ public class WorldProviderOrbit extends WorldProvider {
 		double progress = OrbitalStation.clientStation.getTransferProgress(0);
 		float sunPower = OrbitalStation.clientStation.orbiting.getSunPower();
 		if(progress > 0) {
-			return (float)BobMathUtil.lerp(progress, sunPower, OrbitalStation.clientStation.target.getSunPower());
+			CelestialBody visualTarget = OrbitalStation.clientStation.getAnimationTarget();
+			float targetSunPower = visualTarget != null && visualTarget.parent != null ? visualTarget.getSunPower() : sunPower;
+			return (float)BobMathUtil.lerp(progress, sunPower, targetSunPower);
 		}
 		return sunPower;
 	}
@@ -95,6 +102,7 @@ public class WorldProviderOrbit extends WorldProvider {
 		double sunSize = SolarSystem.calculateSunSize(body);
 
 		double progress = station.getTransferProgress(partialTicks);
+		CelestialBody visualTarget = station.getAnimationTarget();
 
 		// Get our orrery of bodies, this is cached for reuse in sky rendering
 		if(station.state == StationState.ORBIT) {
@@ -102,14 +110,14 @@ public class WorldProviderOrbit extends WorldProvider {
 			metrics = SolarSystem.calculateMetricsFromSatellite(worldObj, partialTicks, station.orbiting, altitude);
 		} else {
 			double fromAlt = getOrbitalAltitude(station.orbiting);
-			double toAlt = getOrbitalAltitude(station.target);
-			metrics = SolarSystem.calculateMetricsBetweenSatelliteOrbits(worldObj, partialTicks, station.orbiting, station.target, fromAlt, toAlt, progress);
+			double toAlt = getOrbitalAltitude(visualTarget);
+			metrics = SolarSystem.calculateMetricsBetweenSatelliteOrbits(worldObj, partialTicks, station.orbiting, visualTarget, fromAlt, toAlt, progress);
 		}
 
 		// Get our sun angle
 		float angle = (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, station.orbiting, getOrbitalAltitude(station.orbiting));
 		if(progress > 0) {
-			angle = (float)BobMathUtil.clerp(progress, angle, (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, station.target, getOrbitalAltitude(station.target)));
+			angle = (float)BobMathUtil.clerp(progress, angle, (float)SolarSystem.calculateSingleAngle(worldObj, partialTicks, metrics, visualTarget, getOrbitalAltitude(visualTarget)));
 		}
 
 		celestialAngle = 0.5F - (angle / 360.0F);
@@ -142,6 +150,13 @@ public class WorldProviderOrbit extends WorldProvider {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getStarBrightness(float par1) {
+		CBT_SkyState.SkyState sky = CBT_SkyState.get(worldObj).getState();
+		if(sky == CBT_SkyState.SkyState.BLACKHOLE
+			|| sky == CBT_SkyState.SkyState.NOTHING
+			|| sky == CBT_SkyState.SkyState.STARCORE) {
+			return 1.0F;
+		}
+
 		// Stars look cool in orbit, but obvs at Moho we don't want the big fuckoff sun to not extinguish
 		// Stars become visible during the day part of orbit just before Earth
 		// And are fully visible during the day beyond the orbit of Duna
@@ -151,7 +166,8 @@ public class WorldProviderOrbit extends WorldProvider {
 		double progress = OrbitalStation.clientStation.getTransferProgress(par1);
 		float semiMajorAxisKm = OrbitalStation.clientStation.orbiting.getPlanet().semiMajorAxisKm;
 		if(progress > 0) {
-			semiMajorAxisKm = (float)BobMathUtil.lerp(progress, semiMajorAxisKm, OrbitalStation.clientStation.target.getPlanet().semiMajorAxisKm);
+			CelestialBody visualTarget = OrbitalStation.clientStation.getAnimationTarget();
+			semiMajorAxisKm = (float)BobMathUtil.lerp(progress, semiMajorAxisKm, visualTarget.getPlanet().semiMajorAxisKm);
 		}
 
 		float distanceFactor = MathHelper.clamp_float((semiMajorAxisKm - distanceStart) / (distanceEnd - distanceStart), 0F, 1F);
@@ -164,7 +180,7 @@ public class WorldProviderOrbit extends WorldProvider {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getSunBrightness(float par1) {
-		if(worldObj.provider.dimensionId != SpaceConfig.kerbolDimension)
+		if(worldObj.provider.dimensionId != SpaceConfig.dmitriyDimension)
 			return 0;
 
 		return 1.0F - (float)eclipseAmount;
@@ -176,8 +192,6 @@ public class WorldProviderOrbit extends WorldProvider {
 	@SideOnly(Side.CLIENT)
 	public boolean updateLightmap(int[] lightmap) {
 		boolean changed = false;
-		final int redBoost = 0;
-		final float greenBlueScale = 0.95F;
 		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
@@ -185,16 +199,15 @@ public class WorldProviderOrbit extends WorldProvider {
 			int r = colors[0];
 			int g = colors[1];
 			int b = colors[2];
+			int nr = r;
+			int ng = g;
+			int nb = b;
 
 			if(skyDim < 1.0F) {
-				r = (int)(r * skyDim);
-				g = (int)(g * skyDim);
-				b = (int)(b * skyDim);
+				nr = MathHelper.clamp_int((int)(nr * skyDim), 0, 255);
+				ng = MathHelper.clamp_int((int)(ng * skyDim), 0, 255);
+				nb = MathHelper.clamp_int((int)(nb * skyDim), 0, 255);
 			}
-
-			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
-			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
-			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
 
 			if(nr != r || ng != g || nb != b) {
 				lightmap[i] = packColor(nr, ng, nb);
@@ -212,8 +225,27 @@ public class WorldProviderOrbit extends WorldProvider {
 		}
 		try {
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-			if(skyState.isBlackhole() || skyState.isNothing()) {
-				return skyState.isNothing() ? 0.45F : 0.0F;
+			if(skyState.isBlackhole()) {
+				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+				if(collapseEndTick > 0L) {
+					long now = worldObj.getTotalWorldTime();
+					long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS;
+					if(now >= collapseEndTick) {
+						return NOTHING_SKY_DIM;
+					}
+					if(now > collapseStartTick) {
+						float progress = MathHelper.clamp_float(
+							(float)(now - collapseStartTick) / (float)StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS,
+							0.0F,
+							1.0F
+						);
+						return BLACKHOLE_SKY_DIM + (NOTHING_SKY_DIM - BLACKHOLE_SKY_DIM) * progress;
+					}
+				}
+				return BLACKHOLE_SKY_DIM;
+			}
+			if(skyState.isNothing()) {
+				return NOTHING_SKY_DIM;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
@@ -221,7 +253,7 @@ public class WorldProviderOrbit extends WorldProvider {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return NOTHING_SKY_DIM + (SUN_MIN_SKY_DIM - NOTHING_SKY_DIM) * ratio;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
 				float ratio = MathHelper.clamp_float(
@@ -229,12 +261,17 @@ public class WorldProviderOrbit extends WorldProvider {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return SUN_MIN_SKY_DIM + (1.0F - SUN_MIN_SKY_DIM) * ratio;
 			}
 			return 1.0F;
 		} catch(Exception ignored) {
 			return 1.0F;
 		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	public boolean shouldForceLightmapRefresh() {
+		return false;
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -307,3 +344,4 @@ public class WorldProviderOrbit extends WorldProvider {
 	}
 
 }
+

@@ -97,7 +97,7 @@ public class EntityMappings {
 		addEntity(EntityNukeExplosionMK3.class, "entity_nuke_mk3", 1000);
 		addEntity(EntityVortex.class, "entity_vortex", 250);
 		addEntity(EntityMeteor.class, "entity_meteor", 250);
-		addEntity(EntityKerbolMeteor.class, "entity_kerbol_meteor", 250);
+		addEntity(EntityDmitriyMeteor.class, "entity_dmitriy_meteor", 250);
 		addEntity(EntityBoxcar.class, "entity_boxcar", 1000);
 		addEntity(EntityTorpedo.class, "entity_torpedo", 1000);
 		addEntity(EntityMissileTaint.class, "entity_missile_taint", 1000);
@@ -263,7 +263,8 @@ public class EntityMappings {
 		addMob(EntityParasiteMaggot.class, "entity_parasite_maggot", 0xd0d0d0, 0x808080);
 		addMob(EntityDummy.class, "entity_ntm_test_dummy", 0xffffff, 0x000000);
 		addMob(EntityUndeadSoldier.class, "entity_ntm_undead_soldier", 0x749F30, 0x6C5B44);
-		addMob(EntityVoidStaresBack.class, "void_stares_back", 0x000000, 0x000000);
+		addEntity(EntityVoidStaresBack.class, "void_stares_back", 80);
+		addEntity(EntityVoidFightsBack.class, "void_fights_back", 80);
 
 		addSpawn(EntityCreeperPhosgene.class, 5, 1, 1, EnumCreatureType.monster, BiomeGenBase.getBiomeGenArray());
 		addSpawn(EntityCreeperVolatile.class, 10, 1, 1, EnumCreatureType.monster, BiomeGenBase.getBiomeGenArray());

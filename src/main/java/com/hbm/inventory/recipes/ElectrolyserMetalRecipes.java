@@ -174,8 +174,51 @@ public class ElectrolyserMetalRecipes extends SerializableRecipe {
 				solidProducts.toArray(new ItemStack[0]));
 	}
 
+	private static ElectrolysisMetalRecipe getDynamicBedrockRecipe(ItemStack stack) {
+		if(stack == null || stack.getItem() != ModItems.bedrock_ore || !(stack.getItem() instanceof ItemBedrockOreNew)) {
+			return null;
+		}
+
+		ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+		int meta = stack.getItemDamage();
+		BedrockOreGrade grade = bedrock.getGrade(meta);
+		CelestialBedrockOreType type = bedrock.getType(meta);
+		if(!ItemBedrockOreNew.hasCategoryInCore(type)) {
+			return null;
+		}
+		BedrockOreOutput primary = ItemBedrockOreNew.getPrimaryOutput(type);
+
+		if(grade == BedrockOreGrade.PRIMARY_FIRST) {
+			if(primary == null) return null;
+			ArrayList<Pair<Object, Integer>> products = new ArrayList<Pair<Object, Integer>>();
+			products.add(new Pair<Object, Integer>(primary, 8));
+			products.add(new Pair<Object, Integer>(ItemBedrockOreNew.make(BedrockOreGrade.CRUMBS, type), 1));
+			return makeBedrockOreProduct(products);
+		}
+
+		if(grade == BedrockOreGrade.CRUMBS) {
+			if(primary == null) return null;
+			ArrayList<Pair<Object, Integer>> products = new ArrayList<Pair<Object, Integer>>();
+			products.add(new Pair<Object, Integer>(primary, 2));
+			return makeBedrockOreProduct(products);
+		}
+
+		return null;
+	}
+
 	public static ElectrolysisMetalRecipe getRecipe(ItemStack stack) {
 		if(stack == null || stack.getItem() == null) return null;
+
+		ElectrolysisMetalRecipe dynamic = getDynamicBedrockRecipe(stack);
+		if(dynamic != null) return dynamic;
+		if(stack.getItem() == ModItems.bedrock_ore && stack.getItem() instanceof ItemBedrockOreNew) {
+			ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+			CelestialBedrockOreType type = bedrock.getType(stack.getItemDamage());
+			if(ItemBedrockOreNew.isCoreDrivenType(type)) {
+				return null;
+			}
+		}
+
 		ComparableStack comp = new ComparableStack(stack).makeSingular();
 
 		if(recipes.containsKey(comp)) return recipes.get(comp);

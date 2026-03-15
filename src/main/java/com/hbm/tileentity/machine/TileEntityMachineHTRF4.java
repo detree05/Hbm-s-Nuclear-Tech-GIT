@@ -260,7 +260,7 @@ public class TileEntityMachineHTRF4 extends TileEntityMachineBase implements IPr
 			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 			return;
 		}
@@ -327,3 +327,4 @@ public class TileEntityMachineHTRF4 extends TileEntityMachineBase implements IPr
 		return maxPower;
 	}
 }
+

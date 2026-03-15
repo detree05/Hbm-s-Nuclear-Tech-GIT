@@ -85,7 +85,7 @@ public class BlockOrbitalStationComputer extends BlockDummyable implements ILook
 				if(destination.body == SolarSystem.Body.ORBIT)
 					return false;
 
-				if(destination.body == SolarSystem.Body.KERBOL && !SolarSystem.isKerbolBlackhole()) {
+				if(destination.body == SolarSystem.Body.DMITRIY && !SolarSystem.isKerbolBlackhole()) {
 					player.addChatMessage(new ChatComponentText(EnumChatFormatting.YELLOW + "Are you out of your mind?"));
 					return true;
 				}
@@ -135,7 +135,7 @@ public class BlockOrbitalStationComputer extends BlockDummyable implements ILook
 		double progress = station.getUnscaledProgress(0);
 		List<String> text = new ArrayList<>();
 
-		if(OrbitalStation.isKerbolAttempt(computer) && !SolarSystem.isKerbolBlackhole()) {
+		if(OrbitalStation.isDmitriyAttempt(computer) && !SolarSystem.isKerbolBlackhole()) {
 			text.add(EnumChatFormatting.YELLOW + "Are you out of your mind?");
 		} else if(!station.hasEngines) {
 			text.add(EnumChatFormatting.RED + "No engines available");
@@ -168,3 +168,5 @@ public class BlockOrbitalStationComputer extends BlockDummyable implements ILook
 	}
 
 }
+
+

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialCore;
 import com.hbm.dim.SolarSystemWorldSavedData;
 import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.orbit.OrbitalStation;
@@ -76,6 +77,14 @@ public class PermaSyncHandler {
 
 			SolarSystemWorldSavedData solarSystemData = SolarSystemWorldSavedData.get(world);
 			for(CelestialBody body : CelestialBody.getAllBodies()) {
+				CelestialCore core = body.getCore();
+				if(core != null) {
+					buf.writeBoolean(true);
+					core.writeToBytes(buf);
+				} else {
+					buf.writeBoolean(false);
+				}
+
 				HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = solarSystemData.getTraits(body.name);
 				if(traits != null) {
 					buf.writeBoolean(true); // Has traits marker (since we can have an empty list)
@@ -183,6 +192,16 @@ public class PermaSyncHandler {
 				}
 
 				for(CelestialBody body : CelestialBody.getAllBodies()) {
+					if(buf.readBoolean()) {
+						CelestialCore core = new CelestialCore();
+						core.readFromBytes(buf);
+						// Keep the synced core as the active core so subsequent client ticks
+						// don't reapply stale mass/orbit dynamics from outdated local state.
+						body.withCore(core);
+					} else if(body.getCore() != null) {
+						body.withCore(null);
+					}
+
 					if(buf.readBoolean()) {
 						HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> traits = traitMap.get(body.name);
 

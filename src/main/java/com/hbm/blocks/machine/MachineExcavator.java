@@ -6,7 +6,9 @@ import com.hbm.tileentity.TileEntityProxyCombo;
 import com.hbm.tileentity.machine.TileEntityMachineExcavator;
 
 import net.minecraft.block.material.Material;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 import net.minecraftforge.common.util.ForgeDirection;
@@ -28,6 +30,25 @@ public class MachineExcavator extends BlockDummyable {
 	@Override
 	public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player, int side, float hitX, float hitY, float hitZ) {
 		return this.standardOpenBehavior(world, x, y, z, player, 0);
+	}
+
+	@Override
+	public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase entity, ItemStack stack) {
+		super.onBlockPlacedBy(world, x, y, z, entity, stack);
+
+		if(world.isRemote || !(entity instanceof EntityPlayer)) {
+			return;
+		}
+
+		int[] core = this.findCore(world, x, y, z);
+		if(core == null) {
+			return;
+		}
+
+		TileEntity te = world.getTileEntity(core[0], core[1], core[2]);
+		if(te instanceof TileEntityMachineExcavator) {
+			((TileEntityMachineExcavator) te).setOwner((EntityPlayer) entity);
+		}
 	}
 
 	@Override

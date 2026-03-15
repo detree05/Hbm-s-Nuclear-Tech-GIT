@@ -241,7 +241,7 @@ public class TileEntityMachineHTRNeo extends TileEntityCooledBase implements IPr
 			errors.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(OrbitalStation.isKerbolAttempt(this)) {
+		if(OrbitalStation.isDmitriyAttempt(this)) {
 			errors.add(EnumChatFormatting.RED + "this thruster is weak...");
 			return;
 		}
@@ -377,3 +377,4 @@ public class TileEntityMachineHTRNeo extends TileEntityCooledBase implements IPr
 	}
 
 }
+

@@ -4,7 +4,9 @@ import java.util.List;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.config.SpaceConfig;
+import com.hbm.dim.WorldProviderCelestial;
 import com.hbm.dim.trait.CBT_Dyson;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.explosion.vanillant.ExplosionVNT;
 import com.hbm.explosion.vanillant.standard.BlockAllocatorStandard;
 import com.hbm.explosion.vanillant.standard.BlockMutatorFire;
@@ -31,7 +33,7 @@ import net.minecraft.block.Block;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
-import net.minecraft.world.EnumSkyBlock;
+import net.minecraft.util.MathHelper;
 import net.minecraftforge.common.util.ForgeDirection;
 
 public class TileEntityDysonReceiver extends TileEntityMachineBase {
@@ -79,7 +81,7 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 		ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata() - BlockDummyable.offset).getOpposite();
 
 		if(!worldObj.isRemote) {
-			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 				isReceiving = false;
 				swarmId = 0;
 				swarmCount = 0;
@@ -93,7 +95,8 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 
 			SatelliteSavedData data = SatelliteSavedData.getData(worldObj, xCoord, zCoord);
 			Satellite sat = data.getSatFromFreq(swarmId);
-			int sun = worldObj.getSavedLightValue(EnumSkyBlock.Sky, xCoord, yCoord, zCoord) - worldObj.skylightSubtracted - 11;
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			boolean hasDaylight = hasNaturalSunlight(skyState);
 
 			boolean occluded = false;
 			for(int x = -3; x <= 3; x++) {
@@ -108,7 +111,7 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 			swarmCount = CBT_Dyson.count(worldObj, swarmId);
 			swarmConsumers = CBT_Dyson.consumers(worldObj, swarmId);
 
-			isReceiving = (sat instanceof SatelliteDysonRelay || sun > 0) && swarmId > 0 && !occluded && swarmCount > 0 && swarmConsumers > 0;
+			isReceiving = (sat instanceof SatelliteDysonRelay || hasDaylight) && swarmId > 0 && !occluded && swarmCount > 0 && swarmConsumers > 0;
 
 			if(isReceiving) {
 				long energyOutput = getEnergyOutput(swarmCount) / swarmConsumers;
@@ -203,6 +206,17 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 		}
 	}
 
+	private boolean hasNaturalSunlight(CBT_SkyState skyState) {
+		if(worldObj == null || skyState == null || skyState.getState() != CBT_SkyState.SkyState.SUN) {
+			return false;
+		}
+		if(worldObj.provider instanceof WorldProviderCelestial && ((WorldProviderCelestial) worldObj.provider).isEclipse()) {
+			return false;
+		}
+		float angle = worldObj.getCelestialAngleRadians(0.0F);
+		return MathHelper.cos(angle) > 0.0F;
+	}
+
 	@Override
 	public void serialize(ByteBuf buf) {
 		super.serialize(buf);
@@ -275,3 +289,4 @@ public class TileEntityDysonReceiver extends TileEntityMachineBase {
 	}
 
 }
+

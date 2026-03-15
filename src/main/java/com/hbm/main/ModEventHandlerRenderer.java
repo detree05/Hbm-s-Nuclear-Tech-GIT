@@ -18,6 +18,7 @@ import com.hbm.packet.PermaSyncHandler;
 import com.hbm.render.item.weapon.sedna.ItemRenderWeaponBase;
 import com.hbm.render.model.ModelMan;
 import com.hbm.util.ArmorUtil;
+import com.hbm.render.util.RenderScreenOverlay;
 import com.hbm.util.Clock;
 import com.hbm.world.biome.BiomeGenCraterBase;
 import cpw.mods.fml.common.eventhandler.EventPriority;
@@ -109,7 +110,7 @@ public class ModEventHandlerRenderer {
 			IItemRenderer customRenderer = MinecraftForgeClient.getItemRenderer(held, IItemRenderer.ItemRenderType.EQUIPPED);
 			if(customRenderer instanceof ItemRenderWeaponBase) {
 				ItemRenderWeaponBase renderGun = (ItemRenderWeaponBase) customRenderer;
-				if(renderGun.isAkimbo()) {
+				if(renderGun.isAkimbo(player)) {
 					partsHidden[EnumPlayerPart.LEFT_ARM.ordinal()] = true;
 					ModelRenderer box = getBoxFromType(renderer, EnumPlayerPart.LEFT_ARM);
 					box.isHidden = true;
@@ -160,7 +161,7 @@ public class ModEventHandlerRenderer {
 			IItemRenderer customRenderer = MinecraftForgeClient.getItemRenderer(held, IItemRenderer.ItemRenderType.EQUIPPED);
 			if(customRenderer instanceof ItemRenderWeaponBase) {
 				ItemRenderWeaponBase renderGun = (ItemRenderWeaponBase) customRenderer;
-				if(renderGun.isAkimbo()) akimbo = true;
+				if(renderGun.isAkimbo(player)) akimbo = true;
 				if(renderGun.isLeftHanded()) leftHand = true;
 			}
 		}
@@ -273,7 +274,7 @@ public class ModEventHandlerRenderer {
 			IItemRenderer customRenderer = MinecraftForgeClient.getItemRenderer(held, IItemRenderer.ItemRenderType.EQUIPPED);
 			if(customRenderer instanceof ItemRenderWeaponBase) {
 				ItemRenderWeaponBase renderGun = (ItemRenderWeaponBase) customRenderer;
-				if(renderGun.isAkimbo()) {
+				if(renderGun.isAkimbo(player)) {
 					ModelBiped biped = renderer.modelBipedMain;
 					renderer.modelArmorChestplate.bipedLeftArm.rotateAngleY = renderer.modelArmor.bipedLeftArm.rotateAngleY = biped.bipedLeftArm.rotateAngleY = 0.1F + biped.bipedHead.rotateAngleY;
 				}
@@ -298,7 +299,7 @@ public class ModEventHandlerRenderer {
 
 		if(customRenderer instanceof ItemRenderWeaponBase) {
 			ItemRenderWeaponBase renderWeapon = (ItemRenderWeaponBase) customRenderer;
-			if(renderWeapon.isAkimbo() || renderWeapon.isLeftHanded()) {
+			if(renderWeapon.isAkimbo(player) || renderWeapon.isLeftHanded()) {
 				GL11.glPushMatrix();
 				renderer.modelBipedMain.bipedLeftArm.isHidden = false;
 				renderer.modelBipedMain.bipedLeftArm.postRender(0.0625F);
@@ -537,6 +538,9 @@ public class ModEventHandlerRenderer {
 	public void tintFog(FogColors event) {
 
 		EntityPlayer player = MainRegistry.proxy.me();
+		if(player == null || player.worldObj == null) {
+			return;
+		}
 		if(player.worldObj.getBlock((int) Math.floor(player.posX), (int) Math.floor(player.posY), (int) Math.floor(player.posZ)).getMaterial() != Material.water) {
 			Vec3 color = getFogBlendColor(player.worldObj, (int) Math.floor(player.posX), (int) Math.floor(player.posZ), event.red, event.green, event.blue, event.renderPartialTicks);
 			if(color != null) {
@@ -555,12 +559,20 @@ public class ModEventHandlerRenderer {
 			event.green = event.green * (1 - interp) + sootColor * interp;
 			event.blue = event.blue * (1 - interp) + sootColor * interp;
 		}
+
+		float blackholeItsHereTint = ModEventHandlerClient.getBlackholeItsHereWorldTintStrength(player.worldObj);
+		if(blackholeItsHereTint > 0.001F) {
+			float blend = MathHelper.clamp_float(blackholeItsHereTint * 1.8F, 0.0F, 0.8F);
+			event.red = event.red * (1.0F - blend) + 1.0F * blend;
+			event.green = event.green * (1.0F - blend) + 0.10F * blend;
+			event.blue = event.blue * (1.0F - blend) + 0.10F * blend;
+		}
 	}
 
 	@SubscribeEvent
 	public void onRenderHand(RenderHandEvent event) {
 
-		//can't use plaxer.getHeldItem() here because the item rendering persists for a few frames after hitting the switch key
+		//can't use player.getHeldItem() here because the item rendering persists for a few frames after hitting the switch key
 		ItemStack toRender = Minecraft.getMinecraft().entityRenderer.itemRenderer.itemToRender;
 
 		if(toRender != null) {
@@ -576,9 +588,16 @@ public class ModEventHandlerRenderer {
 	@SubscribeEvent(priority = EventPriority.HIGHEST)
 	public void onRenderHUD(RenderGameOverlayEvent.Pre event) {
 		Tessellator tess = Tessellator.instance;
+		
+		//TODO: using ALL doesn't work as anticipated - still hides in F1. need a different event for this
+		if(event.type == ElementType.ALL) {
+			if(ClientConfig.BADGES_HUD.get()) RenderScreenOverlay.renderBadges(event.resolution, Minecraft.getMinecraft().ingameGUI);
+		}
 		int shakeDuration = 1_500;
+		Minecraft mc = Minecraft.getMinecraft();
+		boolean suppressHudShake = ModEventHandlerClient.isBlackholeCollapseCameraTiltWindowActive(mc != null ? mc.theWorld : null);
 
-		if(event.type == ElementType.HOTBAR && (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) > 0 && ClientConfig.NUKE_HUD_SHAKE.get()) {
+		if(event.type == ElementType.HOTBAR && !suppressHudShake && (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) > 0 && ClientConfig.NUKE_HUD_SHAKE.get()) {
 			double mult = (ModEventHandlerClient.shakeTimestamp + shakeDuration - System.currentTimeMillis()) / (double) shakeDuration * 2;
 			double horizontal = MathHelper.clamp_double(Math.sin(System.currentTimeMillis() * 0.02), -0.7, 0.7) * 15;
 			double vertical = MathHelper.clamp_double(Math.sin(System.currentTimeMillis() * 0.01 + 2), -0.7, 0.7) * 3;

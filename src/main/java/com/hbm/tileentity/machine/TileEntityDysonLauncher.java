@@ -2,6 +2,7 @@ package com.hbm.tileentity.machine;
 
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Atmosphere;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_SkyState;
@@ -35,8 +36,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	public long power;
 	public static final long MAX_POWER = 20_000_000;
 
-	private static final int MEMBERS_PER_LAUNCH = 64;
-	public static final int BLACKHOLE_CLUSTER_LIMIT = 12;
+	public static final int BLACKHOLE_CLUSTER_LIMIT = 1024;
 
 	// SHAKE IT LIKE IT'S HEAT, OVERDRIVE
 	boolean sunsetOverdrive = false;
@@ -65,7 +65,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	@Override
 	public void updateEntity() {
 		if(!worldObj.isRemote) {
-			if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+			if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 				isOperating = false;
 				isSpinningDown = false;
 				operatingTime = 0;
@@ -79,10 +79,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.STARCORE;
 
 			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
-				skyState.setState(CBT_SkyState.SkyState.NOTHING);
-				CelestialBody.getStar(worldObj).modifyTraits(skyState);
-				isBlackhole = false;
-				isNothing = true;
+				StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
 			}
 
 			for(DirPos pos : getConPos()) trySubscribe(worldObj, pos.getX(), pos.getY(), pos.getZ(), pos.getDir());
@@ -121,7 +118,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 				power -= getPowerPerTick();
 
 				if(operatingTime > getSpinUpTime()) {
-					int toLaunch = Math.min(payload.stackSize, MEMBERS_PER_LAUNCH);
+					int toLaunch = Math.min(payload.stackSize, getInventoryStackLimit());
 					if(isNothing) {
 						toLaunch = 1;
 						skyState.setState(CBT_SkyState.SkyState.STARCORE);
@@ -138,8 +135,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 							CelestialBody.getStar(worldObj).modifyTraits(skyState);
 
 							if(skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
-								skyState.setState(CBT_SkyState.SkyState.NOTHING);
-								CelestialBody.getStar(worldObj).modifyTraits(skyState);
+								StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
 							}
 						}
 					} else {
@@ -254,7 +250,7 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
 		if(slots[0] != null) {
 			if(slots[0].getItem() == ModItems.star_core) return;
-			if(slots[0].stackSize >= MEMBERS_PER_LAUNCH) return;
+			if(slots[0].stackSize >= getInventoryStackLimit()) return;
 		}
 
 		TileEntity te = worldObj.getTileEntity(x, y, z);
@@ -386,3 +382,4 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	}
 
 }
+

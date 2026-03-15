@@ -1,5 +1,7 @@
 package com.hbm.main;
 
+import java.util.HashMap;
+
 import com.hbm.blocks.ILookOverlay;
 import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.generic.BlockAshes;
@@ -9,10 +11,13 @@ import com.hbm.config.ClientConfig;
 import com.hbm.config.GeneralConfig;
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.CelestialBody;
+import com.hbm.dim.CelestialCore;
+import com.hbm.dim.SkyProviderCelestial;
 import com.hbm.dim.SolarSystem;
 import com.hbm.dim.SolarSystemWorldSavedData;
+import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.trait.CBT_War;
 import com.hbm.dim.trait.CelestialBodyTrait;
@@ -20,6 +25,7 @@ import com.hbm.dim.orbit.OrbitalStation;
 import com.hbm.dim.orbit.OrbitalStation.StationState;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.entity.mob.EntityHunterChopper;
+import com.hbm.entity.mob.EntityVoidFightsBack;
 import com.hbm.entity.mob.EntityVoidStaresBack;
 import com.hbm.entity.projectile.EntityChopperMine;
 import com.hbm.entity.train.EntityRailCarRidable;
@@ -79,6 +85,7 @@ import com.hbm.util.Tuple;
 import com.hbm.util.ArmorRegistry.HazardClass;
 import com.hbm.util.i18n.I18nUtil;
 import com.hbm.wiaj.GuiWorldInAJar;
+import com.hbm.wiaj.WorldInAJar;
 import com.hbm.wiaj.cannery.CanneryBase;
 import com.hbm.wiaj.cannery.Jars;
 import com.mojang.authlib.minecraft.MinecraftProfileTexture.Type;
@@ -108,8 +115,10 @@ import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.multiplayer.WorldClient;
 import net.minecraft.client.renderer.EntityRenderer;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderBlocks;
 import net.minecraft.client.renderer.RenderHelper;
 import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.entity.RenderManager;
 import net.minecraft.client.renderer.entity.RenderPlayer;
 import net.minecraft.client.settings.GameSettings;
@@ -158,19 +167,94 @@ public class ModEventHandlerClient {
 	public static long flashTimestamp;
 	public static long starcoreFlashTimestamp;
 	public static long shakeTimestamp;
-	private static Float lastKerbolGravity;
-	private static long lastKerbolHeartbeatBeat = -1L;
-	private static float kerbolStarStareIntensity = 0.0F;
+	private static Float lastDmitriyGravity;
+	private static float dmitriyStarStareIntensity = 0.0F;
 	private static Integer lastClientDimensionId = null;
-	private static final List<KerbolStareTextEntry> kerbolStarStareTextEntries = new ArrayList<KerbolStareTextEntry>();
-	private static int kerbolStarStareTextSpawnTimer = 0;
+	private static final List<DmitriyStareTextEntry> dmitriyStarStareTextEntries = new ArrayList<DmitriyStareTextEntry>();
+	private static int dmitriyStarStareTextSpawnTimer = 0;
 	private static ResourceLocation voidStareBlurTexture;
-	private static int kerbolDialogueCooldownTicks = -1;
+	private static int dmitriyDialogueCooldownTicks = -1;
 	private static Method setupCameraTransformMethod;
-	private static Method kerbolGhostAchievementToastMethod;
-	private static KerbolGhostAchievement kerbolGhostAchievement;
-	private static final Set<String> kerbolGhostAchievementSeenCache = new HashSet<String>();
-	private static boolean kerbolGhostAchievementSeenLoadedFromConfig = false;
+	private static Method dmitriyGhostAchievementToastMethod;
+	private static DmitriyGhostAchievement dmitriyGhostAchievement;
+	private static final Set<String> dmitriyGhostAchievementSeenCache = new HashSet<String>();
+	private static boolean dmitriyGhostAchievementSeenLoadedFromConfig = false;
+	private static int voidFightsBackShakeTicks = 0;
+	private static int voidFightsBackLoopTicks = 0;
+	private static AudioWrapper voidFightsBackLoopSound;
+	private static final String[] BLACKHOLE_OBFUSCATED_WARNING_TEXTS = new String[] {
+		"IT WATCHES",
+		"DO NOT BLINK",
+		"IT'S HUNGRY",
+		"LOOK DEEPER",
+		"I KNOW YOU",
+		"I SEE YOU"
+	};
+	private static int blackholeItsHereFxDimension = Integer.MIN_VALUE;
+	private static long blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+	private static int blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
+	private static long blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
+	private static long blackholeGravityLiftFxNextSpawnTick = Long.MIN_VALUE;
+	private static long blackholeGravityLiftFxNextChunkSpawnTick = Long.MIN_VALUE;
+	private static final List<BlackholeGravityLiftBlock> blackholeGravityLiftBlocks = new ArrayList<BlackholeGravityLiftBlock>();
+	private static final List<BlackholeGravityLiftChunk> blackholeGravityLiftChunks = new ArrayList<BlackholeGravityLiftChunk>();
+
+	private static class BlackholeGravityLiftBlock {
+		private final WorldInAJar jar;
+		private final double x;
+		private final double y;
+		private final double z;
+		private final double riseSpeed;
+		private final double rotYaw;
+		private final double rotPitch;
+		private final double rotYawSpeed;
+		private final double rotPitchSpeed;
+		private final int maxAgeTicks;
+		private int ageTicks;
+
+		private BlackholeGravityLiftBlock(Block block, int meta, double x, double y, double z, double riseSpeed, int maxAgeTicks, double rotYaw, double rotPitch, double rotYawSpeed, double rotPitchSpeed) {
+			this.jar = new WorldInAJar(1, 1, 1);
+			this.jar.setBlock(0, 0, 0, block, meta);
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.riseSpeed = riseSpeed;
+			this.rotYaw = rotYaw;
+			this.rotPitch = rotPitch;
+			this.rotYawSpeed = rotYawSpeed;
+			this.rotPitchSpeed = rotPitchSpeed;
+			this.maxAgeTicks = maxAgeTicks;
+			this.ageTicks = 0;
+		}
+	}
+
+	private static class BlackholeGravityLiftChunk {
+		private final WorldInAJar jar;
+		private final double x;
+		private final double y;
+		private final double z;
+		private final double riseSpeed;
+		private final double rotYaw;
+		private final double rotPitch;
+		private final double rotYawSpeed;
+		private final double rotPitchSpeed;
+		private final int maxAgeTicks;
+		private int ageTicks;
+
+		private BlackholeGravityLiftChunk(WorldInAJar jar, double x, double y, double z, double riseSpeed, int maxAgeTicks, double rotYaw, double rotPitch, double rotYawSpeed, double rotPitchSpeed) {
+			this.jar = jar;
+			this.x = x;
+			this.y = y;
+			this.z = z;
+			this.riseSpeed = riseSpeed;
+			this.rotYaw = rotYaw;
+			this.rotPitch = rotPitch;
+			this.rotYawSpeed = rotYawSpeed;
+			this.rotPitchSpeed = rotPitchSpeed;
+			this.maxAgeTicks = maxAgeTicks;
+			this.ageTicks = 0;
+		}
+	}
 
 	private static String resolveHostnameSafe() {
 		try {
@@ -180,7 +264,7 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static String getKerbolStarStareHostName() {
+	private static String getDmitriyStarStareHostName() {
 		String envHost = System.getenv("COMPUTERNAME");
 		if(envHost != null && !envHost.isEmpty()) {
 			return envHost;
@@ -188,7 +272,40 @@ public class ModEventHandlerClient {
 		return resolveHostnameSafe();
 	}
 
-	private static Random getKerbolStarStareTextRandom() {
+	public static void triggerVoidFightsBackClient(boolean playIntro, int shakeTicks, int loopTicks, boolean stopLoop) {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.thePlayer == null || mc.theWorld == null) {
+			return;
+		}
+
+		if(stopLoop) {
+			voidFightsBackLoopTicks = 0;
+			if(voidFightsBackLoopSound != null) {
+				voidFightsBackLoopSound.stopSound();
+				voidFightsBackLoopSound = null;
+			}
+		}
+
+		if(playIntro) {
+			mc.getSoundHandler().playSound(new PositionedSoundRecord(
+				new ResourceLocation("hbm:misc.itlives_itfightsback"),
+				1.0F,
+				1.0F,
+				(float) mc.thePlayer.posX,
+				(float) mc.thePlayer.posY,
+				(float) mc.thePlayer.posZ
+			));
+		}
+
+		voidFightsBackShakeTicks = Math.max(voidFightsBackShakeTicks, shakeTicks);
+		if(loopTicks < 0) {
+			voidFightsBackLoopTicks = -1;
+		} else if(voidFightsBackLoopTicks >= 0) {
+			voidFightsBackLoopTicks = Math.max(voidFightsBackLoopTicks, loopTicks);
+		}
+	}
+
+	private static Random getDmitriyStarStareTextRandom() {
 		Minecraft mc = Minecraft.getMinecraft();
 		if(mc != null && mc.theWorld != null && mc.theWorld.rand != null) {
 			return mc.theWorld.rand;
@@ -196,7 +313,7 @@ public class ModEventHandlerClient {
 		return new Random();
 	}
 
-	private static String getKerbolStarStareText(Random random) {
+	private static String getDmitriyStarStareText(Random random) {
 		switch(random.nextInt(8)) {
 		case 0:
 			return "I T   W A T C H E S";
@@ -207,7 +324,7 @@ public class ModEventHandlerClient {
 		case 3:
 			return "L O O K   D E E P E R";
 		case 4:
-			return "I   K N O W   Y O U,   " + getKerbolStarStareHostName();
+			return "I   K N O W   Y O U,   " + getDmitriyStarStareHostName();
 		case 5:
 			return "I   S E E   Y O U";
 		case 6:
@@ -238,13 +355,13 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static class KerbolStareTextEntry {
+	private static class DmitriyStareTextEntry {
 		private final String text;
 		private final float anchorX;
 		private final float anchorY;
 		private int ageTicks;
 
-		private KerbolStareTextEntry(String text, float anchorX, float anchorY) {
+		private DmitriyStareTextEntry(String text, float anchorX, float anchorY) {
 			this.text = text;
 			this.anchorX = anchorX;
 			this.anchorY = anchorY;
@@ -261,7 +378,7 @@ public class ModEventHandlerClient {
 		final int flashDuration = 5_000;
 		final int starcoreFlashDuration = 9_000;
 
-		// removed custom tints; only nuke flash remains
+		// nuke/starcore flash
 
 		/// NUKE FLASH ///
 		long now = Clock.get_ms();
@@ -295,12 +412,12 @@ public class ModEventHandlerClient {
 
 		if(event.type == ElementType.CROSSHAIRS) {
 			float intensity = getVoidStareIntensity(player);
-			float overlayIntensity = Math.max(intensity, kerbolStarStareIntensity);
+			float overlayIntensity = Math.max(intensity, dmitriyStarStareIntensity);
 			if(overlayIntensity > 0.001F) {
 				renderVoidStareOverlay(event.resolution, overlayIntensity);
 			}
-			if(kerbolStarStareIntensity > 0.001F) {
-				renderKerbolStarStareText(event.resolution, kerbolStarStareIntensity);
+			if(dmitriyStarStareIntensity > 0.001F) {
+				renderDmitriyStarStareText(event.resolution, dmitriyStarStareIntensity);
 			}
 		}
 
@@ -697,10 +814,10 @@ public class ModEventHandlerClient {
 			}
 		}
 
-		// Simple "pull" effect when approaching Kerbol in orbit.
+		// Simple "pull" effect when transfer animation approaches Dmitriy.
 		if(player.worldObj.provider instanceof WorldProviderOrbit) {
 			OrbitalStation station = OrbitalStation.clientStation;
-			if(station != null && station.state != StationState.ORBIT && station.target == SolarSystem.kerbol) {
+			if(station != null && station.state != StationState.ORBIT && station.getAnimationTarget() == SolarSystem.dmitriy) {
 				float progress = MathHelper.clamp_float((float)station.getTransferProgress(0), 0F, 1F);
 				fov *= (1.0F - 0.15F * progress);
 			}
@@ -713,9 +830,9 @@ public class ModEventHandlerClient {
 			fov *= (1.0F + voidStareMaxFovShift * curve);
 		}
 
-		if(kerbolStarStareIntensity > 0.001F) {
-			final float kerbolStarStareMaxFovZoom = 0.6F;
-			float zoomScale = 1.0F - kerbolStarStareMaxFovZoom * kerbolStarStareIntensity;
+		if(dmitriyStarStareIntensity > 0.001F) {
+			final float dmitriyStarStareMaxFovZoom = 0.6F;
+			float zoomScale = 1.0F - dmitriyStarStareMaxFovZoom * dmitriyStarStareIntensity;
 			fov *= MathHelper.clamp_float(zoomScale, 0.1F, 1.0F);
 		}
 
@@ -747,54 +864,54 @@ public class ModEventHandlerClient {
 		return MathHelper.clamp_float(max, 0.0F, 1.0F);
 	}
 
-	private static void updateKerbolStarStare(Minecraft mc, float partialTicks) {
-		final float kerbolStarStareAngleDeg = 35.0F;
-		final float kerbolStarStareRaytraceDistance = 512.0F;
-		final float kerbolStarStareMaxTurnDeg = 2.5F;
-		kerbolStarStareIntensity = 0.0F;
+	private static void updateDmitriyStarStare(Minecraft mc, float partialTicks) {
+		final float dmitriyStarStareAngleDeg = 35.0F;
+		final float dmitriyStarStareRaytraceDistance = 512.0F;
+		final float dmitriyStarStareMaxTurnDeg = 2.5F;
+		dmitriyStarStareIntensity = 0.0F;
 		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
-		if(!(mc.theWorld.provider instanceof WorldProviderKerbol)) {
-			updateKerbolStarStareTextState(false);
+		if(!(mc.theWorld.provider instanceof WorldProviderDmitriy)) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		Vec3 starDir = getKerbolStarADirection(mc.theWorld, partialTicks);
+		Vec3 starDir = getDmitriyStarADirection(mc.theWorld, partialTicks);
 		if(starDir == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
 		EntityPlayer player = mc.thePlayer;
 		Vec3 look = player.getLookVec();
 		if(look == null) {
-			updateKerbolStarStareTextState(false);
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
 		double dot = look.xCoord * starDir.xCoord + look.yCoord * starDir.yCoord + look.zCoord * starDir.zCoord;
 		dot = MathHelper.clamp_double(dot, -1.0D, 1.0D);
 		float angleDeg = (float) (Math.acos(dot) * 180.0D / Math.PI);
-		if(angleDeg > kerbolStarStareAngleDeg) {
-			updateKerbolStarStareTextState(false);
+		if(angleDeg > dmitriyStarStareAngleDeg) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		if(!isStarVisible(mc.theWorld, player, starDir, kerbolStarStareRaytraceDistance)) {
-			updateKerbolStarStareTextState(false);
+		if(!isStarVisible(mc.theWorld, player, starDir, dmitriyStarStareRaytraceDistance)) {
+			updateDmitriyStarStareTextState(false);
 			return;
 		}
 
-		float intensity = 1.0F - (angleDeg / kerbolStarStareAngleDeg);
+		float intensity = 1.0F - (angleDeg / dmitriyStarStareAngleDeg);
 		intensity = intensity * intensity;
-		kerbolStarStareIntensity = intensity;
+		dmitriyStarStareIntensity = intensity;
 
 		float targetYaw = (float) (Math.atan2(starDir.zCoord, starDir.xCoord) * 180.0D / Math.PI) - 90.0F;
 		float targetPitch = (float) (-Math.asin(starDir.yCoord) * 180.0D / Math.PI);
 
-		float maxStep = kerbolStarStareMaxTurnDeg * intensity;
+		float maxStep = dmitriyStarStareMaxTurnDeg * intensity;
 		float yaw = player.rotationYaw;
 		float pitch = player.rotationPitch;
 
@@ -807,53 +924,49 @@ public class ModEventHandlerClient {
 		player.rotationYaw = yaw;
 		player.rotationPitch = MathHelper.clamp_float(pitch, -90.0F, 90.0F);
 		player.rotationYawHead = yaw;
-		updateKerbolStarStareTextState(true);
+		updateDmitriyStarStareTextState(true);
 	}
 
-	private static void updateKerbolStarStareTextState(boolean stareActive) {
-		final int kerbolStarStareTextSpawnIntervalTicks = 20;
-		final int kerbolStarStareTextMaxActive = 4;
+	private static void updateDmitriyStarStareTextState(boolean stareActive) {
+		final int dmitriyStarStareTextSpawnIntervalTicks = 20;
+		final int dmitriyStarStareTextMaxActive = 4;
 		if(!stareActive) {
-			kerbolStarStareTextEntries.clear();
-			kerbolStarStareTextSpawnTimer = 0;
+			dmitriyStarStareTextEntries.clear();
+			dmitriyStarStareTextSpawnTimer = 0;
 			return;
 		}
 
-		for(Iterator<KerbolStareTextEntry> iterator = kerbolStarStareTextEntries.iterator(); iterator.hasNext();) {
-			KerbolStareTextEntry entry = iterator.next();
+		for(Iterator<DmitriyStareTextEntry> iterator = dmitriyStarStareTextEntries.iterator(); iterator.hasNext();) {
+			DmitriyStareTextEntry entry = iterator.next();
 			entry.ageTicks++;
-			if(entry.ageTicks >= getKerbolStarStareTextTotalTicks()) {
+			if(entry.ageTicks >= getDmitriyStarStareTextTotalTicks()) {
 				iterator.remove();
 			}
 		}
 
-		if(kerbolStarStareTextSpawnTimer > 0) {
-			kerbolStarStareTextSpawnTimer--;
+		if(dmitriyStarStareTextSpawnTimer > 0) {
+			dmitriyStarStareTextSpawnTimer--;
 		}
 
-		if(kerbolStarStareTextSpawnTimer <= 0 && kerbolStarStareTextEntries.size() < kerbolStarStareTextMaxActive) {
-			kerbolStarStareTextEntries.add(createKerbolStarStareTextEntry());
-			kerbolStarStareTextSpawnTimer = kerbolStarStareTextSpawnIntervalTicks;
+		if(dmitriyStarStareTextSpawnTimer <= 0 && dmitriyStarStareTextEntries.size() < dmitriyStarStareTextMaxActive) {
+			dmitriyStarStareTextEntries.add(createDmitriyStarStareTextEntry());
+			dmitriyStarStareTextSpawnTimer = dmitriyStarStareTextSpawnIntervalTicks;
 		}
 	}
 
-	private static KerbolStareTextEntry createKerbolStarStareTextEntry() {
-		Random random = getKerbolStarStareTextRandom();
-		String text = getKerbolStarStareText(random);
+	private static DmitriyStareTextEntry createDmitriyStarStareTextEntry() {
+		Random random = getDmitriyStarStareTextRandom();
+		String text = getDmitriyStarStareText(random);
 		float anchorX = 0.15F + random.nextFloat() * 0.70F;
 		float anchorY = 0.25F + random.nextFloat() * 0.55F;
-		return new KerbolStareTextEntry(text, anchorX, anchorY);
+		return new DmitriyStareTextEntry(text, anchorX, anchorY);
 	}
 
-	private static int getKerbolStarStareTextTotalTicks() {
+	private static int getDmitriyStarStareTextTotalTicks() {
 		return 15;
 	}
 
-	private static float getKerbolStarStareTextFade(int ageTicks) {
-		return ageTicks < 15 ? 1.0F : 0.0F;
-	}
-
-	private static Vec3 getKerbolStarADirection(World world, float partialTicks) {
+	private static Vec3 getDmitriyStarADirection(World world, float partialTicks) {
 		if(world == null) {
 			return null;
 		}
@@ -971,15 +1084,15 @@ public class ModEventHandlerClient {
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 	}
 
-	private static void renderKerbolStarStareText(ScaledResolution resolution, float intensity) {
-		final float kerbolStarStareTextMaxAlpha = 1.0F;
-		final float kerbolStarStareTextShakePx = 3.0F;
-		Random random = getKerbolStarStareTextRandom();
+	private static void renderDmitriyStarStareText(ScaledResolution resolution, float intensity) {
+		final float dmitriyStarStareTextMaxAlpha = 1.0F;
+		final float dmitriyStarStareTextShakePx = 3.0F;
+		Random random = getDmitriyStarStareTextRandom();
 		Minecraft mc = Minecraft.getMinecraft();
 		if(mc == null || mc.fontRenderer == null || resolution == null) {
 			return;
 		}
-		if(kerbolStarStareTextEntries.isEmpty()) {
+		if(dmitriyStarStareTextEntries.isEmpty()) {
 			return;
 		}
 
@@ -987,15 +1100,15 @@ public class ModEventHandlerClient {
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
 
-		for(KerbolStareTextEntry entry : kerbolStarStareTextEntries) {
+		for(DmitriyStareTextEntry entry : dmitriyStarStareTextEntries) {
 			float alphaFactor = 1.0F;
-			int alpha = MathHelper.clamp_int((int)(alphaFactor * 255.0F * kerbolStarStareTextMaxAlpha), 0, 127);
+			int alpha = MathHelper.clamp_int((int)(alphaFactor * 255.0F * dmitriyStarStareTextMaxAlpha), 0, 127);
 			if(alpha <= 0) {
 				continue;
 			}
 
 			String display = EnumChatFormatting.ITALIC + entry.text;
-			float shake = kerbolStarStareTextShakePx * alphaFactor;
+			float shake = dmitriyStarStareTextShakePx * alphaFactor;
 			int jitterRange = MathHelper.ceiling_float_int(shake);
 			int jitterX = jitterRange > 0 ? random.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
 			int jitterY = jitterRange > 0 ? random.nextInt(jitterRange * 2 + 1) - jitterRange : 0;
@@ -1013,12 +1126,12 @@ public class ModEventHandlerClient {
 		GL11.glPopMatrix();
 	}
 
-	private static class KerbolGhostAchievement extends Achievement {
+	private static class DmitriyGhostAchievement extends Achievement {
 		private IChatComponent ghostTitle = new ChatComponentText("");
 		private String ghostDescription = ": )";
 
-		private KerbolGhostAchievement() {
-			super("achievement.kerbolGhostFake", "kerbolGhostFake", -128, -128, getKerbolGhostAchievementIconItem(), null);
+		private DmitriyGhostAchievement() {
+			super("achievement.dmitriyGhostFake", "dmitriyGhostFake", -128, -128, getDmitriyGhostAchievementIconItem(), null);
 			this.initIndependentStat();
 		}
 
@@ -1042,23 +1155,23 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private static Item getKerbolGhostAchievementIconItem() {
+	private static Item getDmitriyGhostAchievementIconItem() {
 		Item icon = Item.getItemById(5270);
 		return icon != null ? icon : Items.nether_star;
 	}
 
-	private static void resetKerbolCameraEffects(Minecraft mc) {
-		kerbolStarStareIntensity = 0.0F;
-		updateKerbolStarStareTextState(false);
-		stopKerbolStarStareSound();
+	private static void resetDmitriyCameraEffects(Minecraft mc) {
+		dmitriyStarStareIntensity = 0.0F;
+		updateDmitriyStarStareTextState(false);
+		stopDmitriyStarStareSound();
 		if(mc != null && mc.entityRenderer != null) {
 			String[] camRollFields = new String[] { "camRoll", "field_78495_O", "O" };
 			ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, 0.0F, camRollFields);
 		}
 	}
 
-	private static float getKerbolStarStareCloseness() {
-		return MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
+	private static float getDmitriyStarStareCloseness() {
+		return MathHelper.sqrt_float(MathHelper.clamp_float(dmitriyStarStareIntensity, 0.0F, 1.0F));
 	}
 
 	@SubscribeEvent
@@ -1072,16 +1185,17 @@ public class ModEventHandlerClient {
 			return;
 		}
 		float roll = 0.0F;
-		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		boolean blackholeTiltActive = false;
+		if(world != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			float t = (float)(world.getTotalWorldTime() + event.renderTickTime);
 			roll = MathHelper.sin(t * 0.001F) * 2.0F;
 
-			if(kerbolStarStareIntensity > 0.001F) {
-				final float kerbolStarStareShakeMinDeg = 0.25F;
-				final float kerbolStarStareShakeMaxDeg = 2.25F;
-				float closeness = MathHelper.sqrt_float(MathHelper.clamp_float(kerbolStarStareIntensity, 0.0F, 1.0F));
-				float shakeAmp = kerbolStarStareShakeMinDeg
-						+ (kerbolStarStareShakeMaxDeg - kerbolStarStareShakeMinDeg) * closeness;
+			if(dmitriyStarStareIntensity > 0.001F) {
+				final float dmitriyStarStareShakeMinDeg = 0.25F;
+				final float dmitriyStarStareShakeMaxDeg = 2.25F;
+				float closeness = MathHelper.sqrt_float(MathHelper.clamp_float(dmitriyStarStareIntensity, 0.0F, 1.0F));
+				float shakeAmp = dmitriyStarStareShakeMinDeg
+						+ (dmitriyStarStareShakeMaxDeg - dmitriyStarStareShakeMinDeg) * closeness;
 
 				float tremor = 0.0F;
 				tremor += MathHelper.sin(t * 0.90F);
@@ -1091,7 +1205,25 @@ public class ModEventHandlerClient {
 
 				roll += tremor * shakeAmp;
 			}
+		} else {
+			blackholeTiltActive = isBlackholeCollapseCameraTiltActive(world);
 		}
+		if(blackholeTiltActive) {
+			voidFightsBackShakeTicks = 0;
+		}
+
+		if(voidFightsBackShakeTicks > 0 && !blackholeTiltActive) {
+			float t = (float)(world != null ? (world.getTotalWorldTime() + event.renderTickTime) : event.renderTickTime);
+			float intensity = MathHelper.clamp_float(voidFightsBackShakeTicks / (float)(30 * 20), 0.0F, 1.0F);
+			float amp = 0.08F + intensity * 0.55F;
+			float tremor = 0.0F;
+			tremor += MathHelper.sin(t * 1.35F);
+			tremor += MathHelper.cos(t * 2.75F + 0.3F) * 0.65F;
+			tremor += MathHelper.sin(t * 4.80F + 1.2F) * 0.25F;
+			tremor /= 1.9F;
+			roll += tremor * amp;
+		}
+
 		String[] camRollFields = new String[] { "camRoll", "field_78495_O", "O" };
 		ReflectionHelper.setPrivateValue(net.minecraft.client.renderer.EntityRenderer.class, mc.entityRenderer, roll, camRollFields);
 	}
@@ -1191,27 +1323,825 @@ public class ModEventHandlerClient {
 		}
 	}
 
-	private ISound currentSong;
+	private static ISound currentSong;
+
+	private static final ResourceLocation BLACKHOLE_COLLAPSE_EVENT_MUSIC = new ResourceLocation("hbm:music.collapseImminent");
+
+	public static void stopCurrentMusic() {
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.getSoundHandler() == null) return;
+
+		if(currentSong != null && mc.getSoundHandler().isSoundPlaying(currentSong)) {
+			mc.getSoundHandler().stopSound(currentSong);
+		}
+		currentSong = null;
+
+		net.minecraft.client.audio.MusicTicker musicTicker = ReflectionHelper.getPrivateValue(
+			Minecraft.class,
+			mc,
+			new String[] { "mcMusicTicker", "field_147126_aw" }
+		);
+		if(musicTicker != null) {
+			ISound tickerSong = ReflectionHelper.getPrivateValue(
+				net.minecraft.client.audio.MusicTicker.class,
+				musicTicker,
+				new String[] { "field_147678_c", "currentMusic" }
+			);
+			if(tickerSong != null && mc.getSoundHandler().isSoundPlaying(tickerSong)) {
+				mc.getSoundHandler().stopSound(tickerSong);
+			}
+			ReflectionHelper.setPrivateValue(
+				net.minecraft.client.audio.MusicTicker.class,
+				musicTicker,
+				null,
+				new String[] { "field_147678_c", "currentMusic" }
+			);
+		}
+	}
+
+	private static int getBlackholeCollapseWarningLevel(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return 0;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return 0;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return 0;
+		}
+
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long visualCortexStartTick = collapseStartTick + 15 * 20;
+		long gravityMalfunctionStartTick = collapseStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		long digammaWarningStartTick = collapseStartTick + 40 * 20;
+		if(now >= digammaWarningStartTick && now < collapseEndTick) {
+			return 3;
+		}
+		if(now >= gravityMalfunctionStartTick && now < collapseEndTick) {
+			return 2;
+		}
+		if(now >= visualCortexStartTick && now < gravityMalfunctionStartTick && now < collapseEndTick) {
+			return 1;
+		}
+		return 0;
+	}
+
+	private static boolean isBlackholeCollapseCameraTiltActive(World world) {
+		if(world instanceof WorldClient && SkyProviderCelestial.isBlackholeCollapseMeteorPhaseActive((WorldClient) world)) {
+			return true;
+		}
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long cameraTiltStartTick = collapseStartTick + 54 * 20;
+		long now = world.getTotalWorldTime();
+		return now >= cameraTiltStartTick && now < collapseEndTick;
+	}
+
+	static boolean isBlackholeCollapseCameraTiltWindowActive(World world) {
+		return isBlackholeCollapseCameraTiltActive(world);
+	}
+
+	private static boolean isBlackholeGravityRampWarningActive(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityStartTick = collapseStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS;
+		long gravityRampEndTick = gravityStartTick + StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+		long warningEndTick = Math.min(gravityRampEndTick, collapseEndTick);
+		return now >= gravityStartTick && now < warningEndTick;
+	}
+
+	private static boolean isBlackholeObfuscatedTooltipWindowActive(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + 79 * 20;
+		long tooltipEndTick = collapseStartTick + 91 * 20 + 10;
+		long now = world.getTotalWorldTime();
+		return now >= tooltipStartTick && now <= tooltipEndTick && now < collapseEndTick;
+	}
+
+	private static int getBlackholeWarningObfuscationStage(World world) {
+		if(!isBlackholeObfuscatedTooltipWindowActive(world)) {
+			return 0;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null) {
+			return 0;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return 0;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + 79 * 20;
+		long elapsedTicks = world.getTotalWorldTime() - tooltipStartTick;
+		if(elapsedTicks < 60) {
+			return 1;
+		}
+
+		return 2;
+	}
+
+	private static int getBlackholeObfuscatedTooltipCount(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return 0;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return 0;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return 0;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipStartTick = collapseStartTick + 79 * 20;
+		long tooltipEndTick = collapseStartTick + 91 * 20 + 10;
+		long now = world.getTotalWorldTime();
+		if(now < tooltipStartTick || now > tooltipEndTick || now >= collapseEndTick) {
+			return 0;
+		}
+
+		long elapsedTicks = now - tooltipStartTick;
+		if(elapsedTicks < 60) {
+			return 0;
+		}
+
+		long totalWindowTicks = tooltipEndTick - tooltipStartTick;
+		if(totalWindowTicks < 60) {
+			return 0;
+		}
+
+		long elapsedAfterInitialDelay = elapsedTicks - 60;
+		int count = (int)(elapsedAfterInitialDelay / 60) + 1;
+		int maxCount = (int)((totalWindowTicks - 60) / 60) + 1;
+		return Math.min(maxCount, count);
+	}
+
+	private static boolean isBlackholeItsHereTooltipActive(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return false;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return false;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long tooltipEndTick = collapseStartTick + 91 * 20 + 10;
+		long now = world.getTotalWorldTime();
+		return now > tooltipEndTick && now < collapseEndTick;
+	}
+
+	private static long getBlackholeCollapseEndTick(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return -1L;
+		}
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			return -1L;
+		}
+		return skyState.getBlackholeCollapseEndTick();
+	}
+
+	private static boolean isBlackholeCollapseFxAllowedInDimension(World world) {
+		if(world == null || world.provider == null) {
+			return false;
+		}
+		return StarcoreSkyEffects.isBlackholeCollapseStartAllowedDimension(world.provider.dimensionId);
+	}
+
+	private static void resetBlackholeItsHereFxState() {
+		blackholeItsHereFxDimension = Integer.MIN_VALUE;
+		blackholeItsHereFxCollapseEndTick = Long.MIN_VALUE;
+	}
+
+	public static float getBlackholeItsHereWorldTintStrength(World world) {
+		if(world == null || world.provider == null) {
+			return 0.0F;
+		}
+		if(blackholeItsHereFxCollapseEndTick <= 0L) {
+			return 0.0F;
+		}
+		if(world.provider.dimensionId != blackholeItsHereFxDimension) {
+			return 0.0F;
+		}
+
+		long now = world.getTotalWorldTime();
+		if(now >= blackholeItsHereFxCollapseEndTick) {
+			return 0.0F;
+		}
+		return 0.32F;
+	}
+
+	private static void resetBlackholeGravityLiftFxState() {
+		blackholeGravityLiftFxDimension = Integer.MIN_VALUE;
+		blackholeGravityLiftFxCollapseEndTick = Long.MIN_VALUE;
+		blackholeGravityLiftFxNextSpawnTick = Long.MIN_VALUE;
+		blackholeGravityLiftFxNextChunkSpawnTick = Long.MIN_VALUE;
+		blackholeGravityLiftBlocks.clear();
+		blackholeGravityLiftChunks.clear();
+	}
+
+	private static void updateBlackholeGravityLiftFx(Minecraft mc) {
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null || mc.theWorld.provider == null) {
+			return;
+		}
+
+		World world = mc.theWorld;
+		int dimension = world.provider.dimensionId;
+		if(!StarcoreSkyEffects.isBlackholeGravityLiftFxAllowedDimension(dimension)) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		CBT_SkyState skyState = CBT_SkyState.get(world);
+		if(skyState == null || skyState.getState() != CBT_SkyState.SkyState.BLACKHOLE) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+		if(collapseEndTick <= 0L) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		long now = world.getTotalWorldTime();
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long gravityEndTick = collapseStartTick
+			+ StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_DELAY_TICKS
+			+ StarcoreSkyEffects.BLACKHOLE_GRAVITY_MALFUNCTION_RAMP_TICKS;
+
+		if(now < gravityEndTick || now >= collapseEndTick) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+
+		boolean newCollapseWindow = blackholeGravityLiftFxDimension != dimension || blackholeGravityLiftFxCollapseEndTick != collapseEndTick;
+		if(newCollapseWindow) {
+			blackholeGravityLiftFxDimension = dimension;
+			blackholeGravityLiftFxCollapseEndTick = collapseEndTick;
+			blackholeGravityLiftFxNextSpawnTick = now + 1L;
+			blackholeGravityLiftFxNextChunkSpawnTick = now + 8L;
+			blackholeGravityLiftBlocks.clear();
+			blackholeGravityLiftChunks.clear();
+		}
+
+		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
+		int baseZ = MathHelper.floor_double(mc.thePlayer.posZ);
+		double playerX = mc.thePlayer.posX;
+		double playerZ = mc.thePlayer.posZ;
+		tickBlackholeGravityLiftFx(playerX, playerZ);
+
+		Random rand = world.rand;
+		if(blackholeGravityLiftBlocks.size() < 100 && now >= blackholeGravityLiftFxNextSpawnTick) {
+			int delayRange = 8 - 2 + 1;
+			boolean spawned = false;
+			for(int i = 0; i < 20; i++) {
+				double angle = rand.nextDouble() * Math.PI * 2.0D;
+				double radius = Math.sqrt(rand.nextDouble()) * 100.0D;
+				int x = baseX + MathHelper.floor_double(Math.cos(angle) * radius);
+				int z = baseZ + MathHelper.floor_double(Math.sin(angle) * radius);
+
+				int topY = world.getTopSolidOrLiquidBlock(x, z);
+				if(topY <= 0) {
+					continue;
+				}
+
+				int y = topY - 1;
+				Block block = world.getBlock(x, y, z);
+				if(!isLiftBlockEligible(world, x, y, z, block)) {
+					continue;
+				}
+				int meta = world.getBlockMetadata(x, y, z);
+
+				double px = x + 0.5D;
+				double pz = z + 0.5D;
+				if(isLiftBlockTooClose(px, pz)) {
+					continue;
+				}
+
+				double riseSpeed = 0.018D + rand.nextDouble() * (0.042D - 0.018D);
+				int maxAgeTicks = Math.max(1, MathHelper.ceiling_double_int(150.0D / riseSpeed));
+				double rotYaw = 0.0D;
+				double rotPitch = 0.0D;
+				double rotYawSpeed = randomSignedSpeed(rand, 0.04D, 0.16D);
+				double rotPitchSpeed = randomSignedSpeed(rand, 0.04D, 0.16D);
+				if(!world.setBlockToAir(x, y, z)) {
+					continue;
+				}
+				blackholeGravityLiftBlocks.add(new BlackholeGravityLiftBlock(block, meta, px, y + 1.02D, pz, riseSpeed, maxAgeTicks, rotYaw, rotPitch, rotYawSpeed, rotPitchSpeed));
+				spawned = true;
+				break;
+			}
+
+			int nextDelay = 2 + rand.nextInt(delayRange);
+			if(!spawned) {
+				nextDelay += 6;
+			}
+			blackholeGravityLiftFxNextSpawnTick = now + nextDelay;
+		}
+
+		if(blackholeGravityLiftChunks.size() < 10 && now >= blackholeGravityLiftFxNextChunkSpawnTick) {
+			int chunkDelayRange = 28 - 10 + 1;
+			boolean chunkSpawned = trySpawnLiftChunk(world, baseX, baseZ, rand);
+			int nextChunkDelay = 10 + rand.nextInt(chunkDelayRange);
+			if(!chunkSpawned) {
+				nextChunkDelay += 35;
+			}
+			blackholeGravityLiftFxNextChunkSpawnTick = now + nextChunkDelay;
+		}
+	}
+
+	private static boolean isLiftBlockTooClose(double x, double z) {
+		for(BlackholeGravityLiftBlock block : blackholeGravityLiftBlocks) {
+			double dx = block.x - x;
+			double dz = block.z - z;
+			if(dx * dx + dz * dz < 0.65D) {
+				return true;
+			}
+		}
+		for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+			double dx = chunk.x - x;
+			double dz = chunk.z - z;
+			if(dx * dx + dz * dz < 2.0D) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean isLiftChunkTooClose(double x, double z) {
+		for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+			double dx = chunk.x - x;
+			double dz = chunk.z - z;
+			if(dx * dx + dz * dz < 36.0D) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static boolean trySpawnLiftChunk(World world, int baseX, int baseZ, Random rand) {
+		for(int attempt = 0; attempt < 28; attempt++) {
+			double angle = rand.nextDouble() * Math.PI * 2.0D;
+			double radius = Math.sqrt(rand.nextDouble()) * 100.0D;
+			int x = baseX + MathHelper.floor_double(Math.cos(angle) * radius);
+			int z = baseZ + MathHelper.floor_double(Math.sin(angle) * radius);
+			int topY = world.getTopSolidOrLiquidBlock(x, z);
+			if(topY <= 0) {
+				continue;
+			}
+
+			int y = topY - 1;
+			Block centerBlock = world.getBlock(x, y, z);
+			if(!isLiftBlockEligible(world, x, y, z, centerBlock)) {
+				continue;
+			}
+
+			double px = x + 0.5D;
+			double pz = z + 0.5D;
+			if(isLiftChunkTooClose(px, pz)) {
+				continue;
+			}
+
+			int size = 32 + rand.nextInt(64 - 32 + 1);
+			WorldInAJar jar = new WorldInAJar(size, size, size);
+			int middle = size / 2 - 1;
+			int copied = 0;
+			Set<Long> sourcePositions = new HashSet<Long>();
+
+			for(int ix = 0; ix < 2; ix++) {
+				for(int iy = 0; iy < 2; iy++) {
+					for(int iz = 0; iz < 2; iz++) {
+						copied += copyLiftBlockIntoJar(world, jar, middle + ix, middle + iy, middle + iz, x + ix, y + iy, z + iz, sourcePositions);
+					}
+				}
+			}
+
+			for(int layer = 2; layer <= (size / 2); layer++) {
+				for(int i = 0; i < 34; i++) {
+					int jx = -layer + rand.nextInt(layer * 2 + 1);
+					int jy = -layer + rand.nextInt(layer * 2 + 1);
+					int jz = -layer + rand.nextInt(layer * 2 + 1);
+					int jarX = middle + jx;
+					int jarY = middle + jy;
+					int jarZ = middle + jz;
+					if(jar.getBlock(jarX + 1, jarY, jarZ) != Blocks.air
+						|| jar.getBlock(jarX - 1, jarY, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY + 1, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY - 1, jarZ) != Blocks.air
+						|| jar.getBlock(jarX, jarY, jarZ + 1) != Blocks.air
+						|| jar.getBlock(jarX, jarY, jarZ - 1) != Blocks.air) {
+						copied += copyLiftBlockIntoJar(world, jar, jarX, jarY, jarZ, x + jx, y + jy, z + jz, sourcePositions);
+					}
+				}
+			}
+
+			if(copied < 6) {
+				continue;
+			}
+			if(!removeLiftSourceBlocks(world, sourcePositions)) {
+				continue;
+			}
+
+			double riseSpeed = 0.010D + rand.nextDouble() * (0.022D - 0.010D);
+			int maxAgeTicks = Math.max(1, MathHelper.ceiling_double_int(150.0D / riseSpeed));
+			double rotYaw = 0.0D;
+			double rotPitch = 0.0D;
+			double rotYawSpeed = randomSignedSpeed(rand, 0.02D, 0.08D);
+			double rotPitchSpeed = randomSignedSpeed(rand, 0.02D, 0.08D);
+			blackholeGravityLiftChunks.add(new BlackholeGravityLiftChunk(jar, px, y + 1.0D, pz, riseSpeed, maxAgeTicks, rotYaw, rotPitch, rotYawSpeed, rotPitchSpeed));
+			return true;
+		}
+		return false;
+	}
+
+	private static double randomSignedSpeed(Random rand, double min, double max) {
+		double mag = min + rand.nextDouble() * (max - min);
+		return rand.nextBoolean() ? mag : -mag;
+	}
+
+	private static int copyLiftBlockIntoJar(World world, WorldInAJar jar, int jarX, int jarY, int jarZ, int worldX, int worldY, int worldZ, Set<Long> sourcePositions) {
+		Block block = world.getBlock(worldX, worldY, worldZ);
+		if(!isLiftBlockEligible(world, worldX, worldY, worldZ, block)) {
+			return 0;
+		}
+		int meta = world.getBlockMetadata(worldX, worldY, worldZ);
+		jar.setBlock(jarX, jarY, jarZ, block, meta);
+		sourcePositions.add(packBlockPos(worldX, worldY, worldZ));
+		return 1;
+	}
+
+	private static boolean removeLiftSourceBlocks(World world, Set<Long> sourcePositions) {
+		if(sourcePositions.isEmpty()) {
+			return false;
+		}
+		int removedCount = 0;
+		for(Long packed : sourcePositions) {
+			int x = unpackBlockX(packed.longValue());
+			int y = unpackBlockY(packed.longValue());
+			int z = unpackBlockZ(packed.longValue());
+			if(world.setBlockToAir(x, y, z)) {
+				removedCount++;
+			}
+		}
+		return removedCount == sourcePositions.size();
+	}
+
+	private static boolean isLiftBlockEligible(World world, int x, int y, int z, Block block) {
+		if(block == null || block == Blocks.air || block.isAir(world, x, y, z)) {
+			return false;
+		}
+		Material material = block.getMaterial();
+		if(material == Material.air || material.isLiquid()) {
+			return false;
+		}
+		if(!isVanillaBlock(block)) {
+			return false;
+		}
+		int meta = world.getBlockMetadata(x, y, z);
+		return !block.hasTileEntity(meta);
+	}
+
+	private static boolean isVanillaBlock(Block block) {
+		Object nameObj = Block.blockRegistry.getNameForObject(block);
+		if(!(nameObj instanceof String)) {
+			return false;
+		}
+		String registryName = (String)nameObj;
+		return registryName.startsWith("minecraft:");
+	}
+
+	private static long packBlockPos(int x, int y, int z) {
+		return ((long)(x & 67108863) << 38) | ((long)(z & 67108863) << 12) | (long)(y & 4095);
+	}
+
+	private static int unpackBlockX(long packed) {
+		int x = (int)(packed >> 38);
+		return x >= 33554432 ? x - 67108864 : x;
+	}
+
+	private static int unpackBlockY(long packed) {
+		int y = (int)(packed & 4095L);
+		return y >= 2048 ? y - 4096 : y;
+	}
+
+	private static int unpackBlockZ(long packed) {
+		int z = (int)((packed >> 12) & 67108863L);
+		return z >= 33554432 ? z - 67108864 : z;
+	}
+
+	private static void tickBlackholeGravityLiftFx(double playerX, double playerZ) {
+		Iterator<BlackholeGravityLiftBlock> iterator = blackholeGravityLiftBlocks.iterator();
+		while(iterator.hasNext()) {
+			BlackholeGravityLiftBlock block = iterator.next();
+			block.ageTicks++;
+			if(block.ageTicks >= block.maxAgeTicks || isLiftOutsideFollowRadius(block.x, block.z, playerX, playerZ)) {
+				iterator.remove();
+			}
+		}
+
+		Iterator<BlackholeGravityLiftChunk> chunkIterator = blackholeGravityLiftChunks.iterator();
+		while(chunkIterator.hasNext()) {
+			BlackholeGravityLiftChunk chunk = chunkIterator.next();
+			chunk.ageTicks++;
+			if(chunk.ageTicks >= chunk.maxAgeTicks || isLiftOutsideFollowRadius(chunk.x, chunk.z, playerX, playerZ)) {
+				chunkIterator.remove();
+			}
+		}
+	}
+
+	private static boolean isLiftOutsideFollowRadius(double x, double z, double playerX, double playerZ) {
+		double dx = x - playerX;
+		double dz = z - playerZ;
+		double maxDist = 100.0D;
+		return dx * dx + dz * dz > maxDist * maxDist;
+	}
+
+	private static boolean isBlackholeCollapseMusicLockActive(World world) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world)) {
+			return false;
+		}
+		long collapseEndTick = getBlackholeCollapseEndTick(world);
+		if(collapseEndTick <= 0L) {
+			return false;
+		}
+		long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_COLLAPSE_DURATION_TICKS;
+		long now = world.getTotalWorldTime();
+		return now >= collapseStartTick && now < collapseEndTick;
+	}
+
+	private static boolean shouldBlockMusicDuringBlackholeCollapse(World world, ResourceLocation soundLocation) {
+		if(!isBlackholeCollapseMusicLockActive(world) || soundLocation == null) {
+			return false;
+		}
+		if(BLACKHOLE_COLLAPSE_EVENT_MUSIC.equals(soundLocation)) {
+			return false;
+		}
+		return soundLocation.getResourcePath().startsWith("music.");
+	}
+
+	@SideOnly(Side.CLIENT)
+	private static void renderBlackholeGravityLiftFx(RenderWorldLastEvent event) {
+		if(blackholeGravityLiftBlocks.isEmpty() && blackholeGravityLiftChunks.isEmpty()) {
+			return;
+		}
+
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.thePlayer == null) {
+			return;
+		}
+
+		EntityPlayer player = mc.thePlayer;
+		World world = player.worldObj;
+		if(world == null) {
+			return;
+		}
+		if(world.provider == null || !StarcoreSkyEffects.isBlackholeGravityLiftFxAllowedDimension(world.provider.dimensionId)) {
+			resetBlackholeGravityLiftFxState();
+			return;
+		}
+		double cameraX = player.prevPosX + (player.posX - player.prevPosX) * event.partialTicks;
+		double cameraY = player.prevPosY + (player.posY - player.prevPosY) * event.partialTicks;
+		double cameraZ = player.prevPosZ + (player.posZ - player.prevPosZ) * event.partialTicks;
+		mc.entityRenderer.enableLightmap((double)event.partialTicks);
+
+		RenderHelper.disableStandardItemLighting();
+		GL11.glDisable(GL11.GL_BLEND);
+		GL11.glPushMatrix();
+		{
+			mc.getTextureManager().bindTexture(TextureMap.locationBlocksTexture);
+			GL11.glShadeModel(GL11.GL_SMOOTH);
+			for(BlackholeGravityLiftBlock block : blackholeGravityLiftBlocks) {
+				double y = block.y + (block.ageTicks + event.partialTicks) * block.riseSpeed;
+				double rotTicks = block.ageTicks + event.partialTicks;
+				float yaw = (float)(block.rotYaw + rotTicks * block.rotYawSpeed);
+				float pitch = (float)(block.rotPitch + rotTicks * block.rotPitchSpeed);
+				int bx = MathHelper.floor_double(block.x);
+				int by = MathHelper.floor_double(block.y);
+				int bz = MathHelper.floor_double(block.z);
+				int brightness = world.getLightBrightnessForSkyBlocks(bx, by, bz, 0);
+				block.jar.lightlevel = brightness;
+				GL11.glPushMatrix();
+				{
+					GL11.glTranslated(block.x - cameraX, y - cameraY, block.z - cameraZ);
+					GL11.glTranslated(0.5D, 0.5D, 0.5D);
+					GL11.glRotatef(yaw, 0.0F, 1.0F, 0.0F);
+					GL11.glRotatef(pitch, 1.0F, 0.0F, 0.0F);
+					GL11.glTranslated(-0.5D, -0.5D, -0.5D);
+					GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+					Tessellator.instance.startDrawingQuads();
+					Tessellator.instance.setBrightness(brightness);
+					try {
+						RenderBlocks renderer = new RenderBlocks(block.jar);
+						renderer.enableAO = true;
+						renderer.renderBlockByRenderType(block.jar.getBlock(0, 0, 0), 0, 0, 0);
+					} catch(Exception ignored) { }
+					Tessellator.instance.draw();
+				}
+				GL11.glPopMatrix();
+			}
+			for(BlackholeGravityLiftChunk chunk : blackholeGravityLiftChunks) {
+				double y = chunk.y + (chunk.ageTicks + event.partialTicks) * chunk.riseSpeed;
+				double rotTicks = chunk.ageTicks + event.partialTicks;
+				float yaw = (float)(chunk.rotYaw + rotTicks * chunk.rotYawSpeed);
+				float pitch = (float)(chunk.rotPitch + rotTicks * chunk.rotPitchSpeed);
+				int bx = MathHelper.floor_double(chunk.x);
+				int by = MathHelper.floor_double(chunk.y + chunk.jar.sizeY * 0.5D);
+				int bz = MathHelper.floor_double(chunk.z);
+				int brightness = world.getLightBrightnessForSkyBlocks(bx, by, bz, 0);
+				chunk.jar.lightlevel = brightness;
+				GL11.glPushMatrix();
+				{
+					GL11.glTranslated(chunk.x - cameraX, y - cameraY, chunk.z - cameraZ);
+					GL11.glRotatef(yaw, 0.0F, 1.0F, 0.0F);
+					GL11.glRotatef(pitch, 1.0F, 0.0F, 0.0F);
+					GL11.glTranslated(-chunk.jar.sizeX / 2.0D, -chunk.jar.sizeY / 2.0D, -chunk.jar.sizeZ / 2.0D);
+					GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+					Tessellator.instance.startDrawingQuads();
+					Tessellator.instance.setBrightness(brightness);
+					try {
+						RenderBlocks renderer = new RenderBlocks(chunk.jar);
+						renderer.enableAO = true;
+						for(int ix = 0; ix < chunk.jar.sizeX; ix++) {
+							for(int iy = 0; iy < chunk.jar.sizeY; iy++) {
+								for(int iz = 0; iz < chunk.jar.sizeZ; iz++) {
+									renderer.renderBlockByRenderType(chunk.jar.getBlock(ix, iy, iz), ix, iy, iz);
+								}
+							}
+						}
+					} catch(Exception ignored) { }
+					Tessellator.instance.draw();
+				}
+				GL11.glPopMatrix();
+			}
+			GL11.glShadeModel(GL11.GL_FLAT);
+		}
+		GL11.glPopMatrix();
+		mc.entityRenderer.disableLightmap((double)event.partialTicks);
+		RenderHelper.enableStandardItemLighting();
+		GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+	}
+
+	private static void triggerBlackholeItsHereFx(World world, long collapseEndTick) {
+		if(!isBlackholeCollapseFxAllowedInDimension(world) || collapseEndTick <= 0L) {
+			return;
+		}
+
+		int dimension = world.provider.dimensionId;
+		if(blackholeItsHereFxDimension == dimension && blackholeItsHereFxCollapseEndTick == collapseEndTick) {
+			return;
+		}
+
+		blackholeItsHereFxDimension = dimension;
+		blackholeItsHereFxCollapseEndTick = collapseEndTick;
+		starcoreFlashTimestamp = System.currentTimeMillis();
+	}
+
+	private static void updateBlackholeGravityWarningTooltip(Minecraft mc) {
+		if(mc == null || mc.theWorld == null || mc.thePlayer == null) {
+			return;
+		}
+		int warningLevel = getBlackholeCollapseWarningLevel(mc.theWorld);
+		if(warningLevel <= 0) {
+			return;
+		}
+
+		boolean blinkRed = ((mc.theWorld.getTotalWorldTime() / 5L) & 1L) == 0L;
+		String color = blinkRed ? EnumChatFormatting.RED.toString() : EnumChatFormatting.YELLOW.toString();
+		int warningObfuscationStage = getBlackholeWarningObfuscationStage(mc.theWorld);
+		if(warningLevel >= 1) {
+			String visualCortexText = warningObfuscationStage >= 1 && warningLevel >= 3
+				? color + EnumChatFormatting.OBFUSCATED + "VISUAL CORTEX MALFUNCTION" + EnumChatFormatting.RESET
+				: color + "VISUAL CORTEX MALFUNCTION";
+			MainRegistry.proxy.displayTooltip(
+				visualCortexText,
+				250,
+				ServerProxy.ID_VISUAL_CORTEX_MALFUNCTION
+			);
+		}
+		if(warningLevel >= 2 && isBlackholeGravityRampWarningActive(mc.theWorld)) {
+			MainRegistry.proxy.displayTooltip(
+				color + "GRAVITATIONAL FORCES CHANGE DETECTED",
+				250,
+				ServerProxy.ID_GRAVITY_MALFUNCTION
+			);
+		}
+		if(warningLevel >= 3) {
+			String digammaText = warningObfuscationStage >= 2
+				? color + EnumChatFormatting.OBFUSCATED + "DIGAMMA RADIATION LEVELS INCREASING" + EnumChatFormatting.RESET
+				: color + "DIGAMMA RADIATION LEVELS INCREASING";
+			MainRegistry.proxy.displayTooltip(
+				digammaText,
+				250,
+				ServerProxy.ID_DIGAMMA_RADIATION_WARNING
+			);
+
+			int obfuscatedTooltipCount = getBlackholeObfuscatedTooltipCount(mc.theWorld);
+			for(int i = 0; i < obfuscatedTooltipCount; i++) {
+				String text = BLACKHOLE_OBFUSCATED_WARNING_TEXTS[i % BLACKHOLE_OBFUSCATED_WARNING_TEXTS.length];
+				MainRegistry.proxy.displayTooltip(
+					color + EnumChatFormatting.OBFUSCATED + text + EnumChatFormatting.RESET,
+					250,
+					ServerProxy.ID_BLACKHOLE_OBFUSCATED_WARNING_BASE + i
+				);
+			}
+			if(obfuscatedTooltipCount <= 0 && isBlackholeItsHereTooltipActive(mc.theWorld)) {
+				triggerBlackholeItsHereFx(mc.theWorld, getBlackholeCollapseEndTick(mc.theWorld));
+				MainRegistry.proxy.displayTooltip(
+					color + "=)",
+					250,
+					ServerProxy.ID_BLACKHOLE_ITS_HERE_WARNING
+				);
+			}
+		}
+	}
 
 	@SubscribeEvent
 	public void onPlayMusic(PlaySoundEvent17 event) {
 		final ResourceLocation musicLocation = new ResourceLocation("hbm:music.game.space");
-		final ResourceLocation musicLocationKerbol = new ResourceLocation("hbm:music.game.kerbol");
+		final ResourceLocation musicLocationDmitriy = new ResourceLocation("hbm:music.game.dmitriy");
+		if(event == null || event.sound == null) return;
 		ResourceLocation r = event.sound.getPositionedSoundLocation();
-		if(Minecraft.getMinecraft().theWorld == null) return;
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc.theWorld == null || r == null) return;
+		if(shouldBlockMusicDuringBlackholeCollapse(mc.theWorld, r)) {
+			stopCurrentMusic();
+			event.setResult(Result.DENY);
+			event.result = null;
+			return;
+		}
 		if(!r.toString().equals("minecraft:music.game.creative") && !r.toString().equals("minecraft:music.game")) return;
 
 		// Prevent songs playing over the top of each other
-		if(Minecraft.getMinecraft().getSoundHandler().isSoundPlaying(currentSong)) {
+		if(mc.getSoundHandler().isSoundPlaying(currentSong)) {
 			event.setResult(Result.DENY);
 			event.result = null;
 			return;
 		}
 
-		// Kerbol: match space music cadence
-		WorldProvider provider = Minecraft.getMinecraft().theWorld.provider;
-		if(provider != null && provider.dimensionId == SpaceConfig.kerbolDimension) {
-			event.result = currentSong = PositionedSoundRecord.func_147673_a(musicLocationKerbol);
+		// Dmitriy: match space music cadence
+		WorldProvider provider = mc.theWorld.provider;
+		if(provider != null && provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			event.result = currentSong = PositionedSoundRecord.func_147673_a(musicLocationDmitriy);
 			return;
 		}
 
@@ -1362,6 +2292,8 @@ public class ModEventHandlerClient {
 			}
 		}
 
+		appendCoreCompositionTooltip(stack, list);
+
 		///NEUTRON ACTIVATION
 		float level = 0;
 		float rads = HazardSystem.getHazardLevelFromStack(stack, HazardRegistry.RADIATION);
@@ -1450,6 +2382,59 @@ public class ModEventHandlerClient {
 		}
 	}
 
+	private void appendCoreCompositionTooltip(ItemStack stack, List<String> list) {
+		if(stack == null || stack.getItem() == null) return;
+
+		List<String> oreDictNames = ItemStackUtil.getOreDictNames(stack);
+		if(oreDictNames == null || oreDictNames.isEmpty()) return;
+
+		List<String> coreTooltipLines = new ArrayList<String>();
+		Set<String> seenEntries = new LinkedHashSet<String>();
+		for(String oreDict : oreDictNames) {
+			String categoryKey = CelestialCore.getCategoryForOreDict(oreDict);
+			if(categoryKey == null || categoryKey.isEmpty()) continue;
+
+			String categoryName = formatCoreCategoryName(categoryKey);
+			double density;
+			try {
+				density = CelestialCore.getDensityForOreDict(oreDict);
+			} catch(Exception ignored) {
+				continue;
+			}
+
+			String formattedDensity = formatCoreDensity(density);
+			String dedupeKey = categoryName + "|" + formattedDensity;
+			if(!seenEntries.add(dedupeKey)) continue;
+
+			coreTooltipLines.add(EnumChatFormatting.YELLOW + "Category: " + EnumChatFormatting.AQUA + categoryName);
+			coreTooltipLines.add(EnumChatFormatting.YELLOW + "Density: " + EnumChatFormatting.AQUA + formattedDensity);
+		}
+
+		if(coreTooltipLines.isEmpty()) return;
+		if(!list.isEmpty()) {
+			list.add("");
+		}
+		list.add(EnumChatFormatting.GOLD + "Planet Core Composition Material");
+		list.addAll(coreTooltipLines);
+	}
+
+	private String formatCoreCategoryName(String categoryName) {
+		if(categoryName == null || categoryName.isEmpty()) return "Unknown";
+		if(CelestialCore.CAT_NONMETAL.equals(categoryName)) return "Non-Metal";
+		if(CelestialCore.CAT_SCHRABIDIC.equals(categoryName)) return "Schrabidic";
+		if(CelestialCore.CAT_LIVING.equals(categoryName)) return "Living";
+		if(CelestialCore.CAT_ACTINIDE.equals(categoryName)) return "Actinide";
+		if(CelestialCore.CAT_CRYSTAL.equals(categoryName)) return "Crystalline";
+		if(CelestialCore.CAT_LIGHT.equals(categoryName)) return "Light Metal";
+		if(CelestialCore.CAT_HEAVY.equals(categoryName)) return "Heavy Metal";
+		if(CelestialCore.CAT_RARE.equals(categoryName)) return "Rare Earth";
+		return Character.toUpperCase(categoryName.charAt(0)) + categoryName.substring(1);
+	}
+
+	private String formatCoreDensity(double densityKgPerM3) {
+		return String.format(Locale.US, "%,.0f kg/m^3", densityKgPerM3);
+	}
+
 	private static long canneryTimestamp;
 	private static ComparableStack lastCannery = null;
 	private static long qmawTimestamp;
@@ -1461,8 +2446,7 @@ public class ModEventHandlerClient {
 	//@SubscribeEvent
 	public void onRenderStorm(RenderHandEvent event) {
 
-		if(BlockAshes.ashes == 0)
-			return;
+		if(BlockAshes.ashes <= 0) return;
 
 		GL11.glPushMatrix();
 
@@ -1536,7 +2520,7 @@ public class ModEventHandlerClient {
 		Minecraft mc = Minecraft.getMinecraft();
 		ArmorNo9.updateWorldHook(mc.theWorld);
 
-		boolean supportsHighRenderDistance = FMLClientHandler.instance().hasOptifine() || Loader.isModLoaded("angelica");
+		boolean supportsHighRenderDistance = FMLClientHandler.instance().hasOptifine() || Loader.isModLoaded(Compat.MOD_ANG);
 
 		if(mc.gameSettings.renderDistanceChunks > 16 && GeneralConfig.enableRenderDistCheck && !supportsHighRenderDistance) {
 			mc.gameSettings.renderDistanceChunks = 16;
@@ -1550,7 +2534,9 @@ public class ModEventHandlerClient {
 		}
 
 		if(mc.theWorld == null || mc.thePlayer == null) {
-			resetKerbolCameraEffects(mc);
+			resetDmitriyCameraEffects(mc);
+			resetBlackholeItsHereFxState();
+			resetBlackholeGravityLiftFxState();
 			lastClientDimensionId = null;
 			return;
 		}
@@ -1558,11 +2544,13 @@ public class ModEventHandlerClient {
 		int currentDimension = mc.theWorld.provider != null ? mc.theWorld.provider.dimensionId : 0;
 		if(lastClientDimensionId == null || lastClientDimensionId.intValue() != currentDimension) {
 			if(lastClientDimensionId != null) {
-				resetKerbolCameraEffects(mc);
+				resetDmitriyCameraEffects(mc);
 			}
+			resetBlackholeItsHereFxState();
+			resetBlackholeGravityLiftFxState();
 			lastClientDimensionId = currentDimension;
-		} else if(currentDimension != SpaceConfig.kerbolDimension) {
-			resetKerbolCameraEffects(mc);
+		} else if(currentDimension != SpaceConfig.dmitriyDimension) {
+			resetDmitriyCameraEffects(mc);
 		}
 
 		SolarSystem.applyMinmusShatterState(mc.theWorld);
@@ -1573,11 +2561,11 @@ public class ModEventHandlerClient {
 			if(BlockAshes.ashes > 0) BlockAshes.ashes -= 2;
 			if(BlockAshes.ashes < 0) BlockAshes.ashes = 0;
 
-			maybeSpawnKerbolRedRain(mc);
-			maybePlayKerbolDialogue(mc);
-			maybeSpawnKerbolGhostChat(mc);
-			maybeSpawnKerbolGhostAchievement(mc);
-			updateKerbolStarStare(mc, 0.0F);
+			maybeSpawnDmitriyRedRain(mc);
+			maybePlayDmitriyDialogue(mc);
+			maybeSpawnDmitriyGhostChat(mc);
+			maybeSpawnDmitriyGhostAchievement(mc);
+			updateDmitriyStarStare(mc, 0.0F);
 
 			if(mc.theWorld.getTotalWorldTime() % 20 == 0) {
 				lastBrightness = currentBrightness;
@@ -1587,6 +2575,8 @@ public class ModEventHandlerClient {
 			if(ArmorUtil.isWearingEmptyMask(mc.thePlayer)) {
 				MainRegistry.proxy.displayTooltip(EnumChatFormatting.RED + "Your mask has no filter!", ServerProxy.ID_FILTER);
 			}
+			updateBlackholeGravityWarningTooltip(mc);
+			updateBlackholeGravityLiftFx(mc);
 			
 			//prune other entities' muzzle flashes
 			if(mc.theWorld.getTotalWorldTime() % 30 == 0) {
@@ -1642,10 +2632,7 @@ public class ModEventHandlerClient {
 				MainRegistry.logger.info("Taking a screenshot of ALL items, if you did this by mistake: fucking lmao get rekt nerd");
 
 				List<Item> ignoredItems = Arrays.asList(
-					ModItems.assembly_template,
 					ModItems.crucible_template,
-					ModItems.chemistry_template,
-					ModItems.chemistry_icon,
 					ModItems.achievement_icon,
 					Items.spawn_egg,
 					Item.getItemFromBlock(Blocks.mob_spawner)
@@ -1706,10 +2693,14 @@ public class ModEventHandlerClient {
 
 		if(!mc.isGamePaused() && event.phase == Phase.END) {
 			for(CelestialBody body : CelestialBody.getAllBodies()) {
-				if(SolarSystemWorldSavedData.getClientTraits(body.name) != null) {
-					for(CelestialBodyTrait trait : SolarSystemWorldSavedData.getClientTraits(body.name).values()) {
+				HashMap<Class<? extends CelestialBodyTrait>, CelestialBodyTrait> bodyTraits = SolarSystemWorldSavedData.getClientTraits(body.name);
+				if(bodyTraits != null) {
+					for(CelestialBodyTrait trait : bodyTraits.values()) {
 						trait.update(true);
 					}
+				}
+				if(body.getCore() != null) {
+					CelestialBody.applyMassFromCore(body, body.getCore());
 				}
 			}
 
@@ -1774,19 +2765,19 @@ public class ModEventHandlerClient {
 		WorldProviderCelestial provider = (WorldProviderCelestial) mc.theWorld.provider;
 		provider.setGravityMultiplier(nextGravity);
 
-		if(!(provider instanceof WorldProviderKerbol)) {
+		if(!(provider instanceof WorldProviderDmitriy)) {
 			return;
 		}
 
-		WorldProviderKerbol kerbol = (WorldProviderKerbol) provider;
-		if(lastKerbolGravity == null) {
-			lastKerbolGravity = kerbol.getGravityMultiplier();
+		WorldProviderDmitriy dmitriy = (WorldProviderDmitriy) provider;
+		if(lastDmitriyGravity == null) {
+			lastDmitriyGravity = dmitriy.getGravityMultiplier();
 		}
 		shakeTimestamp = System.currentTimeMillis();
 		MainRegistry.proxy.displayTooltip(EnumChatFormatting.DARK_RED.toString() + EnumChatFormatting.BOLD + "IT LIVES...", ServerProxy.ID_GAS_HAZARD);
 
-		float previous = lastKerbolGravity != null ? lastKerbolGravity : 1.0F;
-		lastKerbolGravity = nextGravity;
+		float previous = lastDmitriyGravity != null ? lastDmitriyGravity : 1.0F;
+		lastDmitriyGravity = nextGravity;
 		boolean gravityHeavier = nextGravity > previous;
 		double speed = gravityHeavier ? -0.7D : 0.7D;
 		int baseX = MathHelper.floor_double(mc.thePlayer.posX);
@@ -1811,81 +2802,64 @@ public class ModEventHandlerClient {
 			double motionZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.08D;
 
 			if(gravityHeavier) {
-				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, 0.9F, 0.1F, 0.1F);
+				ParticleUtil.spawnDmitriyDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, 0.9F, 0.1F, 0.1F);
 			} else {
 				int color = block.colorMultiplier(mc.theWorld, x, topY - 1, z);
 				float r = ((color >> 16) & 0xFF) / 255.0F;
 				float g = ((color >> 8) & 0xFF) / 255.0F;
 				float b = (color & 0xFF) / 255.0F;
-				ParticleUtil.spawnKerbolDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
+				ParticleUtil.spawnDmitriyDot(mc.theWorld, px, py, pz, motionX, speed, motionZ, r, g, b);
 			}
 		}
 	}
 
-	private void maybePlayKerbolHeartbeat(Minecraft mc) {
-		final double kerbolHeartbeatPeriodTicks = 200.0D;
+	private void maybePlayDmitriyDialogue(Minecraft mc) {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
-			return;
-		}
-		long tick = mc.theWorld.getTotalWorldTime();
-		long beatIndex = (long) Math.floor(tick / kerbolHeartbeatPeriodTicks);
-		if(beatIndex == lastKerbolHeartbeatBeat) {
-			return;
-		}
-		lastKerbolHeartbeatBeat = beatIndex;
-		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_heartbeat", 3.0F, 1.0F);
-	}
-
-	private void maybePlayKerbolDialogue(Minecraft mc) {
-		if(mc.theWorld == null || mc.thePlayer == null) {
-			return;
-		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
-			kerbolDialogueCooldownTicks = -1;
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
+			dmitriyDialogueCooldownTicks = -1;
 			return;
 		}
 
-		if(kerbolDialogueCooldownTicks < 0) {
-			kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+		if(dmitriyDialogueCooldownTicks < 0) {
+			dmitriyDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
 			return;
 		}
 
-		if(kerbolDialogueCooldownTicks > 0) {
-			kerbolDialogueCooldownTicks--;
+		if(dmitriyDialogueCooldownTicks > 0) {
+			dmitriyDialogueCooldownTicks--;
 			return;
 		}
 
-		kerbolDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
+		dmitriyDialogueCooldownTicks = 6000 + mc.theWorld.rand.nextInt(6000);
 		mc.theWorld.playSoundAtEntity(mc.thePlayer, "hbm:misc.itlives_dialogue1", 1.0F, 1.0F);
 	}
 
-	private void maybeSpawnKerbolGhostChat(Minecraft mc) {
-		final int kerbolGhostChatIntervalTicks = 60 * 20;
-		final float kerbolGhostChatChance = 0.10F;
+	private void maybeSpawnDmitriyGhostChat(Minecraft mc) {
+		final int dmitriyGhostChatIntervalTicks = 60 * 20;
+		final float dmitriyGhostChatChance = 0.10F;
 		if(mc.theWorld == null || mc.thePlayer == null || mc.ingameGUI == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 
 		long tick = mc.theWorld.getTotalWorldTime();
-		if(tick % kerbolGhostChatIntervalTicks != 0L) {
+		if(tick % dmitriyGhostChatIntervalTicks != 0L) {
 			return;
 		}
-		if(mc.theWorld.rand.nextFloat() >= kerbolGhostChatChance) {
+		if(mc.theWorld.rand.nextFloat() >= dmitriyGhostChatChance) {
 			return;
 		}
 
-		String sender = pickRandomKerbolGhostSender(mc);
+		String sender = pickRandomDmitriyGhostSender(mc);
 		if(sender == null || sender.isEmpty()) {
 			return;
 		}
 
-		String message = createKerbolGhostMessage(mc.theWorld.rand);
+		String message = createDmitriyGhostMessage(mc.theWorld.rand);
 		if(message.isEmpty()) {
 			return;
 		}
@@ -1893,96 +2867,96 @@ public class ModEventHandlerClient {
 		mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentText("<" + sender + "> " + message));
 	}
 
-	private void maybeSpawnKerbolGhostAchievement(Minecraft mc) {
-		final int kerbolGhostChatIntervalTicks = 60 * 20;
-		final float kerbolGhostAchievementChance = 0.30F;
+	private void maybeSpawnDmitriyGhostAchievement(Minecraft mc) {
+		final int dmitriyGhostChatIntervalTicks = 60 * 20;
+		final float dmitriyGhostAchievementChance = 0.30F;
 		if(mc.theWorld == null || mc.thePlayer == null || mc.guiAchievement == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 		String playerName = mc.thePlayer.getCommandSenderName();
-		if(playerName == null || playerName.isEmpty() || hasSeenKerbolGhostAchievement(mc.thePlayer, playerName)) {
+		if(playerName == null || playerName.isEmpty() || hasSeenDmitriyGhostAchievement(mc.thePlayer, playerName)) {
 			return;
 		}
 
 		long tick = mc.theWorld.getTotalWorldTime();
-		if(tick % kerbolGhostChatIntervalTicks != 0L) {
+		if(tick % dmitriyGhostChatIntervalTicks != 0L) {
 			return;
 		}
-		if(mc.theWorld.rand.nextFloat() >= kerbolGhostAchievementChance) {
+		if(mc.theWorld.rand.nextFloat() >= dmitriyGhostAchievementChance) {
 			return;
 		}
 
-		KerbolGhostAchievement achievement = getOrCreateKerbolGhostAchievement();
-		String achievementName = createKerbolGhostAchievementName(mc.theWorld.rand);
+		DmitriyGhostAchievement achievement = getOrCreateDmitriyGhostAchievement();
+		String achievementName = createDmitriyGhostAchievementName(mc.theWorld.rand);
 		achievement.setGhostText(achievementName, ": )");
-		showKerbolGhostAchievement(mc, achievement);
+		showDmitriyGhostAchievement(mc, achievement);
 		if(mc.ingameGUI != null) {
-			IChatComponent chatDisplayName = createKerbolGhostAchievementChatTitle(achievementName);
+			IChatComponent chatDisplayName = createDmitriyGhostAchievementChatTitle(achievementName);
 			mc.ingameGUI.getChatGUI().printChatMessage(new ChatComponentTranslation("chat.type.achievement", playerName, chatDisplayName));
 		}
-		markKerbolGhostAchievementSeen(mc.thePlayer, playerName);
+		markDmitriyGhostAchievementSeen(mc.thePlayer, playerName);
 	}
 
-	private boolean hasSeenKerbolGhostAchievement(EntityPlayer player, String playerName) {
-		final String kerbolGhostAchievementNbtRoot = "hbmKerbolGhostAchievement";
+	private boolean hasSeenDmitriyGhostAchievement(EntityPlayer player, String playerName) {
+		final String dmitriyGhostAchievementNbtRoot = "hbmDmitriyGhostAchievement";
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return true;
 		}
-		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
-		ensureKerbolGhostAchievementSeenCacheLoaded();
-		if(kerbolGhostAchievementSeenCache.contains(seenKey)) {
+		String seenKey = getDmitriyGhostAchievementSeenKey(player, playerName);
+		ensureDmitriyGhostAchievementSeenCacheLoaded();
+		if(dmitriyGhostAchievementSeenCache.contains(seenKey)) {
 			return true;
 		}
 		NBTTagCompound persisted = player.getEntityData().getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
-		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
-		boolean seen = ghostData.getBoolean(seenKey) || ghostData.getBoolean(getKerbolGhostAchievementLegacySeenKey(playerName));
-		if(seen && kerbolGhostAchievementSeenCache.add(seenKey)) {
-			persistKerbolGhostAchievementSeenCache();
+		NBTTagCompound ghostData = persisted.getCompoundTag(dmitriyGhostAchievementNbtRoot);
+		boolean seen = ghostData.getBoolean(seenKey) || ghostData.getBoolean(getDmitriyGhostAchievementLegacySeenKey(playerName));
+		if(seen && dmitriyGhostAchievementSeenCache.add(seenKey)) {
+			persistDmitriyGhostAchievementSeenCache();
 		}
 		return seen;
 	}
 
-	private void markKerbolGhostAchievementSeen(EntityPlayer player, String playerName) {
-		final String kerbolGhostAchievementNbtRoot = "hbmKerbolGhostAchievement";
+	private void markDmitriyGhostAchievementSeen(EntityPlayer player, String playerName) {
+		final String dmitriyGhostAchievementNbtRoot = "hbmDmitriyGhostAchievement";
 		if(player == null || playerName == null || playerName.isEmpty()) {
 			return;
 		}
-		String seenKey = getKerbolGhostAchievementSeenKey(player, playerName);
-		ensureKerbolGhostAchievementSeenCacheLoaded();
-		boolean cacheChanged = kerbolGhostAchievementSeenCache.add(seenKey);
+		String seenKey = getDmitriyGhostAchievementSeenKey(player, playerName);
+		ensureDmitriyGhostAchievementSeenCacheLoaded();
+		boolean cacheChanged = dmitriyGhostAchievementSeenCache.add(seenKey);
 		NBTTagCompound entityData = player.getEntityData();
 		NBTTagCompound persisted = entityData.getCompoundTag(EntityPlayer.PERSISTED_NBT_TAG);
-		NBTTagCompound ghostData = persisted.getCompoundTag(kerbolGhostAchievementNbtRoot);
+		NBTTagCompound ghostData = persisted.getCompoundTag(dmitriyGhostAchievementNbtRoot);
 		ghostData.setBoolean(seenKey, true);
-		ghostData.setBoolean(getKerbolGhostAchievementLegacySeenKey(playerName), true);
-		persisted.setTag(kerbolGhostAchievementNbtRoot, ghostData);
+		ghostData.setBoolean(getDmitriyGhostAchievementLegacySeenKey(playerName), true);
+		persisted.setTag(dmitriyGhostAchievementNbtRoot, ghostData);
 		entityData.setTag(EntityPlayer.PERSISTED_NBT_TAG, persisted);
 		if(cacheChanged) {
-			persistKerbolGhostAchievementSeenCache();
+			persistDmitriyGhostAchievementSeenCache();
 		}
 	}
 
-	private String getKerbolGhostAchievementSeenKey(EntityPlayer player, String playerName) {
+	private String getDmitriyGhostAchievementSeenKey(EntityPlayer player, String playerName) {
 		if(player != null && player.getUniqueID() != null) {
 			return "seen_uuid_" + player.getUniqueID().toString().toLowerCase(Locale.ROOT);
 		}
-		return getKerbolGhostAchievementLegacySeenKey(playerName);
+		return getDmitriyGhostAchievementLegacySeenKey(playerName);
 	}
 
-	private String getKerbolGhostAchievementLegacySeenKey(String playerName) {
-		final String kerbolGhostAchievementNbtSeenPrefix = "seen_";
-		return kerbolGhostAchievementNbtSeenPrefix + playerName.toLowerCase(Locale.ROOT);
+	private String getDmitriyGhostAchievementLegacySeenKey(String playerName) {
+		final String dmitriyGhostAchievementNbtSeenPrefix = "seen_";
+		return dmitriyGhostAchievementNbtSeenPrefix + playerName.toLowerCase(Locale.ROOT);
 	}
 
-	private void ensureKerbolGhostAchievementSeenCacheLoaded() {
-		if(kerbolGhostAchievementSeenLoadedFromConfig) {
+	private void ensureDmitriyGhostAchievementSeenCacheLoaded() {
+		if(dmitriyGhostAchievementSeenLoadedFromConfig) {
 			return;
 		}
-		kerbolGhostAchievementSeenLoadedFromConfig = true;
-		String serialized = ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.get();
+		dmitriyGhostAchievementSeenLoadedFromConfig = true;
+		String serialized = ClientConfig.DMITRIY_GHOST_ACHIEVEMENT_SEEN.get();
 		if(serialized == null || serialized.isEmpty()) {
 			return;
 		}
@@ -1993,16 +2967,16 @@ public class ModEventHandlerClient {
 			}
 			String normalized = key.trim().toLowerCase(Locale.ROOT);
 			if(!normalized.isEmpty()) {
-				kerbolGhostAchievementSeenCache.add(normalized);
+				dmitriyGhostAchievementSeenCache.add(normalized);
 			}
 		}
 	}
 
-	private void persistKerbolGhostAchievementSeenCache() {
-		if(!kerbolGhostAchievementSeenLoadedFromConfig) {
+	private void persistDmitriyGhostAchievementSeenCache() {
+		if(!dmitriyGhostAchievementSeenLoadedFromConfig) {
 			return;
 		}
-		List<String> sortedKeys = new ArrayList<String>(kerbolGhostAchievementSeenCache);
+		List<String> sortedKeys = new ArrayList<String>(dmitriyGhostAchievementSeenCache);
 		Collections.sort(sortedKeys);
 		StringBuilder serialized = new StringBuilder();
 		for(String key : sortedKeys) {
@@ -2011,44 +2985,44 @@ public class ModEventHandlerClient {
 			}
 			serialized.append(key);
 		}
-		ClientConfig.KERBOL_GHOST_ACHIEVEMENT_SEEN.set(serialized.toString());
+		ClientConfig.DMITRIY_GHOST_ACHIEVEMENT_SEEN.set(serialized.toString());
 		ClientConfig.refresh();
 	}
 
-	private KerbolGhostAchievement getOrCreateKerbolGhostAchievement() {
-		if(kerbolGhostAchievement == null) {
-			kerbolGhostAchievement = new KerbolGhostAchievement();
+	private DmitriyGhostAchievement getOrCreateDmitriyGhostAchievement() {
+		if(dmitriyGhostAchievement == null) {
+			dmitriyGhostAchievement = new DmitriyGhostAchievement();
 		}
-		return kerbolGhostAchievement;
+		return dmitriyGhostAchievement;
 	}
 
-	private void showKerbolGhostAchievement(Minecraft mc, Achievement achievement) {
+	private void showDmitriyGhostAchievement(Minecraft mc, Achievement achievement) {
 		if(mc == null || mc.guiAchievement == null || achievement == null) {
 			return;
 		}
 		try {
-			if(kerbolGhostAchievementToastMethod == null) {
-				kerbolGhostAchievementToastMethod = ReflectionHelper.findMethod(
+			if(dmitriyGhostAchievementToastMethod == null) {
+				dmitriyGhostAchievementToastMethod = ReflectionHelper.findMethod(
 					net.minecraft.client.gui.achievement.GuiAchievement.class,
 					mc.guiAchievement,
 					new String[] { "displayAchievement", "func_146256_a" },
 					Achievement.class
 				);
-				kerbolGhostAchievementToastMethod.setAccessible(true);
+				dmitriyGhostAchievementToastMethod.setAccessible(true);
 			}
-			kerbolGhostAchievementToastMethod.invoke(mc.guiAchievement, achievement);
+			dmitriyGhostAchievementToastMethod.invoke(mc.guiAchievement, achievement);
 		} catch(Exception ignored) { }
 	}
 
-	private String createKerbolGhostAchievementName(Random rand) {
-		final int kerbolGhostAchievementMinSymbols = 1;
-		final int kerbolGhostAchievementMaxSymbols = 12;
-		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+{};:'\",.?/\\\\|";
-		int symbolCount = kerbolGhostAchievementMinSymbols
-			+ rand.nextInt(kerbolGhostAchievementMaxSymbols - kerbolGhostAchievementMinSymbols + 1);
+	private String createDmitriyGhostAchievementName(Random rand) {
+		final int dmitriyGhostAchievementMinSymbols = 1;
+		final int dmitriyGhostAchievementMaxSymbols = 12;
+		final String dmitriyGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+{};:'\",.?/\\\\|";
+		int symbolCount = dmitriyGhostAchievementMinSymbols
+			+ rand.nextInt(dmitriyGhostAchievementMaxSymbols - dmitriyGhostAchievementMinSymbols + 1);
 		StringBuilder raw = new StringBuilder(symbolCount + 1);
 		for(int i = 0; i < symbolCount; i++) {
-			raw.append(kerbolGhostChatChars.charAt(rand.nextInt(kerbolGhostChatChars.length())));
+			raw.append(dmitriyGhostChatChars.charAt(rand.nextInt(dmitriyGhostChatChars.length())));
 		}
 		if(symbolCount > 1 && rand.nextBoolean()) {
 			int spacePos = 1 + rand.nextInt(symbolCount - 1);
@@ -2057,7 +3031,7 @@ public class ModEventHandlerClient {
 		return raw.toString();
 	}
 
-	private IChatComponent createKerbolGhostAchievementChatTitle(String rawTitle) {
+	private IChatComponent createDmitriyGhostAchievementChatTitle(String rawTitle) {
 		ChatStyle bracketStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN);
 		ChatStyle titleStyle = new ChatStyle().setColor(EnumChatFormatting.GREEN).setObfuscated(true)
 			.setChatHoverEvent(new HoverEvent(
@@ -2071,7 +3045,7 @@ public class ModEventHandlerClient {
 		return chatTitle;
 	}
 
-	private String pickRandomKerbolGhostSender(Minecraft mc) {
+	private String pickRandomDmitriyGhostSender(Minecraft mc) {
 		if(mc.theWorld == null || mc.theWorld.playerEntities == null || mc.theWorld.playerEntities.isEmpty()) {
 			return null;
 		}
@@ -2094,14 +3068,14 @@ public class ModEventHandlerClient {
 		return names.get(mc.theWorld.rand.nextInt(names.size()));
 	}
 
-	private String createKerbolGhostMessage(Random rand) {
-		final int kerbolGhostChatMinLength = 8;
-		final int kerbolGhostChatMaxLength = 26;
-		final String kerbolGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
-		int length = kerbolGhostChatMinLength + rand.nextInt(kerbolGhostChatMaxLength - kerbolGhostChatMinLength + 1);
+	private String createDmitriyGhostMessage(Random rand) {
+		final int dmitriyGhostChatMinLength = 8;
+		final int dmitriyGhostChatMaxLength = 26;
+		final String dmitriyGhostChatChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+[]{};:'\",.?/\\\\|";
+		int length = dmitriyGhostChatMinLength + rand.nextInt(dmitriyGhostChatMaxLength - dmitriyGhostChatMinLength + 1);
 		StringBuilder builder = new StringBuilder(length + 4);
 		for(int i = 0; i < length; i++) {
-			builder.append(kerbolGhostChatChars.charAt(rand.nextInt(kerbolGhostChatChars.length())));
+			builder.append(dmitriyGhostChatChars.charAt(rand.nextInt(dmitriyGhostChatChars.length())));
 			if(i > 2 && i < length - 2 && rand.nextInt(12) == 0) {
 				builder.append(' ');
 			}
@@ -2109,11 +3083,11 @@ public class ModEventHandlerClient {
 		return builder.toString().trim();
 	}
 
-	private void maybeSpawnKerbolRedRain(Minecraft mc) {
+	private void maybeSpawnDmitriyRedRain(Minecraft mc) {
 		if(mc.theWorld == null || mc.thePlayer == null) {
 			return;
 		}
-		if(mc.theWorld.provider.dimensionId != SpaceConfig.kerbolDimension) {
+		if(mc.theWorld.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return;
 		}
 		float rain = mc.theWorld.getRainStrength(1.0F);
@@ -2132,17 +3106,17 @@ public class ModEventHandlerClient {
 			double mX = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
 			double mZ = (mc.theWorld.rand.nextDouble() - 0.5D) * 0.02D;
 			double mY = -0.6D - mc.theWorld.rand.nextDouble() * 0.3D;
-			ParticleUtil.spawnKerbolDot(mc.theWorld, x, y, z, mX, mY, mZ, 0.9F, 0.1F, 0.1F);
+			ParticleUtil.spawnDmitriyDot(mc.theWorld, x, y, z, mX, mY, mZ, 0.9F, 0.1F, 0.1F);
 		}
 	}
 
-	public static float getKerbolHeartbeatPulse(World world, float partialTicks) {
-		final double kerbolHeartbeatPeriodTicks = 200.0D;
-		if(world == null || world.provider == null || world.provider.dimensionId != SpaceConfig.kerbolDimension) {
+	public static float getDmitriyHeartbeatPulse(World world, float partialTicks) {
+		final double dmitriyHeartbeatPeriodTicks = 200.0D;
+		if(world == null || world.provider == null || world.provider.dimensionId != SpaceConfig.dmitriyDimension) {
 			return 0.0F;
 		}
 		double ticks = world.getTotalWorldTime() + partialTicks;
-		double phase = (ticks / kerbolHeartbeatPeriodTicks) % 1.0D;
+		double phase = (ticks / dmitriyHeartbeatPeriodTicks) % 1.0D;
 		double p1 = 1.0D - Math.abs(phase - 0.0D) / 0.03D;
 		double p2 = 1.0D - Math.abs(phase - 0.02D) / 0.035D;
 		double pulse = Math.max(0.0D, p1);
@@ -2188,20 +3162,82 @@ public class ModEventHandlerClient {
 	public static int loadingScreenReplacementRetry = 0;
 
 	private static AudioWrapper shipHum;
-	private static AudioWrapper kerbolWind;
-	private static AudioWrapper kerbolStarStareSound;
-	private static AudioWrapper kerbolStarStareBackSound;
+	private static AudioWrapper dmitriyWind;
+	private static AudioWrapper dmitriyStarStareSound;
+	private static AudioWrapper dmitriyStarStareBackSound;
 	private static AudioWrapper sunDecayHum;
 
-	private static void stopKerbolStarStareSound() {
-		if(kerbolStarStareSound != null) {
-			kerbolStarStareSound.stopSound();
-			kerbolStarStareSound = null;
+	private static void stopDmitriyStarStareSound() {
+		if(dmitriyStarStareSound != null) {
+			dmitriyStarStareSound.stopSound();
+			dmitriyStarStareSound = null;
 		}
-		if(kerbolStarStareBackSound != null) {
-			kerbolStarStareBackSound.stopSound();
-			kerbolStarStareBackSound = null;
+		if(dmitriyStarStareBackSound != null) {
+			dmitriyStarStareBackSound.stopSound();
+			dmitriyStarStareBackSound = null;
 		}
+	}
+
+	private static void updateVoidFightsBackClientEffects(Minecraft mc) {
+		EntityPlayer player = mc != null ? mc.thePlayer : null;
+		World world = mc != null ? mc.theWorld : null;
+
+		if(voidFightsBackShakeTicks > 0) {
+			voidFightsBackShakeTicks--;
+		}
+
+		if(voidFightsBackLoopTicks != 0 && world != null && player != null) {
+			float loopVolume = getVoidFightsBackLoopVolume(world, player);
+			if(voidFightsBackLoopSound == null || !voidFightsBackLoopSound.isPlaying()) {
+				voidFightsBackLoopSound = MainRegistry.proxy.getLoopedSound("hbm:misc.itlives_itstaresback", player, loopVolume, 8.0F, 1.0F, 10);
+				voidFightsBackLoopSound.startSound();
+			}
+			voidFightsBackLoopSound.updateVolume(loopVolume);
+			voidFightsBackLoopSound.keepAlive();
+			if(voidFightsBackLoopTicks > 0) {
+				voidFightsBackLoopTicks--;
+			}
+		} else if(voidFightsBackLoopSound != null) {
+			if(world == null || player == null) {
+				voidFightsBackLoopTicks = 0;
+			}
+			voidFightsBackLoopSound.stopSound();
+			voidFightsBackLoopSound = null;
+		}
+	}
+
+	private static float getVoidFightsBackLoopVolume(World world, EntityPlayer player) {
+		final float minVolume = 0.1F;
+		final float maxVolume = 0.9F;
+		final double maxDistance = 64.0D;
+		double minDistanceSq = Double.MAX_VALUE;
+
+		if(world == null || player == null || world.loadedEntityList == null) {
+			return minVolume;
+		}
+
+		for(Object obj : world.loadedEntityList) {
+			if(!(obj instanceof EntityVoidFightsBack)) {
+				continue;
+			}
+			EntityVoidFightsBack entity = (EntityVoidFightsBack) obj;
+			if(entity == null || entity.isDead) {
+				continue;
+			}
+			double distanceSq = entity.getDistanceSqToEntity(player);
+			if(distanceSq < minDistanceSq) {
+				minDistanceSq = distanceSq;
+			}
+		}
+
+		if(minDistanceSq == Double.MAX_VALUE) {
+			return minVolume;
+		}
+
+		double distance = Math.sqrt(minDistanceSq);
+		float proximity = 1.0F - MathHelper.clamp_float((float)(distance / maxDistance), 0.0F, 1.0F);
+		proximity = proximity * proximity * proximity;
+		return minVolume + (maxVolume - minVolume) * proximity;
 	}
 
 	@SideOnly(Side.CLIENT)
@@ -2219,6 +3255,8 @@ public class ModEventHandlerClient {
 		}
 
 		if(event.phase == Phase.START) {
+			updateVoidFightsBackClientEffects(mc);
+
 			// I didn't see anything boss, I swears it
 			World world = mc.theWorld;
 			if(world == null) return;
@@ -2253,83 +3291,50 @@ public class ModEventHandlerClient {
 				shipHum = null;
 			}
 
-			if(player != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
-				if(kerbolWind == null || !kerbolWind.isPlaying()) {
-					kerbolWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.kerbol_wind", player, 0.7F, 6.0F, 1.0F, 10);
-					kerbolWind.startSound();
+			if(player != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+				if(dmitriyWind == null || !dmitriyWind.isPlaying()) {
+					dmitriyWind = MainRegistry.proxy.getLoopedSound("hbm:ambient.dmitriy_wind", player, 0.7F, 6.0F, 1.0F, 10);
+					dmitriyWind.startSound();
 				}
 
-				kerbolWind.updateVolume(0.7F);
-				kerbolWind.keepAlive();
-			} else if(kerbolWind != null) {
-				kerbolWind.stopSound();
-				kerbolWind = null;
+				dmitriyWind.updateVolume(0.7F);
+				dmitriyWind.keepAlive();
+			} else if(dmitriyWind != null) {
+				dmitriyWind.stopSound();
+				dmitriyWind = null;
 			}
 
 			float stareCloseness = 0.0F;
-			if(player != null && world.provider != null && world.provider.dimensionId == SpaceConfig.kerbolDimension) {
-				stareCloseness = getKerbolStarStareCloseness();
+			if(player != null && world.provider != null && world.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+				stareCloseness = getDmitriyStarStareCloseness();
 			}
-			final float kerbolStarStareSoundMaxVolume = 0.2F;
-			final float kerbolStarStareBackSoundMaxVolume = 0.1F;
-			final float kerbolStarStareSoundMinTrigger = 0.001F;
-			final float kerbolStarStareSoundRange = 1.0F;
-			final String kerbolStarStareSoundEvent = "hbm:misc.stare";
-			final String kerbolStarStareBackSoundEvent = "hbm:misc.itlives_itstaresback";
-			float stareVolume = stareCloseness * kerbolStarStareSoundMaxVolume;
-			float stareBackVolume = stareCloseness * kerbolStarStareBackSoundMaxVolume;
-			if(stareVolume > kerbolStarStareSoundMinTrigger) {
-				if(kerbolStarStareSound == null || !kerbolStarStareSound.isPlaying()) {
-					kerbolStarStareSound = MainRegistry.proxy.getLoopedSound(kerbolStarStareSoundEvent, player, stareVolume, kerbolStarStareSoundRange, 1.0F, 10);
-					kerbolStarStareSound.startSound();
+			final float dmitriyStarStareSoundMaxVolume = 0.2F;
+			final float dmitriyStarStareBackSoundMaxVolume = 0.1F;
+			final float dmitriyStarStareSoundMinTrigger = 0.001F;
+			final float dmitriyStarStareSoundRange = 1.0F;
+			final String dmitriyStarStareSoundEvent = "hbm:misc.stare";
+			final String dmitriyStarStareBackSoundEvent = "hbm:misc.itlives_itstaresback";
+			float stareVolume = stareCloseness * dmitriyStarStareSoundMaxVolume;
+			float stareBackVolume = stareCloseness * dmitriyStarStareBackSoundMaxVolume;
+			if(stareVolume > dmitriyStarStareSoundMinTrigger) {
+				if(dmitriyStarStareSound == null || !dmitriyStarStareSound.isPlaying()) {
+					dmitriyStarStareSound = MainRegistry.proxy.getLoopedSound(dmitriyStarStareSoundEvent, player, stareVolume, dmitriyStarStareSoundRange, 1.0F, 10);
+					dmitriyStarStareSound.startSound();
 				}
-				if(kerbolStarStareBackSound == null || !kerbolStarStareBackSound.isPlaying()) {
-					kerbolStarStareBackSound = MainRegistry.proxy.getLoopedSound(kerbolStarStareBackSoundEvent, player, stareBackVolume, kerbolStarStareSoundRange, 1.0F, 10);
-					kerbolStarStareBackSound.startSound();
+				if(dmitriyStarStareBackSound == null || !dmitriyStarStareBackSound.isPlaying()) {
+					dmitriyStarStareBackSound = MainRegistry.proxy.getLoopedSound(dmitriyStarStareBackSoundEvent, player, stareBackVolume, dmitriyStarStareSoundRange, 1.0F, 10);
+					dmitriyStarStareBackSound.startSound();
 				}
 
-				kerbolStarStareSound.updateVolume(stareVolume);
-				kerbolStarStareSound.keepAlive();
-				kerbolStarStareBackSound.updateVolume(stareBackVolume);
-				kerbolStarStareBackSound.keepAlive();
+				dmitriyStarStareSound.updateVolume(stareVolume);
+				dmitriyStarStareSound.keepAlive();
+				dmitriyStarStareBackSound.updateVolume(stareBackVolume);
+				dmitriyStarStareBackSound.keepAlive();
 			} else {
-				stopKerbolStarStareSound();
+				stopDmitriyStarStareSound();
 			}
 
-			if(player != null && world.provider != null) {
-				int dim = world.provider.dimensionId;
-				if(dim != -1 && dim != 1 && dim != SpaceConfig.kerbolDimension) {
-					CBT_SkyState skyState = CBT_SkyState.get(world);
-					if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.SUN) {
-						float chargeRatio = MathHelper.clamp_float(
-							(float)((double)skyState.getSunCharge() / (double)CBT_SkyState.SUN_MAX_HE),
-							0.0F,
-							1.0F
-						);
-						float decay = 1.0F - chargeRatio;
-						float startAt = 4.0F / 5.0F;
-						float volume = MathHelper.clamp_float((decay - startAt) / (1.0F - startAt), 0.0F, 1.0F);
-						if(volume > 0.0F) {
-							if(sunDecayHum == null || !sunDecayHum.isPlaying()) {
-								sunDecayHum = MainRegistry.proxy.getLoopedSound("hbm:misc.stationhum", player, volume, 5.0F, 1.0F, 10);
-								sunDecayHum.startSound();
-							}
-
-							sunDecayHum.updateVolume(volume);
-							sunDecayHum.keepAlive();
-						} else if(sunDecayHum != null) {
-							sunDecayHum.stopSound();
-							sunDecayHum = null;
-						}
-					} else if(sunDecayHum != null) {
-						sunDecayHum.stopSound();
-						sunDecayHum = null;
-					}
-				} else if(sunDecayHum != null) {
-					sunDecayHum.stopSound();
-					sunDecayHum = null;
-				}
-			} else if(sunDecayHum != null) {
+			if(sunDecayHum != null) {
 				sunDecayHum.stopSound();
 				sunDecayHum = null;
 			}
@@ -2361,7 +3366,7 @@ public class ModEventHandlerClient {
 	public void onPlayerTick(TickEvent.PlayerTickEvent event) {
 		EntityPlayer player = event.player;
 
-		if(player.worldObj != null && player.worldObj.provider instanceof WorldProviderKerbol && !player.capabilities.isCreativeMode) {
+		if(player.worldObj != null && player.worldObj.provider instanceof WorldProviderDmitriy && !player.capabilities.isCreativeMode) {
 			if(player.capabilities.isFlying || player.capabilities.allowFlying) {
 				player.capabilities.isFlying = false;
 				player.capabilities.allowFlying = false;
@@ -2392,6 +3397,7 @@ public class ModEventHandlerClient {
 		Clock.update();
 
 		BlockRebar.renderRebar(Minecraft.getMinecraft().theWorld.loadedTileEntityList, event.partialTicks);
+		renderBlackholeGravityLiftFx(event);
 
 		GL11.glPushMatrix();
 
@@ -2508,7 +3514,7 @@ public class ModEventHandlerClient {
 
 		RenderManager rm = RenderManager.instance;
 		for(Object obj : mc.theWorld.loadedEntityList) {
-			if(!(obj instanceof EntityVoidStaresBack)) {
+			if(!(obj instanceof EntityVoidStaresBack) || obj instanceof EntityVoidFightsBack) {
 				continue;
 			}
 			EntityVoidStaresBack voidEntity = (EntityVoidStaresBack) obj;
@@ -2534,6 +3540,9 @@ public class ModEventHandlerClient {
 
 	@SubscribeEvent
 	public void preRenderEvent(RenderLivingEvent.Pre event) {
+		if(event.entity instanceof EntityVoidFightsBack) {
+			return;
+		}
 
 		EntityPlayer player = Minecraft.getMinecraft().thePlayer;
 
@@ -2685,3 +3694,6 @@ public class ModEventHandlerClient {
 		}
 	}
 }
+
+
+

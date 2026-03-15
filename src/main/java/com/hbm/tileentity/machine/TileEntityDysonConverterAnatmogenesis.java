@@ -92,8 +92,8 @@ public class TileEntityDysonConverterAnatmogenesis extends TileEntityMachineBase
 
 		if(x != rx || y != ry || z != rz) return false;
 
-		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
-			// Accept energy but do not create or remove atmosphere in Kerbol.
+		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			// Accept energy but do not create or remove atmosphere on Dmitriy.
 			return true;
 		}
 
@@ -180,3 +180,4 @@ public class TileEntityDysonConverterAnatmogenesis extends TileEntityMachineBase
 	}
 
 }
+

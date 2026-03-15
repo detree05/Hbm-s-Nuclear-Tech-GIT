@@ -430,7 +430,7 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 			issues.add(EnumChatFormatting.RED + "It's gone...");
 			return;
 		}
-		if(to.body != null && to.body.getEnum() == SolarSystem.Body.KERBOL) {
+		if(to.body != null && to.body.getEnum() == SolarSystem.Body.DMITRIY) {
 			issues.add(EnumChatFormatting.RED + "You aren't getting there buddy");
 			return;
 		}
@@ -726,3 +726,4 @@ public class TileEntityLaunchPadRocket extends TileEntityMachineBase implements 
 	}
 
 }
+

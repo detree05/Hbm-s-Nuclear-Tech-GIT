@@ -1,6 +1,8 @@
 #version 120
 
 uniform float iTime;
+uniform float bhr;
+uniform float uAlpha;
 uniform sampler2D iChannel1;
 
 const float pi = 3.1415927;
@@ -58,7 +60,6 @@ void main() {
 	vec3 rd = normalize(front * 1.5 + left * pp.x + up * pp.y);
 
 	vec3 bh = vec3(0.0, 0.0, 0.0);
-	float bhr = 0.1;
 	float bhmass = 5.0;
 	bhmass *= 0.001; // premul G
 
@@ -68,7 +69,7 @@ void main() {
 	p += pv * hash13(rd + vec3(iTime)) * 0.02;
 
 	float dt = 0.02;
-	float gravity = 4.0;
+
 	vec3 col = vec3(0.0);
 	float alpha = 1.0;
 	float noncaptured = 1.0;
@@ -81,7 +82,7 @@ void main() {
 
 		vec3 bhv = bh - p;
 		float r = dot(bhv, bhv);
-		pv += normalize(bhv) * ((bhmass * gravity) / r);
+		pv += normalize(bhv) * ((bhmass) / r);
 
 		noncaptured = smoothstep(0.0, 0.01, sdSphere(p - bh, bhr));
 
@@ -108,5 +109,10 @@ void main() {
 		}
 	}
 
-	gl_FragColor = vec4(smoothstep(0.1, 0.6, col.r), smoothstep(0.5, 0.9, col.g), smoothstep(0.1, 0.9, col.b),alpha);
+	gl_FragColor = vec4(
+		smoothstep(0.1, 0.6, col.r),
+		smoothstep(0.5, 0.9, col.g),
+		smoothstep(0.1, 0.9, col.b),
+		alpha * clamp(uAlpha, 0.0, 1.0)
+	);
 }

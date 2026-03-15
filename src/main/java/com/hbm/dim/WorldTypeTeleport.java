@@ -17,9 +17,13 @@ public class WorldTypeTeleport extends WorldType {
 		martian = new WorldTypeTeleport("martian");
 	}
 
-	public void onPlayerJoin(EntityPlayer player) {
-		if(this == martian)
+	public boolean onPlayerJoin(EntityPlayer player) {
+		if(this == martian) {
 			CelestialTeleporter.teleport(player, SpaceConfig.dunaDimension, 0, 0, 0, true);
+			return true;
+		}
+
+		return false;
 	}
 
 }

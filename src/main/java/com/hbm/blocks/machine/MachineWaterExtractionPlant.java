@@ -33,12 +33,12 @@ public class MachineWaterExtractionPlant extends BlockDummyable implements ILook
 
 	@Override
 	public int[] getDimensions() {
-		return new int[] {0, 0, 0, 0, 0, 0};
+		return new int[] {5, 0, 1, 1, 1, 1};
 	}
 
 	@Override
 	public int getOffset() {
-		return 0;
+		return 1;
 	}
 
 	@Override

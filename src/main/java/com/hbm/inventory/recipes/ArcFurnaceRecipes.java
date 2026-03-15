@@ -28,6 +28,7 @@ import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemScraps;
 import com.hbm.items.special.ItemBedrockOreNew;
+import com.hbm.items.special.ItemBedrockOreNew.BedrockOreOutput;
 import com.hbm.items.special.ItemBedrockOreNew.BedrockOreGrade;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOre;
 import com.hbm.items.special.ItemBedrockOreNew.CelestialBedrockOreType;
@@ -161,9 +162,85 @@ public class ArcFurnaceRecipes extends SerializableRecipe {
 		register(astack, recipe);
 	}
 
+	private static ArcFurnaceRecipe getDynamicBedrockRecipe(ItemStack stack, boolean liquid) {
+		if(stack == null || stack.getItem() != ModItems.bedrock_ore || !(stack.getItem() instanceof ItemBedrockOreNew)) {
+			return null;
+		}
+
+		ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+		int meta = stack.getItemDamage();
+		BedrockOreGrade grade = bedrock.getGrade(meta);
+		CelestialBedrockOreType type = bedrock.getType(meta);
+		if(!ItemBedrockOreNew.hasCategoryInCore(type)) {
+			return null;
+		}
+		BedrockOreOutput primary = ItemBedrockOreNew.getPrimaryOutput(type);
+		BedrockOreOutput sulfuric = ItemBedrockOreNew.getSulfuricOutput(type);
+		BedrockOreOutput solvent = ItemBedrockOreNew.getSolventOutput(type);
+		BedrockOreOutput rad = ItemBedrockOreNew.getRadOutput(type);
+
+		ArcFurnaceRecipe recipe = null;
+		switch(grade) {
+			case SULFURIC_BYPRODUCT:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.SULFURIC_ARC, type, 2));
+				break;
+			case SULFURIC_ROASTED:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.SULFURIC_ARC, type, 4));
+				break;
+			case SOLVENT_BYPRODUCT:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.SOLVENT_ARC, type, 2));
+				break;
+			case SOLVENT_ROASTED:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.SOLVENT_ARC, type, 4));
+				break;
+			case RAD_BYPRODUCT:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.RAD_ARC, type, 2));
+				break;
+			case RAD_ROASTED:
+				recipe = new ArcFurnaceRecipe().solid(ItemBedrockOreNew.make(BedrockOreGrade.RAD_ARC, type, 4));
+				break;
+			case PRIMARY_FIRST:
+				if(primary == null) return null;
+				recipe = new ArcFurnaceRecipe().fluidNull(ItemBedrockOreNew.toFluid(primary, 5));
+				break;
+			case CRUMBS:
+				if(primary == null) return null;
+				recipe = new ArcFurnaceRecipe().fluidNull(ItemBedrockOreNew.toFluid(primary, 1));
+				break;
+			case SULFURIC_WASHED:
+				if(sulfuric == null) return null;
+				recipe = new ArcFurnaceRecipe().fluidNull(ItemBedrockOreNew.toFluid(sulfuric, 3));
+				break;
+			case SOLVENT_WASHED:
+				if(solvent == null) return null;
+				recipe = new ArcFurnaceRecipe().fluidNull(ItemBedrockOreNew.toFluid(solvent, 3));
+				break;
+			case RAD_WASHED:
+				if(rad == null) return null;
+				recipe = new ArcFurnaceRecipe().fluidNull(ItemBedrockOreNew.toFluid(rad, 3));
+				break;
+			default:
+				return null;
+		}
+
+		if(liquid && recipe.fluidOutput == null) return null;
+		if(!liquid && recipe.solidOutput == null) return null;
+		return recipe;
+	}
+
 	public static ArcFurnaceRecipe getOutput(ItemStack stack, boolean liquid) {
 
 		if(stack == null || stack.getItem() == null) return null;
+
+		ArcFurnaceRecipe dynamic = getDynamicBedrockRecipe(stack, liquid);
+		if(dynamic != null) return dynamic;
+		if(stack.getItem() == ModItems.bedrock_ore && stack.getItem() instanceof ItemBedrockOreNew) {
+			ItemBedrockOreNew bedrock = (ItemBedrockOreNew) stack.getItem();
+			CelestialBedrockOreType type = bedrock.getType(stack.getItemDamage());
+			if(ItemBedrockOreNew.isCoreDrivenType(type)) {
+				return null;
+			}
+		}
 
 		if(stack.getItem() == ModItems.scraps && liquid) {
 			NTMMaterial mat = Mats.matById.get(stack.getItemDamage());

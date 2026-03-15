@@ -4,7 +4,7 @@ import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreThroughputTracker;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.config.SpaceConfig;
 import com.hbm.lib.Library;
@@ -32,7 +32,8 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 	private static final float TABLE_YAW_SPEED_DEG_PER_TICK = 2.0F;
 	private static final float GUN_PITCH_SPEED_DEG_PER_TICK = 2.0F;
 	private static final float AIM_LOCK_TOLERANCE_DEG = 0.75F;
-	private static final int RENDER_RADIUS = 130;
+	private static final int RENDER_RADIUS = 144;
+	private static final int NETWORK_SYNC_RANGE = 512;
 	private static final double LASER_OBSTRUCTION_CHECK_START_OFFSET = 4.0D;
 	private static final double LASER_OBSTRUCTION_CHECK_MAX_DISTANCE = 512.0D;
 
@@ -90,7 +91,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 			}
 
 			power = 0;
-			networkPackNT(20);
+			networkPackNT(NETWORK_SYNC_RANGE);
 		} else {
 			if(getThroughputPerFiveTicks() > 0L && canOperate() && clientAimLocked) {
 				if(audio == null) {
@@ -229,7 +230,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 		}
 		if(worldObj.provider instanceof WorldProviderHell
 			|| worldObj.provider instanceof WorldProviderEnd
-			|| worldObj.provider instanceof WorldProviderKerbol) {
+			|| worldObj.provider instanceof WorldProviderDmitriy) {
 			return false;
 		}
 		return isWorldDaytime();
@@ -504,6 +505,7 @@ public class TileEntityStarCoreEnergyEmitter extends TileEntityMachineBase imple
 
 	@Override
 	public double getMaxRenderDistanceSquared() {
-		return 65536.0D;
+		return 262144.0D;
 	}
 }
+

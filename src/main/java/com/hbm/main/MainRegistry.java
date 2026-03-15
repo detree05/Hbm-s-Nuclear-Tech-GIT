@@ -409,7 +409,7 @@ public class MainRegistry {
 		achFiend2 = new Achievement("achievement.fiend2", "fiend2", -4, 9, ModItems.shimmer_axe, null).initIndependentStat().setSpecial().registerStat();
 		achStratum = new Achievement("achievement.stratum", "stratum", -4, -2, new ItemStack(ModBlocks.stone_gneiss), null).initIndependentStat().setSpecial().registerStat();
 		achOmega12 = new Achievement("achievement.omega12", "omega12", 17, -1, ModItems.particle_digamma, null).initIndependentStat().setSpecial().registerStat();
-		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.KERBOL.ordinal()), achOmega12).initIndependentStat().registerStat();
+		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY.ordinal()), achOmega12).initIndependentStat().registerStat();
 		achItFeelsPain = new Achievement("achievement.itFeelsPain", "itFeelsPain", 15, 1, ModItems.ingot_rift, achFutileEscapism).initIndependentStat().registerStat();
 		achItLives = new Achievement("achievement.itLives", "itLives", 19, 1, ModItems.ingot_abyss, achFutileEscapism).initIndependentStat().registerStat();
 
@@ -753,6 +753,8 @@ public class MainRegistry {
 		event.registerServerCommand(new CommandNovae());
 		event.registerServerCommand(new CommandSkyfall());
 		event.registerServerCommand(new CommandNtmDaytime());
+		event.registerServerCommand(new CommandNtmCore());
+		event.registerServerCommand(new CommandCollapse());
 		event.registerServerCommand(new CommandVoidStaresBack());
 		event.registerServerCommand(new CommandVoidStaresBackChase());
 		ArcFurnaceRecipes.registerFurnaceSmeltables(); // because we have to wait for other mods to take their merry ass time to register recipes
@@ -1575,6 +1577,44 @@ public class MainRegistry {
 		ignoreMappings.add("hbm:tile.sat_resonator");
 		ignoreMappings.add("hbm:item.sliding_blast_door_skin");
 		ignoreMappings.add("hbm:tile.dummy_block_vault");
+		ignoreMappings.add("hbm:item.toothpicks");
+		ignoreMappings.add("hbm:item.ams_focus_blank");
+		ignoreMappings.add("hbm:item.ams_focus_limiter");
+		ignoreMappings.add("hbm:item.ams_focus_booster");
+		ignoreMappings.add("hbm:item.ams_muzzle");
+		ignoreMappings.add("hbm:tile.machine_transformer_dnt");
+		ignoreMappings.add("hbm:tile.hadron_plating");
+		ignoreMappings.add("hbm:tile.hadron_plating_blue");
+		ignoreMappings.add("hbm:tile.hadron_plating_black");
+		ignoreMappings.add("hbm:tile.hadron_plating_yellow");
+		ignoreMappings.add("hbm:tile.hadron_plating_striped");
+		ignoreMappings.add("hbm:tile.hadron_plating_voltz");
+		ignoreMappings.add("hbm:tile.hadron_plating_glass");
+		ignoreMappings.add("hbm:tile.hadron_power");
+		ignoreMappings.add("hbm:tile.hadron_diode");
+		ignoreMappings.add("hbm:tile.hadron_analysis");
+		ignoreMappings.add("hbm:tile.hadron_analysis_glass");
+		ignoreMappings.add("hbm:tile.hadron_access");
+		ignoreMappings.add("hbm:tile.hadron_core");
+		ignoreMappings.add("hbm:tile.machine_assembler");
+		ignoreMappings.add("hbm:tile.machine_assemfac");
+		ignoreMappings.add("hbm:tile.machine_chemplant");
+		ignoreMappings.add("hbm:tile.machine_chemfac");
+		ignoreMappings.add("hbm:item.assembly_template");
+		ignoreMappings.add("hbm:item.chemistry_template");
+		ignoreMappings.add("hbm:item.chemistry_icon");
+		ignoreMappings.add("hbm:item.particle_aproton");
+		ignoreMappings.add("hbm:item.particle_aelectron");
+		ignoreMappings.add("hbm:tile.test_core");
+		ignoreMappings.add("hbm:tile.test_charge");
+		ignoreMappings.add("hbm:item.t45_helmet");
+		ignoreMappings.add("hbm:item.t45_plate");
+		ignoreMappings.add("hbm:item.t45_legs");
+		ignoreMappings.add("hbm:item.t45_boots");
+		ignoreMappings.add("hbm:item.tritium_deuterium_cake");
+		ignoreMappings.add("hbm:item.redcoil_capacitor");
+		ignoreMappings.add("hbm:item.euphemium_capacitor");
+		ignoreMappings.add("hbm:item.toolbox_legacy");
 
 		/// REMAP ///
 		remapItems.put("hbm:item.gadget_explosive8", ModItems.early_explosive_lenses);
@@ -1582,7 +1622,6 @@ public class MainRegistry {
 		remapItems.put("hbm:item.briquette_lignite", ModItems.briquette);
 		remapItems.put("hbm:item.antiknock", ModItems.fuel_additive);
 		remapItems.put("hbm:item.kit_toolbox_empty", ModItems.toolbox);
-		remapItems.put("hbm:item.kit_toolbox", ModItems.legacy_toolbox);
 
 		for(MissingMapping mapping : event.get()) {
 
@@ -1606,3 +1645,4 @@ public class MainRegistry {
 		}
 	}
 }
+

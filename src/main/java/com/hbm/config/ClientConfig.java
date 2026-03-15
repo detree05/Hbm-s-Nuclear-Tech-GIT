@@ -39,7 +39,8 @@ public class ClientConfig extends RunningConfig {
 	public static ConfigWrapper<Integer> TOOL_HUD_INDICATOR_X = 			new ConfigWrapper(0);
 	public static ConfigWrapper<Integer> TOOL_HUD_INDICATOR_Y = 			new ConfigWrapper(0);
 	public static ConfigWrapper<Boolean> SHOW_BLOCK_META_OVERLAY = 			new ConfigWrapper(false);
-	public static ConfigWrapper<String> KERBOL_GHOST_ACHIEVEMENT_SEEN =		new ConfigWrapper("");
+	public static ConfigWrapper<String> DMITRIY_GHOST_ACHIEVEMENT_SEEN =		new ConfigWrapper("");
+	public static ConfigWrapper<Boolean> BADGES_HUD = 						new ConfigWrapper(true);
 
 	private static void initDefaults() {
 		configMap.put("GEIGER_OFFSET_HORIZONTAL", GEIGER_OFFSET_HORIZONTAL);
@@ -68,7 +69,8 @@ public class ClientConfig extends RunningConfig {
 		configMap.put("TOOL_HUD_INDICATOR_X", TOOL_HUD_INDICATOR_X);
 		configMap.put("TOOL_HUD_INDICATOR_Y", TOOL_HUD_INDICATOR_Y);
 		configMap.put("SHOW_BLOCK_META_OVERLAY", SHOW_BLOCK_META_OVERLAY);
-		configMap.put("KERBOL_GHOST_ACHIEVEMENT_SEEN", KERBOL_GHOST_ACHIEVEMENT_SEEN);
+		configMap.put("BADGES_HUD", BADGES_HUD);
+		configMap.put("DMITRIY_GHOST_ACHIEVEMENT_SEEN", DMITRIY_GHOST_ACHIEVEMENT_SEEN);
 	}
 
 	/** Initializes defaults, then reads the config file if it exists, then writes the config file. */

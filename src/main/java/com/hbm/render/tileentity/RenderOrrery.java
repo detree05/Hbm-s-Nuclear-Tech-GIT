@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.Item;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.client.IItemRenderer;
 
 public class RenderOrrery extends TileEntitySpecialRenderer implements IItemRendererProvider {
@@ -45,7 +46,7 @@ public class RenderOrrery extends TileEntitySpecialRenderer implements IItemRend
 				GL11.glScaled(6, 6, 6);
 			}
 			public void renderCommon() {
-				Minecraft.getMinecraft().renderEngine.bindTexture(SolarSystem.kerbol.texture);
+				Minecraft.getMinecraft().renderEngine.bindTexture(new ResourceLocation("textures/environment/sun.png"));
 				Tessellator.instance.disableColor();
 				RenderUtil.renderBlock(Tessellator.instance, 0.375, 0.625);
 			}

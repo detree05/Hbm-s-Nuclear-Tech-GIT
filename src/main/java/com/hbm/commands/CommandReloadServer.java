@@ -20,6 +20,11 @@ public class CommandReloadServer extends CommandReloadConfig {
 	public String getCommandUsage(ICommandSender sender) {
 		return "/ntmserver help";
 	}
+
+	@Override
+	public boolean canCommandSenderUseCommand(ICommandSender sender) {
+		return sender.canCommandSenderUseCommand(2, getCommandName());
+	}
 	
 	@Override public void help(ICommandSender sender, String[] args) {
 		if(args.length >= 2) {

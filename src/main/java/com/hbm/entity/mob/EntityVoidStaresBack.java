@@ -310,6 +310,10 @@ public class EntityVoidStaresBack extends EntityLiving {
 		}
 	}
 
+	public void startCollapse() {
+		beginCollapse();
+	}
+
 	private EntityPlayer getWatchingPlayer() {
 		EntityPlayer player = worldObj.getClosestPlayerToEntity(this, 96.0D);
 		if(player == null) {

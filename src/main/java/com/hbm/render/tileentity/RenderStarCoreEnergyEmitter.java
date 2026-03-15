@@ -20,6 +20,7 @@ import com.hbm.render.util.BeamPronter.EnumBeamType;
 import com.hbm.render.util.BeamPronter.EnumWaveType;
 import com.hbm.tileentity.machine.TileEntityStarCoreEnergyEmitter;
 
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.OpenGlHelper;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.item.Item;
@@ -44,9 +45,11 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 	private static final double GUN_BEAM_ORIGIN_X = 3.0D;
 	private static final double GUN_BEAM_ORIGIN_Y = 4.97D;
 	private static final double GUN_BEAM_ORIGIN_Z = 0.0D;
-	private static final float EMITTER_BEAM_MAX_LENGTH = 512.0F;
+	private static final float EMITTER_BEAM_MAX_LENGTH = 256.0F;
 	private static final float EMITTER_BEAM_BASE_THICKNESS = 0.35F;
 	private static final float EMITTER_BEAM_BASE_ALPHA = 0.55F;
+	private static final float EMITTER_BEAM_VISIBILITY_DISTANCE_SQ = 512.0F * 512.0F;
+	private static final float EMITTER_BEAM_HIGH_DETAIL_DISTANCE_SQ = 96.0F * 96.0F;
 	private static final float GUN_SHAKE_OFFSET_X = 0.015F;
 	private static final float GUN_SHAKE_OFFSET_Y = 0.006F;
 	private static final float GUN_SHAKE_ROT_X = 0.05F;
@@ -107,6 +110,7 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		}
 
 		AimAngles aim = getSmoothedAimAngles(te, interp, meta);
+		boolean beamActive = isEmitterWorking(te) && isEmitterAimLocked(te);
 
 		bindTexture(ResourceManager.star_core_energy_emitter_tex);
 		ResourceManager.star_core_energy_emitter.renderPart("Body");
@@ -121,11 +125,11 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		GL11.glTranslated(-GUN_PIVOT_X, -GUN_PIVOT_Y, -GUN_PIVOT_Z);
 
 		GL11.glPushMatrix();
-		applyWorkingGunShake(te, interp);
+		applyWorkingGunShake(te, interp, beamActive);
 		ResourceManager.star_core_energy_emitter.renderPart("Gun");
 		GL11.glPopMatrix();
 
-		renderWorkingBeam(te, interp);
+		renderWorkingBeam(te, interp, beamActive);
 		GL11.glPopMatrix();
 		GL11.glPopMatrix();
 
@@ -229,16 +233,32 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		return new AimAngles(MathHelper.wrapAngleTo180_float(tableYaw), gunPitch);
 	}
 
-	private static void renderWorkingBeam(TileEntity te, float partialTicks) {
-		if(!isEmitterWorking(te) || !isEmitterAimLocked(te)) {
+	private static void renderWorkingBeam(TileEntity te, float partialTicks, boolean beamActive) {
+		if(!beamActive) {
 			return;
 		}
+
+		Minecraft mc = Minecraft.getMinecraft();
+		if(mc == null || mc.thePlayer == null) {
+			return;
+		}
+
+		double dx = mc.thePlayer.posX - (te.xCoord + 0.5D);
+		double dy = mc.thePlayer.posY - (te.yCoord + 1.5D);
+		double dz = mc.thePlayer.posZ - (te.zCoord + 0.5D);
+		double distanceSq = dx * dx + dy * dy + dz * dz;
+		if(distanceSq > EMITTER_BEAM_VISIBILITY_DISTANCE_SQ) {
+			return;
+		}
+		boolean highDetail = distanceSq <= EMITTER_BEAM_HIGH_DETAIL_DISTANCE_SQ;
+		int segmentCount = 1;
+		float beamThickness = highDetail ? EMITTER_BEAM_BASE_THICKNESS : EMITTER_BEAM_BASE_THICKNESS * 0.75F;
+		float beamAlpha = highDetail ? EMITTER_BEAM_BASE_ALPHA : EMITTER_BEAM_BASE_ALPHA * 0.7F;
 
 		float t = te.getWorldObj().getTotalWorldTime() + partialTicks;
 		float hue = (t * 0.005F) % 1.0F;
 		int outerColor = Color.HSBtoRGB(hue, 1.0F, 1.0F) & 0xFFFFFF;
 		int innerColor = Color.HSBtoRGB((hue + 0.08F) % 1.0F, 1.0F, 1.0F) & 0xFFFFFF;
-		int randomSeed = (int) (te.getWorldObj().getTotalWorldTime() % 1000L);
 
 		GL11.glPushAttrib(GL11.GL_LIGHTING_BIT);
 		GL11.glDisable(GL11.GL_LIGHTING);
@@ -254,24 +274,11 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 			outerColor,
 			innerColor,
 			0,
-			1,
+			segmentCount,
 			0.0F,
 			2,
-			EMITTER_BEAM_BASE_THICKNESS,
-			EMITTER_BEAM_BASE_ALPHA
-		);
-		BeamPronter.prontBeamwithDepth(
-			skeleton,
-			EnumWaveType.RANDOM,
-			EnumBeamType.CYLINDER,
-			outerColor,
-			innerColor,
-			randomSeed,
-			Math.max(8, (int) (EMITTER_BEAM_MAX_LENGTH / 6.0F)),
-			0.0625F,
-			2,
-			EMITTER_BEAM_BASE_THICKNESS,
-			EMITTER_BEAM_BASE_ALPHA
+			beamThickness,
+			beamAlpha
 		);
 		GL11.glPopMatrix();
 
@@ -279,8 +286,8 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 		GL11.glPopAttrib();
 	}
 
-	private static void applyWorkingGunShake(TileEntity te, float partialTicks) {
-		if(!isEmitterWorking(te) || !isEmitterAimLocked(te)) {
+	private static void applyWorkingGunShake(TileEntity te, float partialTicks, boolean beamActive) {
+		if(!beamActive) {
 			return;
 		}
 
@@ -304,9 +311,6 @@ public class RenderStarCoreEnergyEmitter extends TileEntitySpecialRenderer imple
 
 		TileEntityStarCoreEnergyEmitter emitter = (TileEntityStarCoreEnergyEmitter) te;
 		if(emitter.getThroughputPerFiveTicks() <= 0L) {
-			return false;
-		}
-		if(emitter.isLaserObstructed()) {
 			return false;
 		}
 

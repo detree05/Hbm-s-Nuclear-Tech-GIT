@@ -8,6 +8,7 @@ import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.tileentity.machine.TileEntityStarCoreEnergyEmitter;
 
 import api.hbm.energymk2.IEnergyConductorMK2;
+import api.hbm.energymk2.IEnergyConnectorMK2;
 import api.hbm.energymk2.IEnergyReceiverMK2;
 import api.hbm.fluidmk2.IFluidConnectorMK2;
 import api.hbm.fluidmk2.IFluidReceiverMK2;
@@ -154,15 +155,15 @@ public class TileEntityProxyCombo extends TileEntityProxyBase implements IEnergy
 			return ((TileEntityStarCoreEnergyEmitter) core).canConnectFrom(this.xCoord, this.yCoord, this.zCoord, dir);
 		}
 
-		if(power && core instanceof IEnergyReceiverMK2) {
-			return ((IEnergyReceiverMK2) core).canConnect(dir);
+		if(power && getCoreObject() instanceof IEnergyConnectorMK2) {
+			return ((IEnergyConnectorMK2)getCoreObject()).canConnect(dir);
 		}
 
 		if(conductor && core instanceof IEnergyConductorMK2) {
 			return ((IEnergyConductorMK2) core).canConnect(dir);
 		}
 
-		return true;
+		return false;
 	}
 
 	@Override

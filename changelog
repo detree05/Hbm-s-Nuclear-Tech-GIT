@@ -1,20 +1,38 @@
-Includes all changes and bugfixes from the latest upstream NTMain update - [X5593 - i have cured my rabies](https://github.com/HbmMods/Hbm-s-Nuclear-Tech-GIT/releases/tag/1.0.27_X5593)
-
 ## Added
-* HTR-F4 NEO Station Thruster added
-    * Connect to the new fusion reactor to provide thrust for your space stations!
-* Lithium hydroxide terraforming
-    * Can convert CO2 in an atmosphere into breathable oxygen, great for terraforming Duna well before Dyson anatmogenesis becomes available
-    * A new machine - the Atmospheric Emitter - has been added to emit huge amounts of gases quickly
-* QMAW for the Rocket Launch Pad and the Vehicle Assembly Base
-* Dusty + airless celestial bodies now exhibit a faint particulate glow at sunset/sunrise due to charged particles
+* Key pad
+  * Fits visually with the RBMK display block
+  * Allows up to four buttons to be configured with a screwdriver (shift click!)
+  * Buttons will send RoR signals when pressed, with a configured value on the configured frequencies
+  * Can be set to polling, which will re-send the command until the button is pressed again
+  * Single push buttons and buttons set to polling which are enabled will glow in the dark
+  * Each button can be assigned a label with glow in the dark paint
+  * Allows RBMK control rods to be fully remote controllable with no console
+* Gauge
+  * Allows up to four gauges to be configured with a screwdriver
+  * Gauges can read RoR signals and display numeric values on a specified range
+  * Minimum and maximum values can be defined, the gauge also has a red area for when the value exceeds the maximum
+  * If the minimum value is larger than the maximum, the needle will start at the top and run backwards
+  * Also has glow in the dark paint labels
 
 ## Changed
-* LPW-3N now shows a hint on how to operate it
-* Acidizer partitioner can now accept up to 96 different input items, greatly enhancing its ability to process all the bedrock ores available in space
-* Tektite is now deleted by the mining laser nullifier upgrade
-* Lesser/Greater Australium can now be cast into ingots
+* Updated chinese and ukrainian localization
+* Updated textures for some nuclear bomb GUIs
+* Updated textures for steel tools
+* RBMK fuel rods too hot to be taken out manually can now be removed by players in creative mode
+* Updated the SILEX recycling recipe for MOX fuel to reflect the recent recipe change
+  * High-xenon MOX pellets now yield xenon-135 again
+* Improved logging for incorrectly configured machine recipes
+* Removed the legacy toolbox item
+* Due to complaints, the MOX recipe was now made more expensive
+* Manual control rods now have the `extendrods` command, which allows the target setting to be adjusted without using an absolute value
+* Removed the legacy relay structure
+* Placing RBMK fuel rods in the fuel channels by right click no longer consumes the item in creative mode
 
 ## Fixed
-* Crash on mob spawning due to forge enum extensions
-* Orbital rocket assembly allows stacks larger than 8
+* Fixed some damage categories not applying correctly, causing things like general energy resistance to not work against lasers
+* Fixed RoR components not being able to be attached to the top of reasim fuel rods
+* Fixed a crash in multiplayer regarding RBMK control rods
+* Fixed outdated QMAW description of some RBMK parts
+* Fixed log spam when placing down a RoR controller
+* Fixed the RBMK fuel crane being all jittery and awful
+* Fixed RoR reader sending the xenon value on RBMK fuel rods that's 100x the intended value

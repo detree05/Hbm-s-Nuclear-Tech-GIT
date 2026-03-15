@@ -10,9 +10,10 @@ import com.hbm.config.ServerConfig;
 import com.hbm.config.WorldConfig;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.WorldProviderCelestial;
-import com.hbm.dim.kerbol.WorldProviderKerbol;
+import com.hbm.dim.dmitriy.WorldProviderDmitriy;
 import com.hbm.dim.orbit.WorldProviderOrbit;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.entity.missile.EntityRideableRocket;
 import com.hbm.entity.mob.EntityCyberCrab;
 import com.hbm.entity.mob.glyphid.EntityGlyphid;
@@ -70,7 +71,6 @@ import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 import net.minecraft.util.MathHelper;
 import net.minecraft.util.Vec3;
-import net.minecraft.world.EnumSkyBlock;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderHell;
 import net.minecraft.world.biome.BiomeGenBase;
@@ -321,24 +321,28 @@ public class EntityEffectHandler {
 				rad = (float) RadiationConfig.hellRad;
 
 			if(world.provider instanceof WorldProviderCelestial || world.provider instanceof WorldProviderOrbit) {
-				if(world.getSavedLightValue(EnumSkyBlock.Sky, ix, iy, iz) - world.skylightSubtracted >= 14) {
-					if(world.provider instanceof WorldProviderKerbol) {
-						// Kerbol should not contribute ambient celestial radiation.
-						rad = Math.max(rad, 0);
-					} else {
-					Target target = CelestialBody.getTarget(world, ix, iz);
-					CBT_Atmosphere atmosphere = !target.inOrbit ? CelestialBody.getTrait(world, CBT_Atmosphere.class) : null;
+				Target target = CelestialBody.getTarget(world, ix, iz);
 
-					float targetRad = target.body.getSunPower();
-
-					if(atmosphere != null) {
-						targetRad -= (float)atmosphere.getPressure() * 4;
+				if(target.body != null && target.body.getCore() != null && !target.inOrbit) {
+					float coreRadiation = (float) target.body.getCore().getAverageRadioactivity();
+					if(coreRadiation > 0) {
+						rad += coreRadiation;
 					}
+				}
 
-					targetRad *= RadiationConfig.celestialRadMultiplier;
+				CBT_SkyState.SkyState skyState = CBT_SkyState.get(world).getState();
+				boolean hasSolarRadiation = skyState != CBT_SkyState.SkyState.NOTHING && skyState != CBT_SkyState.SkyState.STARCORE;
+
+				if(!(world.provider instanceof WorldProviderDmitriy) && target.body != null && hasSolarRadiation) {
+					float targetRad = target.body.getSunPower() * (float) RadiationConfig.celestialRadMultiplier;
+
+					// Orbital stations are outside the planetary magnetosphere gameplay-wise.
+					if(target.body.getCore() != null && !target.inOrbit) {
+						float magneticShield = (float) target.body.getCore().getMagneticFieldStrength();
+						targetRad *= Math.max(0.0F, 1.0F - magneticShield);
+					}
 
 					if(targetRad > rad) rad = targetRad;
-					}
 				}
 			}
 
@@ -872,3 +876,4 @@ public class EntityEffectHandler {
 		return true;
 	}
 }
+

@@ -44,6 +44,11 @@ import net.minecraftforge.client.event.EntityViewRenderEvent.FogDensity;
 
 public abstract class WorldProviderCelestial extends WorldProviderSurface {
 
+	private static final float SUN_MIN_SKY_DIM = 0.45F;
+	private static final float NOTHING_DIM_MULTIPLIER = 2.5F;
+	private static final float BLACKHOLE_SKY_DIM = 1.0F;
+	private static final float NOTHING_SKY_DIM = BLACKHOLE_SKY_DIM / NOTHING_DIM_MULTIPLIER;
+
 	public List<AstroMetric> metrics;
 
 	private double eclipseAmount;
@@ -150,6 +155,18 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	}
 
 	public float getGravityMultiplier() {
+		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId != SpaceConfig.dmitriyDimension) {
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			if(skyState != null && skyState.getState() == CBT_SkyState.SkyState.BLACKHOLE) {
+				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+				if(collapseEndTick > 0L) {
+					float malfunctionProgress = StarcoreSkyEffects.getGravityMalfunctionProgress(worldObj.getTotalWorldTime(), collapseEndTick);
+					if(malfunctionProgress > 0.0F) {
+						return gravityMultiplier * (1.0F - malfunctionProgress);
+					}
+				}
+			}
+		}
 		return gravityMultiplier;
 	}
 
@@ -177,8 +194,6 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		}
 
 		boolean changed = false;
-		final int redBoost = 0;
-		final float greenBlueScale = 0.95F;
 		final float skyDim = getSkyLightDimmer();
 
 		for(int i = 0; i < lightmap.length; i++) {
@@ -186,16 +201,15 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			int r = colors[0];
 			int g = colors[1];
 			int b = colors[2];
+			int nr = r;
+			int ng = g;
+			int nb = b;
 
 			if(skyDim < 1.0F) {
-				r = (int)(r * skyDim);
-				g = (int)(g * skyDim);
-				b = (int)(b * skyDim);
+				nr = MathHelper.clamp_int((int)(nr * skyDim), 0, 255);
+				ng = MathHelper.clamp_int((int)(ng * skyDim), 0, 255);
+				nb = MathHelper.clamp_int((int)(nb * skyDim), 0, 255);
 			}
-
-			int nr = MathHelper.clamp_int(r + redBoost, 0, 255);
-			int ng = MathHelper.clamp_int((int)(g * greenBlueScale), 0, 255);
-			int nb = MathHelper.clamp_int((int)(b * greenBlueScale), 0, 255);
 
 			if(nr != r || ng != g || nb != b) {
 				lightmap[i] = packColor(nr, ng, nb);
@@ -210,13 +224,32 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 		if(worldObj == null || worldObj.provider == null) {
 			return 1.0F;
 		}
-		if(worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
-			return 0.45F;
+		if(worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
+			return SUN_MIN_SKY_DIM;
 		}
 		try {
 			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
-			if(skyState.isBlackhole() || skyState.isNothing()) {
-				return skyState.isNothing() ? 0.45F : 0.0F;
+			if(skyState.isBlackhole()) {
+				long collapseEndTick = skyState.getBlackholeCollapseEndTick();
+				if(collapseEndTick > 0L) {
+					long now = worldObj.getTotalWorldTime();
+					long collapseStartTick = collapseEndTick - StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS;
+					if(now >= collapseEndTick) {
+						return NOTHING_SKY_DIM;
+					}
+					if(now > collapseStartTick) {
+						float progress = MathHelper.clamp_float(
+							(float)(now - collapseStartTick) / (float)StarcoreSkyEffects.BLACKHOLE_FINAL_COLLAPSE_TICKS,
+							0.0F,
+							1.0F
+						);
+						return BLACKHOLE_SKY_DIM + (NOTHING_SKY_DIM - BLACKHOLE_SKY_DIM) * progress;
+					}
+				}
+				return BLACKHOLE_SKY_DIM;
+			}
+			if(skyState.isNothing()) {
+				return NOTHING_SKY_DIM;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) {
 				float ratio = MathHelper.clamp_float(
@@ -224,7 +257,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return NOTHING_SKY_DIM + (SUN_MIN_SKY_DIM - NOTHING_SKY_DIM) * ratio;
 			}
 			if(skyState.getState() == CBT_SkyState.SkyState.SUN) {
 				float ratio = MathHelper.clamp_float(
@@ -232,12 +265,17 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 					0.0F,
 					1.0F
 				);
-				return 0.45F + (1.0F - 0.45F) * ratio;
+				return SUN_MIN_SKY_DIM + (1.0F - SUN_MIN_SKY_DIM) * ratio;
 			}
 			return 1.0F;
 		} catch(Exception ignored) {
 			return 1.0F;
 		}
+	}
+
+	@SideOnly(Side.CLIENT)
+	public boolean shouldForceLightmapRefresh() {
+		return false;
 	}
 
 	protected final int packColor(final int[] colors) {
@@ -596,6 +634,13 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	@Override
 	@SideOnly(Side.CLIENT)
 	public float getStarBrightness(float par1) {
+		CBT_SkyState.SkyState sky = CBT_SkyState.get(worldObj).getState();
+		if(sky == CBT_SkyState.SkyState.BLACKHOLE
+			|| sky == CBT_SkyState.SkyState.NOTHING
+			|| sky == CBT_SkyState.SkyState.STARCORE) {
+			return 1.0F;
+		}
+
 		// Stars become visible during the day beyond the orbit of Duna
 		// And are fully visible during the day beyond the orbit of Jool
 		float distanceStart = 20_000_000;
@@ -823,7 +868,7 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 			--f1;
 		}
 
-		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.kerbolDimension) {
+		if(worldObj != null && worldObj.provider != null && worldObj.provider.dimensionId == SpaceConfig.dmitriyDimension) {
 			double t = (worldTime + partialTicks);
 			double wobble = Math.sin(t / 12000.0D * Math.PI * 2.0D) * 0.004D;
 			wobble += Math.sin(t / 3600.0D * Math.PI * 2.0D + 1.3D) * 0.002D;
@@ -909,3 +954,4 @@ public abstract class WorldProviderCelestial extends WorldProviderSurface {
 	/// FISH ///
 
 }
+
