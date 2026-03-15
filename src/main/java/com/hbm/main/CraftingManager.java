@@ -152,6 +152,7 @@ public class CraftingManager {
 		addShapelessAuto(new ItemStack(ModItems.particle_lead, 1), new Object[] { ModItems.particle_empty, PB.dust(), ModItems.pellet_charged });
 		addShapelessAuto(new ItemStack(ModItems.particle_rift, 1), new Object[] { ModItems.particle_empty, ModItems.ingot_rift });
 		addShapelessAuto(new ItemStack(ModItems.particle_abyss, 1), new Object[] { ModItems.particle_empty, ModItems.ingot_abyss });
+		addShapelessAuto(new ItemStack(ModItems.sat_sadald, 1), new Object[] { ModItems.sat_derald, ModItems.particle_lutece });
 		ItemStack dmitriyDrive = new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY.ordinal());
 		ItemVOTVdrive.setProcessed(dmitriyDrive, true);
 		addShapelessAuto(dmitriyDrive, new Object[] { ModItems.hard_drive, ModItems.particle_digamma });

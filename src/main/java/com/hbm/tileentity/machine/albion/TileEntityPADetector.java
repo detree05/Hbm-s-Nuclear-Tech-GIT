@@ -24,6 +24,7 @@ import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 import li.cil.oc.api.network.SimpleComponent;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.inventory.Container;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.AxisAlignedBB;
@@ -157,6 +158,16 @@ public class TileEntityPADetector extends TileEntityCooledBase implements IGUIPr
 			if((recipe.output1 != null && recipe.output1.getItem() == ModItems.particle_digamma) || (recipe.output2 != null && recipe.output2.getItem() == ModItems.particle_digamma)) {
 				List<EntityPlayer> players = worldObj.getEntitiesWithinAABB(EntityPlayer.class, AxisAlignedBB.getBoundingBox(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5, xCoord + 0.5, yCoord + 0.5, zCoord + 0.5).expand(100, 50, 100));
 				for(EntityPlayer player : players) player.triggerAchievement(MainRegistry.achOmega12);
+			}
+			if((recipe.output1 != null && recipe.output1.getItem() == ModItems.particle_lutece) || (recipe.output2 != null && recipe.output2.getItem() == ModItems.particle_lutece)) {
+				List<EntityPlayer> players = worldObj.getEntitiesWithinAABB(EntityPlayer.class, AxisAlignedBB.getBoundingBox(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5, xCoord + 0.5, yCoord + 0.5, zCoord + 0.5).expand(100, 50, 100));
+				for(EntityPlayer player : players) {
+					if(player instanceof EntityPlayerMP
+							&& ((EntityPlayerMP) player).func_147099_x().hasAchievementUnlocked(MainRegistry.achItFeelsPain)
+							&& ((EntityPlayerMP) player).func_147099_x().hasAchievementUnlocked(MainRegistry.achItLives)) {
+						player.triggerAchievement(MainRegistry.achError4075);
+					}
+				}
 			}
 
 			particle.crash(PAState.SUCCESS);

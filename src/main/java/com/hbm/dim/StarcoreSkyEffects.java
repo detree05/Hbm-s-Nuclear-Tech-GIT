@@ -2,11 +2,14 @@ package com.hbm.dim;
 
 import com.hbm.config.SpaceConfig;
 import com.hbm.dim.trait.CBT_SkyState;
+import com.hbm.main.MainRegistry;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.BlackholeCollapseSkyPacket;
 import com.hbm.packet.toclient.StarcoreDecaySkyPacket;
 import com.hbm.packet.toclient.StarcoreIgnitionSkyPacket;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldServer;
 import net.minecraftforge.common.DimensionManager;
@@ -116,6 +119,14 @@ public class StarcoreSkyEffects {
 		skyState.setBlackholeCollapseEndTick(now + BLACKHOLE_COLLAPSE_DURATION_TICKS);
 		CelestialBody.getStar(world).modifyTraits(skyState);
 		sendBlackholeCollapse(world);
+		MinecraftServer server = MinecraftServer.getServer();
+		if(server != null && server.getConfigurationManager() != null) {
+			for(Object obj : server.getConfigurationManager().playerEntityList) {
+				if(obj instanceof EntityPlayerMP) {
+					((EntityPlayerMP) obj).triggerAchievement(MainRegistry.achVoidCollapse);
+				}
+			}
+		}
 		return true;
 	}
 }

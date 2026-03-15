@@ -189,8 +189,14 @@ public class MainRegistry {
 	public static Achievement achStratum;
 	public static Achievement achOmega12;
 	public static Achievement achFutileEscapism;
+	public static Achievement achWastedPotential;
 	public static Achievement achItFeelsPain;
 	public static Achievement achItLives;
+	public static Achievement achError4075;
+	public static Achievement achLastChance;
+	public static Achievement achVoidCollapse;
+	public static Achievement achArtificialStar;
+	public static Achievement achWowImpressive;
 	public static Achievement achSomeWounds;
 	public static Achievement achSlimeball;
 	public static Achievement achSulfuric;
@@ -409,9 +415,15 @@ public class MainRegistry {
 		achFiend2 = new Achievement("achievement.fiend2", "fiend2", -4, 9, ModItems.shimmer_axe, null).initIndependentStat().setSpecial().registerStat();
 		achStratum = new Achievement("achievement.stratum", "stratum", -4, -2, new ItemStack(ModBlocks.stone_gneiss), null).initIndependentStat().setSpecial().registerStat();
 		achOmega12 = new Achievement("achievement.omega12", "omega12", 17, -1, ModItems.particle_digamma, null).initIndependentStat().setSpecial().registerStat();
+		achWastedPotential = new Achievement("achievement.wastedPotential", "wastedPotential", 19, -1, ModItems.pellet_antimatter, achOmega12).initIndependentStat().setSpecial().registerStat();
 		achFutileEscapism = new Achievement("achievement.futileEscapism", "futileEscapism", 17, 1, new ItemStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY.ordinal()), achOmega12).initIndependentStat().registerStat();
 		achItFeelsPain = new Achievement("achievement.itFeelsPain", "itFeelsPain", 15, 1, ModItems.ingot_rift, achFutileEscapism).initIndependentStat().registerStat();
 		achItLives = new Achievement("achievement.itLives", "itLives", 19, 1, ModItems.ingot_abyss, achFutileEscapism).initIndependentStat().registerStat();
+		achError4075 = new Achievement("achievement.error4075", "error4075", 17, 3, ModItems.particle_lutece, achItLives).initIndependentStat().registerStat();
+		achLastChance = new Achievement("achievement.lastChance", "lastChance", 17, 5, ModItems.sat_sadald, achError4075).initIndependentStat().registerStat();
+		achVoidCollapse = new Achievement("achievement.voidCollapse", "voidCollapse", 21, 3, ModItems.undefined, null).initIndependentStat().setSpecial().registerStat();
+		achArtificialStar = new Achievement("achievement.artificialStar", "artificialStar", 21, 1, ModItems.star_core, achLastChance).initIndependentStat().registerStat();
+		achWowImpressive = new Achievement("achievement.wowImpressive", "wowImpressive", 23, 1, ModItems.cigarette, null).initIndependentStat().setSpecial().registerStat();
 
 		achNo9 = new Achievement("achievement.no9", "no9", -8, 12, ModItems.no9, null).initIndependentStat().registerStat();
 		achSlimeball = new Achievement("achievement.slimeball", "slimeball", -10, 6, DictFrame.fromOne(ModItems.achievement_icon, EnumAchievementType.ACID), null).initIndependentStat().registerStat();
@@ -488,9 +500,15 @@ public class MainRegistry {
 			achFiend2,
 			achStratum,
 			achOmega12,
+			achWastedPotential,
 			achFutileEscapism,
 			achItFeelsPain,
 			achItLives,
+			achError4075,
+			achLastChance,
+			achVoidCollapse,
+			achArtificialStar,
+			achWowImpressive,
 			bobHidden,
 			horizonsStart,
 			horizonsEnd,

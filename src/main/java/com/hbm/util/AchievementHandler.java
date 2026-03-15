@@ -52,6 +52,7 @@ public class AchievementHandler {
 		craftingAchievements.put(new ComparableStack(ModItems.billet_pu_mix), MainRegistry.achChicagoPile);
 		craftingAchievements.put(new ComparableStack(ModItems.particle_digamma), MainRegistry.achOmega12);
 		craftingAchievements.put(new ComparableStack(ModItems.full_drive, 1, SolarSystem.Body.DMITRIY), MainRegistry.achFutileEscapism);
+		craftingAchievements.put(new ComparableStack(ModItems.sat_sadald), MainRegistry.achLastChance);
 	}
 
 	public static void fire(EntityPlayer player, ItemStack stack) {

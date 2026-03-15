@@ -1,5 +1,7 @@
 package com.hbm.tileentity.machine;
 
+import java.util.List;
+
 import com.hbm.blocks.BlockDummyable;
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.StarcoreSkyEffects;
@@ -8,6 +10,7 @@ import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.trait.CBT_SkyState;
 import com.hbm.items.ISatChip;
 import com.hbm.items.ModItems;
+import com.hbm.main.MainRegistry;
 import com.hbm.config.SpaceConfig;
 import com.hbm.packet.PacketDispatcher;
 import com.hbm.packet.toclient.AuxParticlePacketNT;
@@ -19,6 +22,7 @@ import cpw.mods.fml.common.network.NetworkRegistry.TargetPoint;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import io.netty.buffer.ByteBuf;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
 import net.minecraft.inventory.ISidedInventory;
 import net.minecraft.item.Item;
@@ -77,8 +81,9 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 			boolean isBlackhole = skyState.isBlackhole();
 			boolean isNothing = skyState.isNothing();
 			boolean isDfc = skyState.getState() == CBT_SkyState.SkyState.STARCORE;
+			boolean sadaldPending = isSadaldLaunchPending(skyState);
 
-			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
+			if(isBlackhole && skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT && !sadaldPending) {
 				StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
 			}
 
@@ -95,10 +100,11 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 
 			ItemStack payload = slots[0];
 			Item payloadItem = payload != null ? payload.getItem() : null;
-			boolean hasPayload = payloadItem != null && payloadItem == getPayloadItem();
+			Item expectedPayloadItem = getPayloadItem(skyState);
+			boolean hasPayload = payloadItem != null && payloadItem == expectedPayloadItem;
 			boolean canLaunch = isNothing
-				? (payloadItem == getPayloadItem())
-				: (isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT) : (isDfc ? false : (swarmId > 0)));
+				? (payloadItem == expectedPayloadItem)
+				: (isBlackhole ? (skyState.getBlackholeClustersSent() < BLACKHOLE_CLUSTER_LIMIT || sadaldPending) : (isDfc ? false : (swarmId > 0)));
 			isOperating = !isSpinningDown && power >= getPowerPerTick() && hasPayload && canLaunch;
 
 			if(isSpinningDown) {
@@ -123,19 +129,35 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 						toLaunch = 1;
 						skyState.setState(CBT_SkyState.SkyState.STARCORE);
 						skyState.setBlackholeClustersSent(0);
+						skyState.setBlackholeSadaldLaunched(false);
 						skyState.setStarcoreThroughput(0);
 						skyState.setSunCharge(0);
 						skyState.setSunLastSustainTick(0);
 						CelestialBody.getStar(worldObj).modifyTraits(skyState);
+						if(payloadItem == ModItems.star_core) {
+							List<EntityPlayer> players = worldObj.getEntitiesWithinAABB(EntityPlayer.class, AxisAlignedBB.getBoundingBox(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5, xCoord + 0.5, yCoord + 0.5, zCoord + 0.5).expand(100, 50, 100));
+							for(EntityPlayer player : players) player.triggerAchievement(MainRegistry.achArtificialStar);
+						}
 					} else if(isBlackhole) {
-						int remaining = BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent();
-						toLaunch = Math.min(toLaunch, remaining);
-						if(toLaunch > 0) {
-							skyState.addBlackholeClusters(toLaunch);
-							CelestialBody.getStar(worldObj).modifyTraits(skyState);
-
-							if(skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT) {
+						if(sadaldPending) {
+							toLaunch = Math.min(toLaunch, 1);
+							if(toLaunch > 0 && payloadItem == ModItems.sat_sadald) {
+								skyState.setBlackholeSadaldLaunched(true);
+								CelestialBody.getStar(worldObj).modifyTraits(skyState);
 								StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
+							} else {
+								toLaunch = 0;
+							}
+						} else {
+							int remaining = BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent();
+							toLaunch = Math.min(toLaunch, remaining);
+							if(toLaunch > 0) {
+								skyState.addBlackholeClusters(toLaunch);
+								CelestialBody.getStar(worldObj).modifyTraits(skyState);
+
+								if(skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT && skyState.isBlackholeSadaldLaunched()) {
+									StarcoreSkyEffects.startBlackholeCollapse(worldObj, skyState);
+								}
 							}
 						}
 					} else {
@@ -248,9 +270,22 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	}
 
 	private void tryLoad(int x, int y, int z, ForgeDirection dir) {
+		Item payloadItem = getPayloadItem();
+		int desiredStackLimit = getInventoryStackLimit();
+		if(payloadItem != null) {
+			desiredStackLimit = Math.min(desiredStackLimit, payloadItem.getItemStackLimit());
+		}
+		if(payloadItem == ModItems.pellet_antimatter && worldObj != null) {
+			CBT_SkyState skyState = CBT_SkyState.get(worldObj);
+			if(skyState != null && skyState.isBlackhole()) {
+				int remaining = Math.max(0, BLACKHOLE_CLUSTER_LIMIT - skyState.getBlackholeClustersSent());
+				desiredStackLimit = Math.min(desiredStackLimit, Math.max(1, remaining));
+			}
+		}
 		if(slots[0] != null) {
 			if(slots[0].getItem() == ModItems.star_core) return;
-			if(slots[0].stackSize >= getInventoryStackLimit()) return;
+			if(slots[0].getItem() != payloadItem) return;
+			if(slots[0].stackSize >= desiredStackLimit) return;
 		}
 
 		TileEntity te = worldObj.getTileEntity(x, y, z);
@@ -263,11 +298,11 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 		for(int i = 0; i < (access != null ? access.length : inv.getSizeInventory()); i++) {
 			int slot = access != null ? access[i] : i;
 			ItemStack stack = inv.getStackInSlot(slot);
-			if(stack != null && stack.getItem() == getPayloadItem() && (sided == null || sided.canExtractItem(slot, stack, dir.ordinal()))) {
+			if(stack != null && stack.getItem() == payloadItem && (sided == null || sided.canExtractItem(slot, stack, dir.ordinal()))) {
 				ItemStack removed = inv.decrStackSize(slot, 1);
 				if(slots[0] == null) {
 					slots[0] = removed;
-				} else {
+				} else if(slots[0].stackSize < desiredStackLimit) {
 					slots[0].stackSize++;
 				}
 				break;
@@ -348,11 +383,23 @@ public class TileEntityDysonLauncher extends TileEntityMachineBase implements IE
 	private boolean isDfcSky() {
 		return worldObj != null && CBT_SkyState.get(worldObj).getState() == CBT_SkyState.SkyState.STARCORE;
 	}
+	
+	public static boolean isSadaldLaunchPending(CBT_SkyState skyState) {
+		return skyState != null
+			&& skyState.isBlackhole()
+			&& skyState.getBlackholeClustersSent() >= BLACKHOLE_CLUSTER_LIMIT
+			&& !skyState.isBlackholeSadaldLaunched();
+	}
 
 	private Item getPayloadItem() {
-		if(isBlackholeSky()) return ModItems.pellet_antimatter;
-		if(isNothingSky()) return ModItems.star_core;
-		if(isDfcSky()) return null;
+		return getPayloadItem(worldObj != null ? CBT_SkyState.get(worldObj) : null);
+	}
+	
+	private Item getPayloadItem(CBT_SkyState skyState) {
+		if(skyState == null) return null;
+		if(skyState.isBlackhole()) return isSadaldLaunchPending(skyState) ? ModItems.sat_sadald : ModItems.pellet_antimatter;
+		if(skyState.isNothing()) return ModItems.star_core;
+		if(skyState.getState() == CBT_SkyState.SkyState.STARCORE) return null;
 		return ModItems.swarm_member;
 	}
 

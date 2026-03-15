@@ -239,6 +239,10 @@ public class MachineDysonLauncher extends BlockDummyable implements ILookOverlay
 			int remaining = Math.max(0, TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT - sent);
 			text.add("Antimatter Clusters: " + sent + "/" + TileEntityDysonLauncher.BLACKHOLE_CLUSTER_LIMIT);
 			text.add("Remaining: " + remaining);
+			if(TileEntityDysonLauncher.isSadaldLaunchPending(skyState)) {
+				EnumChatFormatting blinkColor = BobMathUtil.getBlink() ? EnumChatFormatting.DARK_PURPLE : EnumChatFormatting.RED;
+				text.add(blinkColor + "Something is missing...");
+			}
 			text.add((launcher.power < TileEntityDysonLauncher.MAX_POWER ? EnumChatFormatting.RED : EnumChatFormatting.GREEN) + "Power: " + BobMathUtil.getShortNumber(launcher.power) + "HE");
 		} else if(launcher.swarmId > 0) {
 			text.add("ID: " + launcher.swarmId);

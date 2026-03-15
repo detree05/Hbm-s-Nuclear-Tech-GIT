@@ -1185,8 +1185,6 @@ public class AssemblyMachineRecipes extends GenericRecipes<GenericRecipe> {
 						new ComparableStack(ModItems.part_generic, 16, EnumPartType.HDE),
 						new ComparableStack(ModItems.part_generic, 32, EnumPartType.LDE),
 						new OreDictStack(SBD.wireDense(), 64)));
-
-
 		/// BENT FORK ///
 
 		// bombs

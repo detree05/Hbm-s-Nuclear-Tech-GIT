@@ -115,7 +115,7 @@ public class EntitySoyuz extends Entity {
 				
 				if(load.getItem() instanceof ISatChip) {
 					int freq = ISatChip.getFreqS(load);
-					if(load.getItem() == ModItems.sat_derald) {
+					if(load.getItem() == ModItems.sat_derald || load.getItem() == ModItems.sat_sadald) {
 						SatelliteSavedData data = SatelliteSavedData.getData(worldObj, (int)posX, (int)posZ);
 						do {
 							freq = Integer.MIN_VALUE + worldObj.rand.nextInt(Integer.MAX_VALUE);

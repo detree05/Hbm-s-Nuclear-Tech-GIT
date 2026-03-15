@@ -8,7 +8,10 @@ import com.hbm.dim.StarcoreSkyEffects;
 import com.hbm.dim.trait.CBT_Dyson;
 import com.hbm.dim.CelestialBody;
 import com.hbm.config.SpaceConfig;
+import com.hbm.main.MainRegistry;
 
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
@@ -277,6 +280,14 @@ public class StarcoreThroughputTracker {
 				CelestialBody.getStar(world).modifyTraits(skyState);
 				CBT_Dyson.clearAll(world);
 				StarcoreSkyEffects.sendDecay(world);
+				MinecraftServer server = MinecraftServer.getServer();
+				if(server != null && server.getConfigurationManager() != null) {
+					for(Object obj : server.getConfigurationManager().playerEntityList) {
+						if(obj instanceof EntityPlayerMP) {
+							((EntityPlayerMP) obj).triggerAchievement(MainRegistry.achWowImpressive);
+						}
+					}
+				}
 			}
 			if(skyState.getStarcoreThroughput() != 0) {
 				skyState.setStarcoreThroughput(0);

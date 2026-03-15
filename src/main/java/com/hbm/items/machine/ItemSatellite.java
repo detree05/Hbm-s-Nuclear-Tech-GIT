@@ -39,7 +39,7 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 	public void addInformation(ItemStack itemstack, EntityPlayer player, List list, boolean bool) {
 		super.addInformation(itemstack, player, list, bool);
 
-		if(this == ModItems.sat_derald)
+		if(this == ModItems.sat_derald || this == ModItems.sat_sadald)
 			list.add(I18nUtil.resolveKey("item.sat.desc.no_frequency"));
 		else
 			list.add(I18nUtil.resolveKey("item.sat.desc.frequency") + ": " + getFreq(itemstack));
@@ -58,6 +58,13 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.orbital_module"));
 			list.add(I18nUtil.resolveKey("item.sat.desc.derald.evil"));
 			list.add(I18nUtil.resolveKey("item.sat.desc.derald.tag").replace("&", "\u00A7"));
+		}
+		
+		if(this == ModItems.sat_sadald) {
+			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.single_use"));
+			list.add(I18nUtil.resolveKey("item.sat.desc.gerald.orbital_module"));
+			list.add(EnumChatFormatting.OBFUSCATED + I18nUtil.resolveKey("item.sat.desc.sadald.mission"));
+			list.add(EnumChatFormatting.DARK_PURPLE + I18nUtil.resolveKey("item.sat.desc.sadald.tag"));
 		}
 
 		if(this == ModItems.sat_laser)
@@ -122,7 +129,7 @@ public class ItemSatellite extends ItemCustomMissilePart implements ISatChip {
 
 	@Override
 	public String getSize(PartSize size) {
-		if(this == ModItems.sat_derald && size == PartSize.SIZE_20)
+		if((this == ModItems.sat_derald || this == ModItems.sat_sadald) && size == PartSize.SIZE_20)
 			return "1.9m";
 		return super.getSize(size);
 	}

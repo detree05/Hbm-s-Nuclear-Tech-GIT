@@ -29,6 +29,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	private SkyState state = SkyState.SUN;
 	private int blackholeClustersSent;
+	private boolean blackholeSadaldLaunched;
 	private long starcoreThroughput;
 	private long sunCharge;
 	private long sunLastSustainTick;
@@ -47,6 +48,9 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	public void setState(SkyState state) {
 		this.state = state;
+		if(state != SkyState.BLACKHOLE) {
+			blackholeSadaldLaunched = false;
+		}
 	}
 
 	public boolean isBlackhole() {
@@ -72,6 +76,14 @@ public class CBT_SkyState extends CelestialBodyTrait {
 
 	public void setBlackholeClustersSent(int sent) {
 		blackholeClustersSent = Math.max(0, sent);
+	}
+	
+	public boolean isBlackholeSadaldLaunched() {
+		return blackholeSadaldLaunched;
+	}
+	
+	public void setBlackholeSadaldLaunched(boolean launched) {
+		blackholeSadaldLaunched = launched;
 	}
 
 	public long getStarcoreThroughput() {
@@ -199,6 +211,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public void writeToNBT(NBTTagCompound nbt) {
 		nbt.setInteger("state", state.ordinal());
 		nbt.setInteger("clusters", blackholeClustersSent);
+		nbt.setBoolean("blackholeSadaldLaunched", blackholeSadaldLaunched);
 		nbt.setLong("starcoreThroughput", starcoreThroughput);
 		nbt.setLong("sunCharge", sunCharge);
 		nbt.setLong("sunLastSustain", sunLastSustainTick);
@@ -220,6 +233,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = nbt.getInteger("clusters");
+		blackholeSadaldLaunched = nbt.getBoolean("blackholeSadaldLaunched");
 		starcoreThroughput = nbt.getLong("starcoreThroughput");
 		sunCharge = nbt.getLong("sunCharge");
 		sunLastSustainTick = nbt.getLong("sunLastSustain");
@@ -247,6 +261,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 	public void writeToBytes(ByteBuf buf) {
 		buf.writeByte(state.ordinal());
 		buf.writeShort(blackholeClustersSent);
+		buf.writeBoolean(blackholeSadaldLaunched);
 		buf.writeLong(starcoreThroughput);
 		buf.writeLong(sunCharge);
 		buf.writeLong(sunLastSustainTick);
@@ -264,6 +279,7 @@ public class CBT_SkyState extends CelestialBodyTrait {
 		SkyState[] values = SkyState.values();
 		state = ordinal >= 0 && ordinal < values.length ? values[ordinal] : SkyState.SUN;
 		blackholeClustersSent = buf.readShort();
+		blackholeSadaldLaunched = buf.readBoolean();
 		starcoreThroughput = buf.readLong();
 		sunCharge = buf.readLong();
 		sunLastSustainTick = buf.readLong();

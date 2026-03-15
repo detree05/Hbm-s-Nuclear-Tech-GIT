@@ -61,6 +61,7 @@ public abstract class Satellite {
 		registerSatellite(SatelliteDysonRelay.class, ModItems.sat_dyson_relay);
 		registerSatellite(SatelliteHorizons.class, ModItems.sat_gerald);
 		registerSatellite(SatelliteDerald.class, ModItems.sat_derald);
+		registerSatellite(SatelliteSadald.class, ModItems.sat_sadald);
 		registerSatellite(SatelliteRailgun.class, ModItems.sat_war);
 	}
 
