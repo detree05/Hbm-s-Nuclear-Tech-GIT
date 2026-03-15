@@ -17,6 +17,7 @@
 # gradle
 /build
 /.gradle
+/.gradle-user
 
 # vscode
 /.vscode

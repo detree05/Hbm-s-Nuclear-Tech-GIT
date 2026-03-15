@@ -18,8 +18,8 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 public class TileEntityRadiator extends TileEntityCondenser {
 	
-	public static int inputTankSize = 500;
-	public static int outputTankSize = 500;
+	public static int inputTankSize = 5_000;
+	public static int outputTankSize = 5_000;
 
 	public TileEntityRadiator() {
 		tanks = new FluidTank[2];

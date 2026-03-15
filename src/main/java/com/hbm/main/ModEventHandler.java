@@ -543,7 +543,7 @@ public class ModEventHandler {
 
 		addItemToInventoryOrDrop(player, new ItemStack(ModItems.lox_tank, 2));
 		addItemToInventoryOrDrop(player, new ItemStack(ModItems.oxy_pinwheel, 2));
-		addItemToInventoryOrDrop(player, new ItemStack(ModItems.tank_steel, 1));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.machine_fluidtank, 1));
 		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.air_vent, 4));
 		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.concrete_smooth, 64));
 		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.concrete_smooth, 64));

@@ -4,8 +4,8 @@ import java.io.IOException;
 
 import com.google.gson.JsonObject;
 import com.google.gson.stream.JsonWriter;
-import com.hbm.dim.CelestialBody;
 import com.hbm.dim.trait.CBT_Atmosphere;
+import com.hbm.handler.atmosphere.ChunkAtmosphereManager;
 import com.hbm.inventory.fluid.Fluids;
 import com.hbm.inventory.fluid.tank.FluidTank;
 import com.hbm.saveddata.TomSaveData;
@@ -20,6 +20,7 @@ import api.hbm.tile.IInfoProviderEC;
 import io.netty.buffer.ByteBuf;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.world.EnumSkyBlock;
+import net.minecraftforge.common.util.ForgeDirection;
 
 public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidStandardTransceiver, IInfoProviderEC, IConfigurableMachine, IBufPacketReceiver, IFluidCopiable {
 
@@ -28,8 +29,10 @@ public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidS
 
 	public int waterTimer = 0;
 	protected int throughput;
+	public boolean hasAtmosphericPressure = true;
 
 	public boolean vacuumOptimised = false;
+	private static final double MIN_CONDENSATION_PRESSURE = 0.01D;
 
 	//Configurable values
 	public static int inputTankSize = 100;
@@ -72,9 +75,11 @@ public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidS
 				this.waterTimer--;
 
 			int convert = Math.min(tanks[0].getFill(), tanks[1].getMaxFill() - tanks[1].getFill());
-			this.throughput = convert;
+			this.hasAtmosphericPressure = hasRequiredAtmosphericPressure();
+			boolean canCondense = vacuumOptimised || this.hasAtmosphericPressure;
+			this.throughput = canCondense ? convert : 0;
 
-			if(extraCondition(convert)) {
+			if(canCondense && extraCondition(convert)) {
 				tanks[0].setFill(tanks[0].getFill() - convert);
 
 				if(convert > 0)
@@ -83,13 +88,9 @@ public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidS
 				int light = this.worldObj.getSavedLightValue(EnumSkyBlock.Sky, this.xCoord, this.yCoord, this.zCoord);
 
 				boolean shouldEvaporate = TomSaveData.forWorld(worldObj).fire > 1e-5 && light > 7;
-				if(!shouldEvaporate && !vacuumOptimised) {
-					CBT_Atmosphere atmosphere = CelestialBody.getTrait(worldObj, CBT_Atmosphere.class);
-					if(CelestialBody.inOrbit(worldObj) || atmosphere == null || atmosphere.getPressure() < 0.01) shouldEvaporate = true;
-				}
 				
-				if(shouldEvaporate) { // Make both steam and water evaporate during firestorms and in vacuums
-					tanks[1].setFill(tanks[1].getFill() - convert);
+				if(shouldEvaporate) { // Firestorms can boil off condensed water before collection
+					tanks[1].setFill(Math.max(0, tanks[1].getFill() - convert));
 				} else {
 					tanks[1].setFill(tanks[1].getFill() + convert);
 				}
@@ -107,12 +108,26 @@ public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidS
 	public void packExtra(NBTTagCompound data) { }
 	public boolean extraCondition(int convert) { return true; }
 	public void postConvert(int convert) { }
+	
+	private boolean hasRequiredAtmosphericPressure() {
+		CBT_Atmosphere atmosphere = ChunkAtmosphereManager.proxy.getAtmosphere(worldObj, xCoord, yCoord, zCoord);
+		if(atmosphere != null && atmosphere.getPressure() >= MIN_CONDENSATION_PRESSURE) return true;
+
+		// Machine blocks are solid; sample neighboring cells to detect pressurized room air.
+		for(ForgeDirection dir : ForgeDirection.VALID_DIRECTIONS) {
+			atmosphere = ChunkAtmosphereManager.proxy.getAtmosphere(worldObj, xCoord + dir.offsetX, yCoord + dir.offsetY, zCoord + dir.offsetZ);
+			if(atmosphere != null && atmosphere.getPressure() >= MIN_CONDENSATION_PRESSURE) return true;
+		}
+
+		return false;
+	}
 
 	@Override
 	public void serialize(ByteBuf buf) {
 		this.tanks[0].serialize(buf);
 		this.tanks[1].serialize(buf);
 		buf.writeByte(this.waterTimer);
+		buf.writeBoolean(this.hasAtmosphericPressure);
 	}
 
 	@Override
@@ -120,6 +135,7 @@ public class TileEntityCondenser extends TileEntityLoadedBase implements IFluidS
 		this.tanks[0].deserialize(buf);
 		this.tanks[1].deserialize(buf);
 		this.waterTimer = buf.readByte();
+		this.hasAtmosphericPressure = buf.readBoolean();
 	}
 
 	@Override
