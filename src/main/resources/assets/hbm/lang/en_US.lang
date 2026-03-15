@@ -967,6 +967,7 @@ container.rbmkBoiler=RBMK Steam Channel
 container.rbmkControl=RBMK Control Rods
 container.rbmkControlAuto=RBMK Automatic Control Rods
 container.rbmkHeater=RBMK Fluid Heater
+container.rbmkKeyPad=Redstone-over-Radio Keypad
 container.rbmkOutgasser=RBMK Irradiation Channel
 container.rbmkReaSim=RBMK Fuel Rod (ReaSim)
 container.rbmkRod=RBMK Fuel Rod
@@ -6498,13 +6499,10 @@ tile.machine_htr3.name=LPW-3N Station Thruster
 tile.machine_htr3.desc=Connect to a PWR that has control rods and Liquid Hydrogen coolant.
 tile.machine_htrf4.name=HTR-F4 Station Thruster (LEGACY)
 tile.machine_htrf4.desc=Connect Plasma Heater to inject fuel.
-<<<<<<< HEAD
 tile.machine_htrs5.name=HTR-S5 Station Thruster
 tile.machine_htrs5.desc=Uses Dark Matter and a Miniature Black Hole.
-=======
 tile.machine_htrf4neo.name=HTR-F4 NEO Station Thruster
 tile.machine_htrf4neo.desc=Connect a running Fusion Reactor Torus to provide thrust.
->>>>>>> upstream/space-travel-twopointfive
 tile.machine_magma.name=Magma Drill
 tile.machine_magma.desc=Collects mineral-rich magma from highly-active volcanic planets and moons.
 tile.machine_microwave.name=Microwave
@@ -6883,7 +6881,9 @@ tile.rbmk_control_reasim.name=RBMK Control Rods (ReaSim)
 tile.rbmk_control_reasim_auto.name=RBMK Automatic Control Rods (ReaSim)
 tile.rbmk_crane_console.name=RBMK Crane Console
 tile.rbmk_display.name=RBMK Display Panel
+tile.rbmk_gauge.name=Redstone-over-Radio Gauge
 tile.rbmk_heater.name=RBMK Fluid Heater
+tile.rbmk_key_pad.name=Redstone-over-Radio Keypad
 tile.rbmk_loader.name=RBMK Steam Connector
 tile.rbmk_loader.desc=Allows RBMKs to have both water and steam connections at the bottom$Place one water pipe below the RBMK column, then the connector,$then connect the steam duct to the connector.
 tile.rbmk_moderator.name=RBMK Graphite Moderator
