@@ -80,9 +80,11 @@ import com.hbm.inventory.recipes.loader.SerializableRecipe;
 import com.hbm.items.IEquipReceiver;
 import com.hbm.items.ModItems;
 import com.hbm.items.armor.ArmorFSB;
+import com.hbm.items.armor.ArmorFSBPowered;
 import com.hbm.items.armor.IAttackHandler;
 import com.hbm.items.armor.IDamageHandler;
 import com.hbm.items.armor.ItemArmorMod;
+import com.hbm.items.armor.ItemModOxy;
 import com.hbm.items.armor.ItemModDefuser;
 import com.hbm.items.armor.ItemModRevive;
 import com.hbm.items.armor.ItemModShackles;
@@ -461,6 +463,7 @@ public class ModEventHandler {
 
 				if(!props.hasReceivedBook) {
 					event.player.inventory.addItemStackToInventory(new ItemStack(ModItems.book_guide, 1, BookType.STARTER.ordinal()));
+					grantFirstJoinSuitAndStarterItems(event.player);
 					event.player.inventoryContainer.detectAndSendChanges();
 					props.hasReceivedBook = true;
 				}
@@ -510,6 +513,60 @@ public class ModEventHandler {
 					);
 				}
 			}
+		}
+	}
+
+	private static void grantFirstJoinSuitAndStarterItems(EntityPlayer player) {
+		ItemStack helmet = new ItemStack(ModItems.envsuit_helmet);
+		ItemStack chestplate = new ItemStack(ModItems.envsuit_plate);
+		ItemStack leggings = new ItemStack(ModItems.envsuit_legs);
+		ItemStack boots = new ItemStack(ModItems.envsuit_boots);
+
+		if(helmet.getItem() instanceof ArmorFSBPowered) {
+			ArmorFSBPowered poweredHelmet = (ArmorFSBPowered) helmet.getItem();
+			poweredHelmet.setCharge(helmet, poweredHelmet.getMaxCharge(helmet));
+		}
+
+		ItemStack plss = new ItemStack(ModItems.oxy_plss);
+		if(plss.getItem() instanceof ItemModOxy) {
+			ItemModOxy oxy = (ItemModOxy) plss.getItem();
+			ItemModOxy.setFuel(plss, oxy.getMaxFuel());
+		}
+		if(ArmorModHandler.isApplicable(helmet, plss)) {
+			ArmorModHandler.applyMod(helmet, plss);
+		}
+
+		equipArmorOrStore(player, 3, helmet);
+		equipArmorOrStore(player, 2, chestplate);
+		equipArmorOrStore(player, 1, leggings);
+		equipArmorOrStore(player, 0, boots);
+
+		addItemToInventoryOrDrop(player, new ItemStack(ModItems.lox_tank, 2));
+		addItemToInventoryOrDrop(player, new ItemStack(ModItems.oxy_pinwheel, 2));
+		addItemToInventoryOrDrop(player, new ItemStack(ModItems.tank_steel, 1));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.air_vent, 4));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.concrete_smooth, 64));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.concrete_smooth, 64));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.crate_iron, 1));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.fluid_duct_box, 32, 8));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.qe_sliding_door, 8));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.sliding_seal_door, 8));
+		addItemToInventoryOrDrop(player, new ItemStack(ModBlocks.refueler, 1));
+		addItemToInventoryOrDrop(player, new ItemStack(ModItems.fluid_identifier_multi, 1));
+	}
+
+	private static void equipArmorOrStore(EntityPlayer player, int armorSlot, ItemStack toEquip) {
+		ItemStack existing = player.inventory.armorInventory[armorSlot];
+		if(existing != null) {
+			addItemToInventoryOrDrop(player, existing.copy());
+		}
+		player.inventory.armorInventory[armorSlot] = toEquip;
+	}
+
+	private static void addItemToInventoryOrDrop(EntityPlayer player, ItemStack stack) {
+		ItemStack toAdd = stack.copy();
+		if(!player.inventory.addItemStackToInventory(toAdd)) {
+			player.dropPlayerItemWithRandomChoice(toAdd, false);
 		}
 	}
 

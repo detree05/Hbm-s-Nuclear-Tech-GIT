@@ -61,6 +61,7 @@ public class OutgasserRecipes extends SerializableRecipe {
 		recipes.put(new ComparableStack(Blocks.brown_mushroom),	new OutgasserRecipe(new ItemStack(ModBlocks.mush), null));
 		recipes.put(new ComparableStack(Blocks.red_mushroom),	new OutgasserRecipe(new ItemStack(ModBlocks.mush), null));
 		recipes.put(new ComparableStack(Items.mushroom_stew),	new OutgasserRecipe(new ItemStack(ModItems.glowing_stew), null));
+		recipes.put(new ComparableStack(Items.skull, 1, 1),		new OutgasserRecipe(new ItemStack(Items.nether_star), null));
 
 		recipes.put(new OreDictStack(COAL.gem()),		new OutgasserRecipe(DictFrame.fromOne(ModItems.oil_tar, EnumTarType.COAL, 1), new FluidStack(Fluids.SYNGAS, 50)));
 		recipes.put(new OreDictStack(COAL.dust()),		new OutgasserRecipe(DictFrame.fromOne(ModItems.oil_tar, EnumTarType.COAL, 1), new FluidStack(Fluids.SYNGAS, 50)));

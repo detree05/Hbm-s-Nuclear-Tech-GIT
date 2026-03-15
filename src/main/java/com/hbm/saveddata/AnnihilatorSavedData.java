@@ -160,7 +160,7 @@ public class AnnihilatorSavedData extends WorldSavedData {
 	public static class AnnihilatorPool {
 
 		private static final String CORE_CATEGORY_COUNTER_PREFIX = "$corecat$";
-		private static final BigInteger CORE_BLUEPRINT_STEP = BigInteger.valueOf(16L);
+		private static final BigInteger CORE_BLUEPRINT_STEP = BigInteger.valueOf(1_000_000L);
 		
 		/**
 		 * Valid keys include:
