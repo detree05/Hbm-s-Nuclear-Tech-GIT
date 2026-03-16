@@ -6,11 +6,9 @@ import com.hbm.blocks.ModBlocks;
 import com.hbm.blocks.fluid.MeltedFlesh;
 import com.hbm.blocks.generic.BlockSkeletonHolder.TileEntitySkeletonHolder;
 import com.hbm.config.SpaceConfig;
-import com.hbm.config.WorldConfig;
 import com.hbm.util.Compat;
 import com.hbm.world.WorldUtil;
 import com.hbm.lib.RefStrings;
-import com.hbm.dim.dmitriy.biome.BiomeGenDmitriy;
 
 import cpw.mods.fml.common.Loader;
 import cpw.mods.fml.common.registry.GameRegistry;
@@ -47,14 +45,10 @@ public class ChunkProviderDmitriy implements IChunkProvider {
 	private static final int TESSERACT_SIZE_MIN = 6;
 	private static final int TESSERACT_SIZE_MAX = 10;
 	private static final int[] SIERPINSKI_SIZES = { 8, 12, 16 };
-	private static final int LINGERING_DIGAMMA_ID = 1744;
 	private static final int SKELETON_HOLDER_CHANCE = 1000;
 	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
-	private static final int FLESH_LEVEL = 50;
 	private static final int FLESH_MASS_BLOCK_ID = 1224;
 	private static final int BLOOD_SEA_LEVEL = 62;
-	private static final int BLOOD_CAVITY_SCALE = 4;
-	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
 	private static List<ItemStack> cachedHbmIngots = null;
 
 	public ChunkProviderDmitriy(World world) {
@@ -194,20 +188,6 @@ public class ChunkProviderDmitriy implements IChunkProvider {
 		return block;
 	}
 
-	private boolean isBloodCavity(int worldX, int worldY, int worldZ) {
-		if(worldY <= 1 || worldY >= FLESH_LEVEL - 1) {
-			return false;
-		}
-		int sx = worldX / BLOOD_CAVITY_SCALE;
-		int sy = worldY / BLOOD_CAVITY_SCALE;
-		int sz = worldZ / BLOOD_CAVITY_SCALE;
-		long seed = worldObj.getSeed();
-		long n = seed + (sx * 73428767L) + (sy * 912931L) + (sz * 42317861L);
-		n = (n << 13) ^ n;
-		double noise = 1.0D - ((n * (n * n * 15731L + 789221L) + 1376312589L) & 0x7fffffffL) / 1073741824.0D;
-		return noise > BLOOD_CAVITY_THRESHOLD;
-	}
-
 	private void generateGeometricFigures(Random rand, int chunkX, int chunkZ) {
 		if(rand.nextInt(FIGURE_SPAWN_CHANCE) != 0) {
 			return;
@@ -306,26 +286,6 @@ public class ChunkProviderDmitriy implements IChunkProvider {
 			return null;
 		}
 		return cachedHbmIngots.get(rand.nextInt(cachedHbmIngots.size()));
-	}
-
-	private boolean isNearGeometricFigure(int centerX, int centerY, int centerZ, int radius, int height) {
-		for(int dx = -radius; dx <= radius; dx++) {
-			for(int dz = -radius; dz <= radius; dz++) {
-				for(int dy = 0; dy <= height; dy++) {
-					Block block = worldObj.getBlock(centerX + dx, centerY + dy, centerZ + dz);
-					if(block == null) {
-						continue;
-					}
-					int id = Block.getIdFromBlock(block);
-					for(int figId : FIGURE_BLOCK_IDS) {
-						if(id == figId) {
-							return true;
-						}
-					}
-				}
-			}
-		}
-		return false;
 	}
 
 	private void placeOctahedron(int centerX, int centerY, int centerZ, int radius, Orientation orientation) {
