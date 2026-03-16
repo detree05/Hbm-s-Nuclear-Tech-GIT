@@ -51,7 +51,7 @@ public class ChunkProviderDmitriy implements IChunkProvider {
 	private static final int SKELETON_HOLDER_CHANCE = 1000;
 	private static final int[] SKELETON_HOLDER_METAS = { 2, 3, 4, 5 };
 	private static final int FLESH_LEVEL = 50;
-	private static final int FLESH_MASS_BLOCK_ID = 1222;
+	private static final int FLESH_MASS_BLOCK_ID = 1224;
 	private static final int BLOOD_SEA_LEVEL = 62;
 	private static final int BLOOD_CAVITY_SCALE = 4;
 	private static final double BLOOD_CAVITY_THRESHOLD = 0.65D;
