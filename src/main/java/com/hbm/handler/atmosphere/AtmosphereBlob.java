@@ -373,29 +373,33 @@ public class AtmosphereBlob implements Runnable {
 	public void checkGrowth() {
 		World world = handler.getWorld();
 
-		Iterator<HashMap.Entry<ThreeInts, Integer>> iterator = plants.entrySet().iterator();
-		while(iterator.hasNext()) {
-			HashMap.Entry<ThreeInts, Integer> entry = iterator.next();
-			ThreeInts pos = entry.getKey();
-			int oldMeta = entry.getValue();
-			Block block = world.getBlock(pos.x, pos.y, pos.z);
+		synchronized (plants) {
+			Iterator<HashMap.Entry<ThreeInts, Integer>> iterator = plants.entrySet().iterator();
+			while(iterator.hasNext()) {
+				HashMap.Entry<ThreeInts, Integer> entry = iterator.next();
+				ThreeInts pos = entry.getKey();
+				int oldMeta = entry.getValue();
+				Block block = world.getBlock(pos.x, pos.y, pos.z);
 
-			if(!(block instanceof IGrowable)) {
-				iterator.remove();
-				continue;
-			}
+				if(!(block instanceof IGrowable)) {
+					iterator.remove();
+					continue;
+				}
 
-			int newMeta = world.getBlockMetadata(pos.x, pos.y, pos.z);
+				int newMeta = world.getBlockMetadata(pos.x, pos.y, pos.z);
 
-			if(newMeta != oldMeta) {
-				entry.setValue(newMeta);
-				produce(Math.max(newMeta - oldMeta, 0) * ChunkAtmosphereHandler.CROP_GROWTH_CONVERSION);
+				if(newMeta != oldMeta) {
+					entry.setValue(newMeta);
+					produce(Math.max(newMeta - oldMeta, 0) * ChunkAtmosphereHandler.CROP_GROWTH_CONVERSION);
+				}
 			}
 		}
 	}
 
 	public void addPlant(World world, int x, int y, int z) {
-		plants.put(new ThreeInts(x, y, z), world.getBlockMetadata(x, y, z));
+		synchronized (plants) {
+			plants.put(new ThreeInts(x, y, z), world.getBlockMetadata(x, y, z));
+		}
 	}
 
 }
