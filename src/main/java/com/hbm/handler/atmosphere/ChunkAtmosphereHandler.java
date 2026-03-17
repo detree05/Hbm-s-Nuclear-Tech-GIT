@@ -120,6 +120,20 @@ public class ChunkAtmosphereHandler {
 		return inBlobs;
 	}
 
+	public AtmosphereBlob getBreathableBlob(World world, int x, int y, int z) {
+		ThreeInts pos = new ThreeInts(x, y, z);
+		HashMap<IAtmosphereProvider, AtmosphereBlob> blobs = worldBlobs.get(world.provider.dimensionId);
+		if(blobs == null) return null;
+
+		for(AtmosphereBlob blob : blobs.values()) {
+			if(blob.contains(pos) && (blob.hasFluid(Fluids.EARTHAIR, 0.19) || blob.hasFluid(Fluids.OXYGEN, 0.09))) {
+				return blob;
+			}
+		}
+
+		return null;
+	}
+
 	public boolean hasAtmosphere(World world, int x, int y, int z) {
 		ThreeInts pos = new ThreeInts(x, y, z);
 		HashMap<IAtmosphereProvider, AtmosphereBlob> blobs = worldBlobs.get(world.provider.dimensionId);

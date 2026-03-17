@@ -1,6 +1,6 @@
 package com.hbm.tileentity;
 
-import java.util.List;
+import java.util.HashMap;
 
 import com.hbm.dim.CelestialBody;
 import com.hbm.dim.orbit.WorldProviderOrbit;
@@ -25,6 +25,13 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
 	public ItemStack slots[];
 
 	private String customName;
+
+	private long breatheCacheTick = Long.MIN_VALUE;
+	private AtmosphereBlob breatheCacheBlob;
+	private boolean breatheCacheMiss;
+
+	private static final HashMap<Integer, Long> naturalBreatheTickByDim = new HashMap<>();
+	private static final HashMap<Integer, Boolean> naturalBreatheValueByDim = new HashMap<>();
 
 	public TileEntityMachineBase(int slotCount) {
 		slots = new ItemStack[slotCount];
@@ -222,26 +229,70 @@ public abstract class TileEntityMachineBase extends TileEntityLoadedBase impleme
 
 	// TODO: Consume air from connected tanks if available
 	public boolean breatheAir(int amount) {
-		return breatheAir(worldObj, xCoord, yCoord, zCoord, amount);
-	}
+		if(worldObj == null) return false;
+		if(canBreatheNaturally(worldObj)) return true;
 
-	public static boolean breatheAir(World world, int x, int y, int z, int amount) {
-		CBT_Atmosphere atmosphere = world.provider instanceof WorldProviderOrbit ? null : CelestialBody.getTrait(world, CBT_Atmosphere.class);
-		if(atmosphere != null) {
-			if(atmosphere.hasFluid(Fluids.EARTHAIR, 0.19) || atmosphere.hasFluid(Fluids.OXYGEN, 0.09)) {
+		long worldTime = worldObj.getTotalWorldTime();
+		if(this.breatheCacheTick == worldTime) {
+			if(this.breatheCacheBlob != null && canBreatheFromBlob(this.breatheCacheBlob)) {
+				if(amount > 0) this.breatheCacheBlob.consume(amount);
 				return true;
+			}
+
+			if(this.breatheCacheMiss) {
+				return false;
 			}
 		}
 
-		List<AtmosphereBlob> blobs = ChunkAtmosphereManager.proxy.getBlobs(world, x, y, z);
-		for(AtmosphereBlob blob : blobs) {
-			if(blob.hasFluid(Fluids.EARTHAIR, 0.19) || blob.hasFluid(Fluids.OXYGEN, 0.09)) {
-				blob.consume(amount);
-				return true;
-			}
+		AtmosphereBlob breathableBlob = ChunkAtmosphereManager.proxy.getBreathableBlob(worldObj, xCoord, yCoord, zCoord);
+		this.breatheCacheTick = worldTime;
+		this.breatheCacheBlob = breathableBlob;
+		this.breatheCacheMiss = breathableBlob == null;
+
+		if(breathableBlob != null) {
+			if(amount > 0) breathableBlob.consume(amount);
+			return true;
 		}
 
 		return false;
+	}
+
+	public static boolean breatheAir(World world, int x, int y, int z, int amount) {
+		if(world == null) return false;
+		if(canBreatheNaturally(world)) return true;
+
+		AtmosphereBlob breathableBlob = ChunkAtmosphereManager.proxy.getBreathableBlob(world, x, y, z);
+		if(breathableBlob != null) {
+			if(amount > 0) breathableBlob.consume(amount);
+			return true;
+		}
+
+		return false;
+	}
+
+	private static boolean canBreatheNaturally(World world) {
+		if(world.provider instanceof WorldProviderOrbit) return false;
+
+		int dim = world.provider.dimensionId;
+		long worldTime = world.getTotalWorldTime();
+
+		Long cachedTick = naturalBreatheTickByDim.get(dim);
+		if(cachedTick != null && cachedTick.longValue() == worldTime) {
+			Boolean cachedResult = naturalBreatheValueByDim.get(dim);
+			return cachedResult != null && cachedResult.booleanValue();
+		}
+
+		CBT_Atmosphere atmosphere = CelestialBody.getTrait(world, CBT_Atmosphere.class);
+		boolean canBreathe = atmosphere != null && (atmosphere.hasFluid(Fluids.EARTHAIR, 0.19) || atmosphere.hasFluid(Fluids.OXYGEN, 0.09));
+
+		naturalBreatheTickByDim.put(dim, worldTime);
+		naturalBreatheValueByDim.put(dim, canBreathe);
+
+		return canBreathe;
+	}
+
+	private static boolean canBreatheFromBlob(AtmosphereBlob blob) {
+		return blob.hasFluid(Fluids.EARTHAIR, 0.19) || blob.hasFluid(Fluids.OXYGEN, 0.09);
 	}
 
 }
