@@ -415,10 +415,20 @@ public class EntityEffectHandler {
 		if(entity instanceof ISuffocationImmune) return;
 		if(entity.ridingEntity != null && entity.ridingEntity instanceof EntityRideableRocket) return; // breathe easy in your ship
 
+		boolean hasRespawnVacuumImmunity = HbmLivingProps.hasOxyImmunity(entity);
+
 		if (!ArmorUtil.checkForOxy(entity, atmosphere)) {
-			HbmLivingProps.setOxy(entity, HbmLivingProps.getOxy(entity) - 1);
+			if(hasRespawnVacuumImmunity) {
+				HbmLivingProps.setOxy(entity, 100);
+			} else {
+				HbmLivingProps.setOxy(entity, HbmLivingProps.getOxy(entity) - 1);
+			}
 		} else {
 			HbmLivingProps.setOxy(entity, 100); // 5 seconds until vacuum damage
+		}
+
+		if(hasRespawnVacuumImmunity) {
+			HbmLivingProps.decrementOxyImmuneTicks(entity);
 		}
 	}
 

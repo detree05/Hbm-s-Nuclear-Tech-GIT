@@ -53,6 +53,7 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 	private int oil;
 	private float activation;
 	private int oxygen = 100;
+	private int oxygenImmuneTicks = 0;
 	public int fire;
 	public int phosphorus;
 	public int balefire;
@@ -262,7 +263,30 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 		return getData(entity).oxygen;
 	}
 
+	public static int getOxyImmuneTicks(EntityLivingBase entity) {
+		return getData(entity).oxygenImmuneTicks;
+	}
+
+	public static void setOxyImmuneTicks(EntityLivingBase entity, int oxygenImmuneTicks) {
+		getData(entity).oxygenImmuneTicks = Math.max(oxygenImmuneTicks, 0);
+	}
+
+	public static boolean hasOxyImmunity(EntityLivingBase entity) {
+		return getOxyImmuneTicks(entity) > 0;
+	}
+
+	public static void decrementOxyImmuneTicks(EntityLivingBase entity) {
+		HbmLivingProps data = getData(entity);
+		if(data.oxygenImmuneTicks > 0) {
+			data.oxygenImmuneTicks--;
+		}
+	}
+
 	public static void setOxy(EntityLivingBase entity, int oxygen) {
+		if(hasOxyImmunity(entity) && oxygen < 100) {
+			oxygen = 100;
+		}
+
 		if(oxygen <= 0) {
 			if(entity.ticksExisted < 20) oxygen = 0; // limit overdamage effects when relogging
 
@@ -354,6 +378,7 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 		buf.writeInt(blacklung);
 		buf.writeInt(oil);
 		buf.writeInt(oxygen);
+		buf.writeInt(oxygenImmuneTicks);
 		buf.writeBoolean(gravity);
 		buf.writeFloat(activation);
 		buf.writeInt(fire);
@@ -375,6 +400,7 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 			blacklung = buf.readInt();
 			oil = buf.readInt();
 			oxygen = buf.readInt();
+			oxygenImmuneTicks = buf.readInt();
 			gravity = buf.readBoolean();
 			activation = buf.readFloat();
 			fire = buf.readInt();
@@ -401,6 +427,7 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 		props.setInteger("hfr_blacklung", blacklung);
 		props.setInteger("hfr_oil", oil);
 		props.setInteger("hfr_oxygen", oxygen);
+		props.setInteger("hfr_oxy_immune_ticks", oxygenImmuneTicks);
 		props.setFloat("hfr_activation", activation);
 		props.setBoolean("hfr_gravity", gravity);
 		props.setInteger("hfr_fire", fire);
@@ -433,6 +460,7 @@ public class HbmLivingProps implements IExtendedEntityProperties {
 			oil = props.getInteger("hfr_oil");
 			activation = props.getFloat("hfr_activation");
 			oxygen = props.getInteger("hfr_oxygen");
+			oxygenImmuneTicks = props.getInteger("hfr_oxy_immune_ticks");
 			gravity = props.getBoolean("hfr_gravity");
 			fire = props.getInteger("hfr_fire");
 			phosphorus = props.getInteger("hfr_phosphorus");

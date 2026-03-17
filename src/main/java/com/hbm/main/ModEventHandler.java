@@ -235,6 +235,7 @@ public class ModEventHandler {
 	private static final float BLACKHOLE_COLLAPSE_DIGAMMA_MAX_DRX = 4.5F;
 	private static final float PLANET_GRAVITY_DECAY = 0.01F;
 	private static final double MOB_SPAWN_MIN_ATMOSPHERE_PRESSURE = 0.0001D;
+	private static final int RESPAWN_VACUUM_IMMUNITY_TICKS = 2 * 60 * 20;
 	private static final Map<UUID, DmitriyFootstepSequence> dmitriyFootsteps = new HashMap<UUID, DmitriyFootstepSequence>();
 
 	private static class DmitriyFootstepSequence {
@@ -580,6 +581,11 @@ public class ModEventHandler {
 	public void onPlayerRespawn(PlayerEvent.PlayerRespawnEvent event) {
 
 		EntityPlayer player = event.player;
+
+		if(!player.worldObj.isRemote) {
+			HbmLivingProps.setOxy(player, 100);
+			HbmLivingProps.setOxyImmuneTicks(player, RESPAWN_VACUUM_IMMUNITY_TICKS);
+		}
 
 		if((player.getUniqueID().toString().equals(ShadyUtil.Dr_Nostalgia) || player.getDisplayName().equals("Dr_Nostalgia")) && !player.worldObj.isRemote) {
 
