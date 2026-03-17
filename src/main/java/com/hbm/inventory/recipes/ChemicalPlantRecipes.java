@@ -21,9 +21,12 @@ import com.hbm.items.ItemGenericPart.EnumPartType;
 import com.hbm.items.ModItems;
 import com.hbm.items.machine.ItemFluidIcon;
 import com.hbm.items.machine.ItemBatteryPack.EnumBatteryPack;
+import com.hbm.util.Compat;
 
+import cpw.mods.fml.common.Loader;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
+import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
 public class ChemicalPlantRecipes extends GenericRecipes<GenericRecipe> {
@@ -42,6 +45,31 @@ public class ChemicalPlantRecipes extends GenericRecipes<GenericRecipe> {
 	public void registerDefaults() {
 
 		/// REGULAR FLUIDS ///
+		if(Loader.isModLoaded("appliedenergistics2")) {
+			Item ae2Materials = Compat.tryLoadItem("appliedenergistics2", "item.ItemMultiMaterial");
+			if(ae2Materials == null) ae2Materials = Item.getItemById(4144); // fallback for legacy packs with numeric IDs
+
+			if(ae2Materials != null) {
+				this.register(new GenericRecipe("chem.ae2siliconprint_q_a").setup(40, 100)
+						.inputItems(new ComparableStack(ae2Materials, 1, 1), new OreDictStack(QUARTZ.any()), new OreDictStack(REDSTONE.any()))
+						.inputFluids(new FluidStack(Fluids.WATER, 1_000))
+						.outputItems(new ItemStack(ae2Materials, 2, 7)));
+
+				Item ae2CrystalSeed = Compat.tryLoadItem("appliedenergistics2", "item.ItemCrystalSeed");
+				if(ae2CrystalSeed != null) {
+					this.register(new GenericRecipe("chem.ae2siliconprint_seed_a").setup(40, 100)
+							.inputItems(new ComparableStack(ae2Materials, 1, 1), new OreDictStack(REDSTONE.any()), new ComparableStack(ae2CrystalSeed, 1, 1200))
+							.inputFluids(new FluidStack(Fluids.WATER, 1_000))
+							.outputItems(new ItemStack(ae2Materials, 2, 7), new ItemStack(ae2CrystalSeed, 1, 1200)));
+
+					this.register(new GenericRecipe("chem.ae2seedmat").setup(40, 100)
+							.inputItems(new ComparableStack(ModItems.powder_quartz), new ComparableStack(Blocks.sand), new ComparableStack(ae2CrystalSeed))
+							.inputFluids(new FluidStack(Fluids.WATER, 1_000))
+							.outputItems(new ItemStack(ae2Materials, 2), new ItemStack(ae2CrystalSeed)));
+				}
+			}
+		}
+
 		this.register(new GenericRecipe("chem.hydrogen").setupNamed(20, 400).setIcon(ModItems.gas_full, Fluids.HYDROGEN.getID())
 				.inputItems(new OreDictStack(COAL.gem(), 1))
 				.inputFluids(new FluidStack(Fluids.WATER, 8_000))
