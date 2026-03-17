@@ -52,7 +52,7 @@ public class JetpackBooster extends JetpackFueledBase {
 			float gravity = CelestialBody.getGravity(player);
 
 			if(player.motionY < 0.6D)
-				player.motionY += 0.1D * Math.min(gravity / AstronomyUtil.STANDARD_GRAVITY, 1);
+				player.motionY += 0.1D * Math.max(gravity / AstronomyUtil.STANDARD_GRAVITY, 1);
 
 			Vec3 look = player.getLookVec();
 

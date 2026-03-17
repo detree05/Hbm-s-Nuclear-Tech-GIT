@@ -40,7 +40,7 @@ public class JetpackBreak extends JetpackFueledBase {
 
 		if(!world.isRemote) {
 
-			if(getFuel(stack) > 0 && (props.isJetpackActive() || (!player.onGround && !player.isSneaking() && props.enableBackpack && gravity > 0))) {
+			if(getFuel(stack) > 0 && (props.isJetpackActive() || (!player.onGround && !player.isSneaking() && props.enableBackpack))) {
 
 				NBTTagCompound data = new NBTTagCompound();
 				data.setString("type", "jetpack");
@@ -70,7 +70,7 @@ public class JetpackBreak extends JetpackFueledBase {
 				this.useUpFuel(player, stack, 5);
 				ArmorUtil.resetFlightTime(player);
 
-			} else if(playerShouldHover && !player.onGround && props.enableBackpack && gravity > 0) {
+			} else if(playerShouldHover && !player.onGround && props.enableBackpack) {
 				player.fallDistance = 0;
 
 				float thrustMultiplier = Math.max(gravity / AstronomyUtil.STANDARD_GRAVITY, 1);
