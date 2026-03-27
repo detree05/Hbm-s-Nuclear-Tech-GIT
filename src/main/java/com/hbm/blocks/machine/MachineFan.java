@@ -95,56 +95,49 @@ public class MachineFan extends BlockContainer implements IToolable, ITooltipPro
 			this.prevSpin = this.spin;
 
 			if(worldObj.isBlockIndirectlyGettingPowered(xCoord, yCoord, zCoord)) {
-				if(!worldObj.isRemote) {
-					CBT_Atmosphere atmosphere = ChunkAtmosphereManager.proxy.getAtmosphere(worldObj, xCoord, yCoord, zCoord);
-					hasAtmosphere = atmosphere != null && atmosphere.getPressure() > 0.01D;
+				ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata());
+
+				int range = 10;
+				int effRange = 0;
+				double push = 0.1;
+
+				for(int i = 1; i <= range; i++) {
+					Block block = worldObj.getBlock(xCoord + dir.offsetX * i, yCoord + dir.offsetY * i, zCoord + dir.offsetZ * i);
+					boolean blowable = block instanceof IBlowable;
+
+					if(block.isNormalCube() || blowable) {
+						if(!worldObj.isRemote && blowable)
+							((IBlowable) block).applyFan(worldObj, xCoord + dir.offsetX * i, yCoord + dir.offsetY * i, zCoord + dir.offsetZ * i, dir, i);
+
+						break;
+					}
+
+					effRange = i;
 				}
 
-				if(hasAtmosphere) {
-					ForgeDirection dir = ForgeDirection.getOrientation(this.getBlockMetadata());
+				int x = dir.offsetX * effRange;
+				int y = dir.offsetY * effRange;
+				int z = dir.offsetZ * effRange;
 
-					int range = 10;
-					int effRange = 0;
-					double push = 0.1;
+				List<Entity> affected = worldObj.getEntitiesWithinAABB(Entity.class, AxisAlignedBB.getBoundingBox(xCoord + 0.5 + Math.min(x, 0), yCoord + 0.5 + Math.min(y, 0), zCoord + 0.5 + Math.min(z, 0), xCoord + 0.5 + Math.max(x, 0), yCoord + 0.5 + Math.max(y, 0), zCoord + 0.5 + Math.max(z, 0)).expand(0.5, 0.5, 0.5));
 
-					for(int i = 1; i <= range; i++) {
-						Block block = worldObj.getBlock(xCoord + dir.offsetX * i, yCoord + dir.offsetY * i, zCoord + dir.offsetZ * i);
-						boolean blowable = block instanceof IBlowable;
+				for(Entity e : affected) {
 
-						if(block.isNormalCube() || blowable) {
-							if(!worldObj.isRemote && blowable)
-								((IBlowable) block).applyFan(worldObj, xCoord + dir.offsetX * i, yCoord + dir.offsetY * i, zCoord + dir.offsetZ * i, dir, i);
+					double coeff = push;
 
-							break;
-						}
-
-						effRange = i;
+					if(falloff) {
+						double dist = e.getDistance(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5);
+						coeff *= 1.5 * (1 - dist / range / 2);
 					}
 
-					int x = dir.offsetX * effRange;
-					int y = dir.offsetY * effRange;
-					int z = dir.offsetZ * effRange;
+					e.motionX += dir.offsetX * coeff;
+					e.motionY += dir.offsetY * coeff;
+					e.motionZ += dir.offsetZ * coeff;
+				}
 
-					List<Entity> affected = worldObj.getEntitiesWithinAABB(Entity.class, AxisAlignedBB.getBoundingBox(xCoord + 0.5 + Math.min(x, 0), yCoord + 0.5 + Math.min(y, 0), zCoord + 0.5 + Math.min(z, 0), xCoord + 0.5 + Math.max(x, 0), yCoord + 0.5 + Math.max(y, 0), zCoord + 0.5 + Math.max(z, 0)).expand(0.5, 0.5, 0.5));
-
-					for(Entity e : affected) {
-
-						double coeff = push;
-
-						if(falloff) {
-							double dist = e.getDistance(xCoord + 0.5, yCoord + 0.5, zCoord + 0.5);
-							coeff *= 1.5 * (1 - dist / range / 2);
-						}
-
-						e.motionX += dir.offsetX * coeff;
-						e.motionY += dir.offsetY * coeff;
-						e.motionZ += dir.offsetZ * coeff;
-					}
-
-					if(worldObj.isRemote && worldObj.rand.nextInt(30) == 0) {
-						double speed = 0.2;
-						worldObj.spawnParticle("cloud", xCoord + 0.5 + dir.offsetX * 0.5, yCoord + 0.5 + dir.offsetY * 0.5, zCoord + 0.5 + dir.offsetZ * 0.5, dir.offsetX * speed, dir.offsetY * speed, dir.offsetZ * speed);
-					}
+				if(worldObj.isRemote && worldObj.rand.nextInt(30) == 0) {
+					double speed = 0.2;
+					worldObj.spawnParticle("cloud", xCoord + 0.5 + dir.offsetX * 0.5, yCoord + 0.5 + dir.offsetY * 0.5, zCoord + 0.5 + dir.offsetZ * 0.5, dir.offsetX * speed, dir.offsetY * speed, dir.offsetZ * speed);
 				}
 
 				this.spin += 30;
